@@ -638,6 +638,7 @@ select option{background:var(--panel)}
     <button class="tbtn hidden" id="btn-clear">Clear</button>
     <button class="tbtn" id="btn-save-pipeline" title="Save pipeline (Ctrl+S) · Save As… (Ctrl+Shift+S)">💾 Save Pipeline</button>
     <button class="tbtn" id="btn-pipeline-to-node" title="Save active pipeline as a reusable node in the PIPELINES library tab">⬡ Save as Node</button>
+    <button class="tbtn" id="btn-load-lib" title="Load a skills library JSON file">⬆ Load Library</button>
     <button class="tbtn" id="btn-save-lib">Save Library</button>
     <button class="tbtn" id="btn-github" title="Push/Pull skill library via GitHub Gist">⎇ GitHub</button>
     <button class="tbtn" id="btn-vault" title="Manage stored credentials" style="color:var(--grn);border-color:rgba(52,211,153,.3)">🔑 Vault</button>
@@ -905,11 +906,7 @@ select option{background:var(--panel)}
   <div class="modal" id="ai-modal">
     <div class="mhd">
       <span class="mtitle">✦ AI GENERATE</span>
-      <div id="ai-mode-tabs" style="display:flex;gap:2px;margin-left:12px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:2px">
-        <button class="out-fmt-tab on" data-mode="skill">Skill</button>
-        <button class="out-fmt-tab" data-mode="pipeline">Pipeline</button>
-        <button class="out-fmt-tab" data-mode="url">URL Fetch</button>
-      </div>
+
       <span style="flex:1"></span>
       <button class="mclose" id="ai-close">✕</button>
     </div>
@@ -957,10 +954,214 @@ const uid=p=>`${p||'n'}${++_uid}`;
 
 /* __SKILLS_START__ */
 let skills=[
-  {id:'post',label:'POST',color:'blue',glyph:'✦',shape:'default',category:'Content',desc:'A single unit of content — the raw material of the pipeline.',tags:[],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
+  /* =========================
+   CORE GPT SYSTEM SKILLS
+   ========================= */
+
+{
+  id: 'problem-framer',
+  label: 'PROBLEM FRAMER',
+  color: 'cyn',
+  glyph: '◈',
+  shape: 'default',
+  category: 'Core',
+  desc: 'Turns raw input into a structured objective with constraints and success criteria.',
+  tags: ['core','planning','input'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'context', label: 'Context', type: 'text' }
+  ],
+  rawContent: "## Role\nConvert vague input into a clear structured objective.\n\n## Output JSON\n{\n  \"goal\": \"\",\n  \"constraints\": [],\n  \"success_criteria\": []\n}",
+  defaultInputs: [{ id: 'in', name: 'Input', type: 'Text' }],
+  defaultOutputs: [{ id: 'out', name: 'Structured Goal', type: 'JSON' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'planner-decomposer',
+  label: 'PLANNER',
+  color: 'blue',
+  glyph: '◈',
+  shape: 'default',
+  category: 'Core',
+  desc: 'Breaks a structured goal into ordered executable steps.',
+  tags: ['core','planning'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [],
+  rawContent: "## Role\nBreak goal into steps.\n\n## Output JSON\n{\n  \"steps\": [\n    {\"id\":1,\"task\":\"\"}\n  ]\n}",
+  defaultInputs: [{ id: 'in', name: 'Goal JSON', type: 'JSON' }],
+  defaultOutputs: [{ id: 'out', name: 'Plan', type: 'JSON' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'content-generator',
+  label: 'CONTENT GENERATOR',
+  color: 'pur',
+  glyph: '✎',
+  shape: 'default',
+  category: 'Content',
+  desc: 'Generates content from structured inputs.',
+  tags: ['content','generation'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'tone', label: 'Tone', type: 'text' },
+    { key: 'format', label: 'Format', type: 'text' }
+  ],
+  rawContent: "## Role\nGenerate content from structured input.\n\n## Instructions\nRespect tone + format.\n\n## Output\nPlain text content.",
+  defaultInputs: [{ id: 'in', name: 'Brief', type: 'JSON' }],
+  defaultOutputs: [{ id: 'out', name: 'Content', type: 'Text' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'content-refiner',
+  label: 'REFINER',
+  color: 'grn',
+  glyph: '✦',
+  shape: 'default',
+  category: 'Content',
+  desc: 'Improves clarity, tone, and effectiveness of content.',
+  tags: ['content','editing'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'goal', label: 'Refinement Goal', type: 'text' }
+  ],
+  rawContent: "## Role\nRefine content.\n\n## Goals\n- Improve clarity\n- Match tone\n- Increase impact",
+  defaultInputs: [{ id: 'in', name: 'Content', type: 'Text' }],
+  defaultOutputs: [{ id: 'out', name: 'Refined', type: 'Text' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'format-transformer',
+  label: 'FORMATTER',
+  color: 'org',
+  glyph: '⇄',
+  shape: 'default',
+  category: 'Content',
+  desc: 'Transforms content into another format or platform.',
+  tags: ['content','transform'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'target', label: 'Target Format', type: 'text' }
+  ],
+  rawContent: "## Role\nConvert content into another format.\n\n## Examples\n- Blog → Tweets\n- Script → Caption",
+  defaultInputs: [{ id: 'in', name: 'Content', type: 'Text' }],
+  defaultOutputs: [{ id: 'out', name: 'Formatted', type: 'Text' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'json-structurer',
+  label: 'JSON STRUCTURER',
+  color: 'cyn',
+  glyph: '{}',
+  shape: 'default',
+  category: 'Utility',
+  desc: 'Converts output into strict JSON schema.',
+  tags: ['utility','data'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'schema', label: 'Schema', type: 'text' }
+  ],
+  rawContent: "## Role\nConvert input into strict JSON format.\n\n## Output\nValid JSON only.",
+  defaultInputs: [{ id: 'in', name: 'Raw Input', type: 'Any' }],
+  defaultOutputs: [{ id: 'out', name: 'JSON', type: 'JSON' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'validator',
+  label: 'VALIDATOR',
+  color: 'red',
+  glyph: '✓',
+  shape: 'default',
+  category: 'Utility',
+  desc: 'Validates content against rules and flags issues.',
+  tags: ['qa','validation'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'rules', label: 'Rules', type: 'text' }
+  ],
+  rawContent: "## Role\nValidate content.\n\n## Output JSON\n{\n  \"valid\": true,\n  \"issues\": []\n}",
+  defaultInputs: [{ id: 'in', name: 'Content', type: 'Text' }],
+  defaultOutputs: [{ id: 'out', name: 'Validation', type: 'JSON' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'platform-adapter',
+  label: 'PLATFORM ADAPTER',
+  color: 'blue',
+  glyph: '⬢',
+  shape: 'default',
+  category: 'Distribution',
+  desc: 'Optimizes content for specific platforms.',
+  tags: ['distribution','social'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [
+    { key: 'platform', label: 'Platform', type: 'text' }
+  ],
+  rawContent: "## Role\nAdapt content for platform constraints.\n\n## Consider\n- Length\n- Tone\n- Formatting",
+  defaultInputs: [{ id: 'in', name: 'Content', type: 'Text' }],
+  defaultOutputs: [{ id: 'out', name: 'Adapted', type: 'Text' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+{
+  id: 'pipeline-generator',
+  label: 'PIPELINE GENERATOR',
+  color: 'acc',
+  glyph: '⬡',
+  shape: 'dashed',
+  category: 'Meta',
+  desc: 'Generates full pipeline structures from goals.',
+  tags: ['meta','builder'],
+  isBuiltin: true,
+  hasIn: true,
+  hasOut: true,
+  fields: [],
+  rawContent: "## Role\nGenerate pipeline nodes and edges.\n\n## Output JSON\n{\n  \"nodes\": [],\n  \"edges\": []\n}",
+  defaultInputs: [{ id: 'in', name: 'Goal', type: 'Text' }],
+  defaultOutputs: [{ id: 'out', name: 'Pipeline JSON', type: 'JSON' }],
+  deps: [],
+  internalGraph: { nodes: [], edges: [] }
+},
+
+  {id:'post',label:'POST',color:'blue',glyph:'✦',shape:'default',category:'Content',desc:'A single unit of content — the raw material of the pipeline.',tags:[], isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
     defaultInputs:[],
     defaultOutputs:[{id:'post-out-content',name:'content',type:'Text'},{id:'post-out-media',name:'media',type:'Image'}],
     fields:[{key:'content',label:'Content',type:'codeeditor',rows:4,ph:'Write your post content…'},{key:'media',label:'Media',type:'medialist'},{key:'tags',label:'Hashtags',type:'text',ph:'#tag1 #tag2'}],
+    hasOut:true,hasIn:false},
+  {id:'text_input',label:'TEXT INPUT',color:'blue',glyph:'✦',shape:'default',category:'Content',desc:'A text input node.',tags:[], isBuiltin:true, rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
+    defaultInputs:[],
+    defaultOutputs:[{id:'text',name:'content',type:'Text'}],
+    fields:[{key:'content',label:'Content',type:'codeeditor',rows:4,ph:'Enter your text here…'}],
     hasOut:true,hasIn:false},
   {id:'collection',label:'COLLECTION',color:'purple',glyph:'◈',shape:'default',category:'Logic',desc:'Groups multiple Post nodes into an ordered or shuffled batch.',tags:[],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
     defaultInputs:[{id:'coll-in-posts',name:'posts',type:'Any'}],
@@ -983,8 +1184,7 @@ let skills=[
     fields:[
       {key:'lang',label:'Language',type:'codeeditor-lang',opts:['Python','JavaScript','TypeScript','Bash','SQL','JSON','YAML','HTML','CSS','Markdown','Ruby','Go','Rust','Java','C#','C++','PHP','Swift','Kotlin','GraphQL','Dockerfile','Terraform','Other']},
       {key:'code',label:'Code',type:'codeeditor',rows:10,ph:'# Write your code here…'},
-    ],
-    hasOut:true,hasIn:true},
+    ], hasOut:true,hasIn:true},
   {id:'graph-input',label:'GRAPH INPUT',color:'grn',glyph:'▶',shape:'default',
     category:'Graph',
     desc:'Exposes parent node inputs as outputs inside this inner graph. Auto-syncs when parent ports change.',
@@ -1207,7 +1407,10 @@ let skills=[
   {id:'de_multibrand',label:'BRANDS COMMAND',color:'purple',glyph:'▷',shape:'ghost',category:'design-extract',desc:'src/multibrand.js — N-site comparison matrix.',tags:['command'],isBuiltin:false,defaultInputs:[{id:'de_multibrand_i0',name:'urls',type:'Text'}],defaultOutputs:[{id:'de_multibrand_o0',name:'matrix_md',type:'File'},{id:'de_multibrand_o1',name:'matrix_html',type:'File'}],deps:[],hasOut:true,hasIn:true,fields:[],rawContent:"// Multi-brand N-site comparison matrix\n\nimport { extractDesignLanguage } from './index.js';\n\nexport async function compareBrands(urls, options = {}) {\n  const brands = [];\n\n  for (const url of urls) {\n    const normalized = url.startsWith('http') ? url : `https://${url}`;\n    try {\n      const design = await extractDesignLanguage(normalized, options);\n      const hostname = new URL(normalized).hostname.replace(/^www\\./, '');\n      brands.push({ url: normalized, hostname, design });\n    } catch (err) {\n      brands.push({ url: normalized, hostname: url, error: err.message });\n    }\n  }\n\n  return brands;\n}\n\nexport function formatBrandMatrix(brands) {\n  const lines = [];\n  const valid = brands.filter(b => !b.error);\n\n  lines.push('# Multi-Brand Design Comparison');\n  lines.push('');\n  lines.push(`Comparing ${valid.length} brands.`);\n  lines.push('');\n\n  // Overview table\n  const headers = ['Property', ...valid.map(b => b.hostname)];\n  lines.push(`| ${headers.join(' | ')} |`);\n  lines.push(`| ${headers.map(() => '---').join(' | ')} |`);\n\n  // Primary color\n  lines.push(`| Primary Color | ${valid.map(b => `\\`${b.design.colors.primary?.hex || 'none'}\\``).join(' | ')} |`);\n  // Secondary color\n  lines.push(`| Secondary Color | ${valid.map(b => `\\`${b.design.colors.secondary?.hex || 'none'}\\``).join(' | ')} |`);\n  // Fonts\n  lines.push(`| Fonts | ${valid.map(b => b.design.typography.families.map(f => f.name).join(', ') || 'none').join(' | ')} |`);\n  // Color count\n  lines.push(`| Color Count | ${valid.map(b => b.design.colors.all.length).join(' | ')} |`);\n  // Spacing base\n  lines.push(`| Spacing Base | ${valid.map(b => b.design.spacing.base ? `${b.design.spacing.base}px` : 'none').join(' | ')} |`);\n  // A11y score\n  lines.push(`| A11y Score | ${valid.map(b => b.design.accessibility ? `${b.design.accessibility.score}%` : 'n/a').join(' | ')} |`);\n  // Shadows\n  lines.push(`| Shadows | ${valid.map(b => b.design.shadows.values.length).join(' | ')} |`);\n  // Radii\n  lines.push(`| Border Radii | ${valid.map(b => b.design.borders.radii.length).join(' | ')} |`);\n  // CSS vars\n  lines.push(`| CSS Variables | ${valid.map(b => Object.values(b.design.variables).reduce((s, v) => s + Object.keys(v).length, 0)).join(' | ')} |`);\n  // Components\n  lines.push(`| Components | ${valid.map(b => Object.keys(b.design.components).join(', ') || 'none').join(' | ')} |`);\n\n  lines.push('');\n\n  // Color overlap matrix\n  lines.push('## Color Overlap');\n  lines.push('');\n  if (valid.length >= 2) {\n    for (let i = 0; i \u003c valid.length; i++) {\n      for (let j = i + 1; j \u003c valid.length; j++) {\n        const colorsA = new Set(valid[i].design.colors.all.map(c => c.hex));\n        const colorsB = new Set(valid[j].design.colors.all.map(c => c.hex));\n        const shared = [...colorsA].filter(c => colorsB.has(c));\n        lines.push(`**${valid[i].hostname} vs ${valid[j].hostname}:** ${shared.length} shared colors${shared.length > 0 ? ` (${shared.slice(0, 5).map(c => `\\`${c}\\``).join(', ')})` : ''}`);\n      }\n    }\n    lines.push('');\n  }\n\n  // Font comparison\n  lines.push('## Typography Comparison');\n  lines.push('');\n  const allFonts = new Set();\n  for (const b of valid) {\n    for (const f of b.design.typography.families) allFonts.add(f.name);\n  }\n  lines.push(`| Font | ${valid.map(b => b.hostname).join(' | ')} |`);\n  lines.push(`| --- | ${valid.map(() => '---').join(' | ')} |`);\n  for (const font of allFonts) {\n    lines.push(`| ${font} | ${valid.map(b => b.design.typography.families.some(f => f.name === font) ? 'Yes' : '-').join(' | ')} |`);\n  }\n  lines.push('');\n\n  // Errors\n  const errored = brands.filter(b => b.error);\n  if (errored.length > 0) {\n    lines.push('## Errors');\n    lines.push('');\n    for (const b of errored) {\n      lines.push(`- **${b.url}**: ${b.error}`);\n    }\n    lines.push('');\n  }\n\n  return lines.join('\\n');\n}\n\nexport function formatBrandMatrixHtml(brands) {\n  const valid = brands.filter(b => !b.error);\n\n  const swatchCell = (hex) => hex\n    ? `\u003ctd>\u003cspan style=\"display:inline-block;width:16px;height:16px;border-radius:4px;background:${hex};border:1px solid #333;vertical-align:middle;margin-right:6px\">\u003c/span>\u003ccode>${hex}\u003c/code>\u003c/td>`\n    : `\u003ctd>-\u003c/td>`;\n\n  return `\u003c!DOCTYPE html>\n\u003chtml>\u003chead>\u003cmeta charset=\"UTF-8\">\u003ctitle>Multi-Brand Comparison\u003c/title>\n\u003cstyle>\n  * { margin:0; padding:0; box-sizing:border-box; }\n  body { font-family:-apple-system,sans-serif; background:#0a0a0a; color:#e5e5e5; padding:40px; }\n  h1 { font-size:28px; color:#fff; margin-bottom:24px; }\n  h2 { font-size:18px; color:#fff; margin:32px 0 12px; }\n  table { width:100%; border-collapse:collapse; margin:12px 0; }\n  th { text-align:left; padding:10px 12px; background:#141414; color:#888; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #222; }\n  td { padding:10px 12px; border-bottom:1px solid #1a1a1a; font-size:13px; }\n  tr:hover td { background:#111; }\n  code { background:#1e1e2e; padding:2px 6px; border-radius:4px; font-size:12px; color:#a78bfa; }\n  .score-good { color:#22c55e; } .score-warn { color:#eab308; } .score-bad { color:#ef4444; }\n\u003c/style>\u003c/head>\u003cbody>\n\u003ch1>Multi-Brand Design Comparison\u003c/h1>\n\u003cp style=\"color:#666;margin-bottom:24px\">${valid.length} brands analyzed\u003c/p>\n\n\u003ctable>\n\u003ctr>\u003cth>Property\u003c/th>${valid.map(b => `\u003cth>${b.hostname}\u003c/th>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Primary Color\u003c/td>${valid.map(b => swatchCell(b.design.colors.primary?.hex)).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Secondary Color\u003c/td>${valid.map(b => swatchCell(b.design.colors.secondary?.hex)).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Fonts\u003c/td>${valid.map(b => `\u003ctd>${b.design.typography.families.map(f => `\u003ccode>${f.name}\u003c/code>`).join(' ')}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Colors\u003c/td>${valid.map(b => `\u003ctd>${b.design.colors.all.length}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Spacing Base\u003c/td>${valid.map(b => `\u003ctd>${b.design.spacing.base ? b.design.spacing.base + 'px' : '-'}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>A11y Score\u003c/td>${valid.map(b => {\n    const s = b.design.accessibility?.score;\n    const cls = s >= 80 ? 'score-good' : s >= 50 ? 'score-warn' : 'score-bad';\n    return `\u003ctd class=\"${cls}\">${s ?? 'n/a'}%\u003c/td>`;\n  }).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Shadows\u003c/td>${valid.map(b => `\u003ctd>${b.design.shadows.values.length}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Border Radii\u003c/td>${valid.map(b => `\u003ctd>${b.design.borders.radii.length}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>CSS Variables\u003c/td>${valid.map(b => `\u003ctd>${Object.values(b.design.variables).reduce((s, v) => s + Object.keys(v).length, 0)}\u003c/td>`).join('')}\u003c/tr>\n\u003c/table>\n\n\u003ch2>Full Color Palettes\u003c/h2>\n${valid.map(b => `\n\u003ch3 style=\"color:#888;font-size:14px;margin:16px 0 8px\">${b.hostname}\u003c/h3>\n\u003cdiv style=\"display:flex;gap:4px;flex-wrap:wrap\">\n${b.design.colors.all.slice(0, 15).map(c => `\u003cdiv style=\"width:32px;height:32px;border-radius:6px;background:${c.hex};border:1px solid #333\" title=\"${c.hex}\">\u003c/div>`).join('')}\n\u003c/div>`).join('')}\n\n\u003c/body>\u003c/html>`;\n}",internalGraph:{nodes:[{id:'de_multibrand_n1',type:null,skillId:'code',x:60,y:60,values:{lang:'JavaScript',code:"// Multi-brand N-site comparison matrix\n\nimport { extractDesignLanguage } from './index.js';\n\nexport async function compareBrands(urls, options = {}) {\n  const brands = [];\n\n  for (const url of urls) {\n    const normalized = url.startsWith('http') ? url : `https://${url}`;\n    try {\n      const design = await extractDesignLanguage(normalized, options);\n      const hostname = new URL(normalized).hostname.replace(/^www\\./, '');\n      brands.push({ url: normalized, hostname, design });\n    } catch (err) {\n      brands.push({ url: normalized, hostname: url, error: err.message });\n    }\n  }\n\n  return brands;\n}\n\nexport function formatBrandMatrix(brands) {\n  const lines = [];\n  const valid = brands.filter(b => !b.error);\n\n  lines.push('# Multi-Brand Design Comparison');\n  lines.push('');\n  lines.push(`Comparing ${valid.length} brands.`);\n  lines.push('');\n\n  // Overview table\n  const headers = ['Property', ...valid.map(b => b.hostname)];\n  lines.push(`| ${headers.join(' | ')} |`);\n  lines.push(`| ${headers.map(() => '---').join(' | ')} |`);\n\n  // Primary color\n  lines.push(`| Primary Color | ${valid.map(b => `\\`${b.design.colors.primary?.hex || 'none'}\\``).join(' | ')} |`);\n  // Secondary color\n  lines.push(`| Secondary Color | ${valid.map(b => `\\`${b.design.colors.secondary?.hex || 'none'}\\``).join(' | ')} |`);\n  // Fonts\n  lines.push(`| Fonts | ${valid.map(b => b.design.typography.families.map(f => f.name).join(', ') || 'none').join(' | ')} |`);\n  // Color count\n  lines.push(`| Color Count | ${valid.map(b => b.design.colors.all.length).join(' | ')} |`);\n  // Spacing base\n  lines.push(`| Spacing Base | ${valid.map(b => b.design.spacing.base ? `${b.design.spacing.base}px` : 'none').join(' | ')} |`);\n  // A11y score\n  lines.push(`| A11y Score | ${valid.map(b => b.design.accessibility ? `${b.design.accessibility.score}%` : 'n/a').join(' | ')} |`);\n  // Shadows\n  lines.push(`| Shadows | ${valid.map(b => b.design.shadows.values.length).join(' | ')} |`);\n  // Radii\n  lines.push(`| Border Radii | ${valid.map(b => b.design.borders.radii.length).join(' | ')} |`);\n  // CSS vars\n  lines.push(`| CSS Variables | ${valid.map(b => Object.values(b.design.variables).reduce((s, v) => s + Object.keys(v).length, 0)).join(' | ')} |`);\n  // Components\n  lines.push(`| Components | ${valid.map(b => Object.keys(b.design.components).join(', ') || 'none').join(' | ')} |`);\n\n  lines.push('');\n\n  // Color overlap matrix\n  lines.push('## Color Overlap');\n  lines.push('');\n  if (valid.length >= 2) {\n    for (let i = 0; i \u003c valid.length; i++) {\n      for (let j = i + 1; j \u003c valid.length; j++) {\n        const colorsA = new Set(valid[i].design.colors.all.map(c => c.hex));\n        const colorsB = new Set(valid[j].design.colors.all.map(c => c.hex));\n        const shared = [...colorsA].filter(c => colorsB.has(c));\n        lines.push(`**${valid[i].hostname} vs ${valid[j].hostname}:** ${shared.length} shared colors${shared.length > 0 ? ` (${shared.slice(0, 5).map(c => `\\`${c}\\``).join(', ')})` : ''}`);\n      }\n    }\n    lines.push('');\n  }\n\n  // Font comparison\n  lines.push('## Typography Comparison');\n  lines.push('');\n  const allFonts = new Set();\n  for (const b of valid) {\n    for (const f of b.design.typography.families) allFonts.add(f.name);\n  }\n  lines.push(`| Font | ${valid.map(b => b.hostname).join(' | ')} |`);\n  lines.push(`| --- | ${valid.map(() => '---').join(' | ')} |`);\n  for (const font of allFonts) {\n    lines.push(`| ${font} | ${valid.map(b => b.design.typography.families.some(f => f.name === font) ? 'Yes' : '-').join(' | ')} |`);\n  }\n  lines.push('');\n\n  // Errors\n  const errored = brands.filter(b => b.error);\n  if (errored.length > 0) {\n    lines.push('## Errors');\n    lines.push('');\n    for (const b of errored) {\n      lines.push(`- **${b.url}**: ${b.error}`);\n    }\n    lines.push('');\n  }\n\n  return lines.join('\\n');\n}\n\nexport function formatBrandMatrixHtml(brands) {\n  const valid = brands.filter(b => !b.error);\n\n  const swatchCell = (hex) => hex\n    ? `\u003ctd>\u003cspan style=\"display:inline-block;width:16px;height:16px;border-radius:4px;background:${hex};border:1px solid #333;vertical-align:middle;margin-right:6px\">\u003c/span>\u003ccode>${hex}\u003c/code>\u003c/td>`\n    : `\u003ctd>-\u003c/td>`;\n\n  return `\u003c!DOCTYPE html>\n\u003chtml>\u003chead>\u003cmeta charset=\"UTF-8\">\u003ctitle>Multi-Brand Comparison\u003c/title>\n\u003cstyle>\n  * { margin:0; padding:0; box-sizing:border-box; }\n  body { font-family:-apple-system,sans-serif; background:#0a0a0a; color:#e5e5e5; padding:40px; }\n  h1 { font-size:28px; color:#fff; margin-bottom:24px; }\n  h2 { font-size:18px; color:#fff; margin:32px 0 12px; }\n  table { width:100%; border-collapse:collapse; margin:12px 0; }\n  th { text-align:left; padding:10px 12px; background:#141414; color:#888; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #222; }\n  td { padding:10px 12px; border-bottom:1px solid #1a1a1a; font-size:13px; }\n  tr:hover td { background:#111; }\n  code { background:#1e1e2e; padding:2px 6px; border-radius:4px; font-size:12px; color:#a78bfa; }\n  .score-good { color:#22c55e; } .score-warn { color:#eab308; } .score-bad { color:#ef4444; }\n\u003c/style>\u003c/head>\u003cbody>\n\u003ch1>Multi-Brand Design Comparison\u003c/h1>\n\u003cp style=\"color:#666;margin-bottom:24px\">${valid.length} brands analyzed\u003c/p>\n\n\u003ctable>\n\u003ctr>\u003cth>Property\u003c/th>${valid.map(b => `\u003cth>${b.hostname}\u003c/th>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Primary Color\u003c/td>${valid.map(b => swatchCell(b.design.colors.primary?.hex)).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Secondary Color\u003c/td>${valid.map(b => swatchCell(b.design.colors.secondary?.hex)).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Fonts\u003c/td>${valid.map(b => `\u003ctd>${b.design.typography.families.map(f => `\u003ccode>${f.name}\u003c/code>`).join(' ')}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Colors\u003c/td>${valid.map(b => `\u003ctd>${b.design.colors.all.length}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Spacing Base\u003c/td>${valid.map(b => `\u003ctd>${b.design.spacing.base ? b.design.spacing.base + 'px' : '-'}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>A11y Score\u003c/td>${valid.map(b => {\n    const s = b.design.accessibility?.score;\n    const cls = s >= 80 ? 'score-good' : s >= 50 ? 'score-warn' : 'score-bad';\n    return `\u003ctd class=\"${cls}\">${s ?? 'n/a'}%\u003c/td>`;\n  }).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Shadows\u003c/td>${valid.map(b => `\u003ctd>${b.design.shadows.values.length}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>Border Radii\u003c/td>${valid.map(b => `\u003ctd>${b.design.borders.radii.length}\u003c/td>`).join('')}\u003c/tr>\n\u003ctr>\u003ctd>CSS Variables\u003c/td>${valid.map(b => `\u003ctd>${Object.values(b.design.variables).reduce((s, v) => s + Object.keys(v).length, 0)}\u003c/td>`).join('')}\u003c/tr>\n\u003c/table>\n\n\u003ch2>Full Color Palettes\u003c/h2>\n${valid.map(b => `\n\u003ch3 style=\"color:#888;font-size:14px;margin:16px 0 8px\">${b.hostname}\u003c/h3>\n\u003cdiv style=\"display:flex;gap:4px;flex-wrap:wrap\">\n${b.design.colors.all.slice(0, 15).map(c => `\u003cdiv style=\"width:32px;height:32px;border-radius:6px;background:${c.hex};border:1px solid #333\" title=\"${c.hex}\">\u003c/div>`).join('')}\n\u003c/div>`).join('')}\n\n\u003c/body>\u003c/html>`;\n}"},title:'src/multibrand.js',inputs:[{id:'de_multibrand_i0',name:'urls',type:'Text'}],outputs:[{id:'de_multibrand_o0',name:'matrix_md',type:'File'},{id:'de_multibrand_o1',name:'matrix_html',type:'File'}]}],edges:[]}},
   {id:'de_apply',label:'APPLY COMMAND',color:'cyn',glyph:'▷',shape:'ghost',category:'design-extract',desc:'src/apply.js — extract and patch project files.',tags:['command'],isBuiltin:false,defaultInputs:[{id:'de_apply_i0',name:'url',type:'Text'},{id:'de_apply_i1',name:'dir',type:'Text'}],defaultOutputs:[{id:'de_apply_o0',name:'appliedFiles',type:'File'}],deps:[],hasOut:true,hasIn:true,fields:[],rawContent:"import { existsSync, readFileSync, writeFileSync } from 'fs';\nimport { join } from 'path';\nimport { extractDesignLanguage } from './index.js';\nimport { formatTailwind } from './formatters/tailwind.js';\nimport { formatCssVars } from './formatters/css-vars.js';\nimport { formatShadcnTheme } from './formatters/theme.js';\n\nexport async function applyDesign(url, options = {}) {\n  const { dir = '.', framework } = options;\n  const design = await extractDesignLanguage(url, options);\n  const detected = framework || detectFramework(dir);\n  const applied = [];\n\n  if (detected === 'tailwind' || detected === 'auto') {\n    const twPath = findFile(dir, ['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.mjs']);\n    if (twPath) {\n      writeFileSync(twPath, formatTailwind(design), 'utf-8');\n      applied.push({ file: twPath, type: 'tailwind' });\n    }\n  }\n\n  if (detected === 'shadcn' || detected === 'auto') {\n    const globalsPath = findFile(dir, [\n      'app/globals.css', 'src/app/globals.css', 'styles/globals.css',\n      'src/styles/globals.css', 'src/index.css', 'app/global.css',\n    ]);\n    if (globalsPath) {\n      const existing = readFileSync(globalsPath, 'utf-8');\n      const shadcnVars = formatShadcnTheme(design);\n      // Replace existing @layer base block or append\n      const layerRegex = /@layer\\s+base\\s*\\{[\\s\\S]*?\\n\\}/;\n      const updated = layerRegex.test(existing)\n        ? existing.replace(layerRegex, shadcnVars)\n        : existing + '\\n\\n' + shadcnVars;\n      writeFileSync(globalsPath, updated, 'utf-8');\n      applied.push({ file: globalsPath, type: 'shadcn' });\n    }\n  }\n\n  if (detected === 'css' || detected === 'auto') {\n    const cssVarsContent = formatCssVars(design);\n    const cssPath = join(dir, 'design-variables.css');\n    writeFileSync(cssPath, cssVarsContent, 'utf-8');\n    applied.push({ file: cssPath, type: 'css-variables' });\n  }\n\n  return { design, applied, framework: detected };\n}\n\nfunction detectFramework(dir) {\n  if (findFile(dir, ['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.mjs'])) {\n    // Check for shadcn\n    if (findFile(dir, ['components.json'])) return 'shadcn';\n    return 'tailwind';\n  }\n  return 'auto';\n}\n\nfunction findFile(dir, candidates) {\n  for (const c of candidates) {\n    const p = join(dir, c);\n    if (existsSync(p)) return p;\n  }\n  return null;\n}",internalGraph:{nodes:[{id:'de_apply_n1',type:null,skillId:'code',x:60,y:60,values:{lang:'JavaScript',code:"import { existsSync, readFileSync, writeFileSync } from 'fs';\nimport { join } from 'path';\nimport { extractDesignLanguage } from './index.js';\nimport { formatTailwind } from './formatters/tailwind.js';\nimport { formatCssVars } from './formatters/css-vars.js';\nimport { formatShadcnTheme } from './formatters/theme.js';\n\nexport async function applyDesign(url, options = {}) {\n  const { dir = '.', framework } = options;\n  const design = await extractDesignLanguage(url, options);\n  const detected = framework || detectFramework(dir);\n  const applied = [];\n\n  if (detected === 'tailwind' || detected === 'auto') {\n    const twPath = findFile(dir, ['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.mjs']);\n    if (twPath) {\n      writeFileSync(twPath, formatTailwind(design), 'utf-8');\n      applied.push({ file: twPath, type: 'tailwind' });\n    }\n  }\n\n  if (detected === 'shadcn' || detected === 'auto') {\n    const globalsPath = findFile(dir, [\n      'app/globals.css', 'src/app/globals.css', 'styles/globals.css',\n      'src/styles/globals.css', 'src/index.css', 'app/global.css',\n    ]);\n    if (globalsPath) {\n      const existing = readFileSync(globalsPath, 'utf-8');\n      const shadcnVars = formatShadcnTheme(design);\n      // Replace existing @layer base block or append\n      const layerRegex = /@layer\\s+base\\s*\\{[\\s\\S]*?\\n\\}/;\n      const updated = layerRegex.test(existing)\n        ? existing.replace(layerRegex, shadcnVars)\n        : existing + '\\n\\n' + shadcnVars;\n      writeFileSync(globalsPath, updated, 'utf-8');\n      applied.push({ file: globalsPath, type: 'shadcn' });\n    }\n  }\n\n  if (detected === 'css' || detected === 'auto') {\n    const cssVarsContent = formatCssVars(design);\n    const cssPath = join(dir, 'design-variables.css');\n    writeFileSync(cssPath, cssVarsContent, 'utf-8');\n    applied.push({ file: cssPath, type: 'css-variables' });\n  }\n\n  return { design, applied, framework: detected };\n}\n\nfunction detectFramework(dir) {\n  if (findFile(dir, ['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.mjs'])) {\n    // Check for shadcn\n    if (findFile(dir, ['components.json'])) return 'shadcn';\n    return 'tailwind';\n  }\n  return 'auto';\n}\n\nfunction findFile(dir, candidates) {\n  for (const c of candidates) {\n    const p = join(dir, c);\n    if (existsSync(p)) return p;\n  }\n  return null;\n}"},title:'src/apply.js',inputs:[{id:'de_apply_i0',name:'url',type:'Text'},{id:'de_apply_i1',name:'dir',type:'Text'}],outputs:[{id:'de_apply_o0',name:'appliedFiles',type:'File'}]}],edges:[]}},
   {id:'de_darkdiff',label:'DARK MODE DIFF',color:'dimHi',glyph:'▷',shape:'ghost',category:'design-extract',desc:'src/darkdiff.js — light vs dark mode diff.',tags:['command'],isBuiltin:false,defaultInputs:[{id:'de_darkdiff_i0',name:'url',type:'Text'}],defaultOutputs:[{id:'de_darkdiff_o0',name:'darkDiff',type:'JSON'}],deps:[],hasOut:true,hasIn:true,fields:[],rawContent:"export function diffDarkMode(lightDesign, darkDesign) {\n  const changes = [];\n\n  // Color changes\n  const lightColors = new Set(lightDesign.colors.all.map(c => c.hex));\n  const darkColors = new Set(darkDesign.colors.all.map(c => c.hex));\n\n  const addedInDark = darkDesign.colors.all.filter(c => !lightColors.has(c.hex));\n  const removedInDark = lightDesign.colors.all.filter(c => !darkColors.has(c.hex));\n\n  if (addedInDark.length > 0 || removedInDark.length > 0) {\n    changes.push({\n      category: 'colors',\n      light: lightDesign.colors.all.length,\n      dark: darkDesign.colors.all.length,\n      added: addedInDark.map(c => c.hex),\n      removed: removedInDark.map(c => c.hex),\n    });\n  }\n\n  // CSS variable changes\n  const lightVars = flattenVars(lightDesign.variables);\n  const darkVars = flattenVars(darkDesign.variables);\n  const varChanges = [];\n\n  for (const [key, lightVal] of Object.entries(lightVars)) {\n    const darkVal = darkVars[key];\n    if (darkVal && darkVal !== lightVal) {\n      varChanges.push({ name: key, light: lightVal, dark: darkVal });\n    }\n  }\n  const newDarkVars = Object.entries(darkVars)\n    .filter(([key]) => !lightVars[key])\n    .map(([name, dark]) => ({ name, light: null, dark }));\n\n  if (varChanges.length > 0 || newDarkVars.length > 0) {\n    changes.push({\n      category: 'cssVariables',\n      changed: varChanges,\n      newInDark: newDarkVars,\n    });\n  }\n\n  return {\n    hasChanges: changes.length > 0,\n    changes,\n    summary: {\n      colorsChanged: (addedInDark.length + removedInDark.length) || 0,\n      variablesChanged: varChanges.length,\n      newDarkVariables: newDarkVars.length,\n    },\n  };\n}\n\nfunction flattenVars(variables) {\n  const flat = {};\n  for (const [, group] of Object.entries(variables)) {\n    if (typeof group === 'object') {\n      for (const [key, val] of Object.entries(group)) {\n        flat[key] = val;\n      }\n    }\n  }\n  return flat;\n}",internalGraph:{nodes:[{id:'de_darkdiff_n1',type:null,skillId:'code',x:60,y:60,values:{lang:'JavaScript',code:"export function diffDarkMode(lightDesign, darkDesign) {\n  const changes = [];\n\n  // Color changes\n  const lightColors = new Set(lightDesign.colors.all.map(c => c.hex));\n  const darkColors = new Set(darkDesign.colors.all.map(c => c.hex));\n\n  const addedInDark = darkDesign.colors.all.filter(c => !lightColors.has(c.hex));\n  const removedInDark = lightDesign.colors.all.filter(c => !darkColors.has(c.hex));\n\n  if (addedInDark.length > 0 || removedInDark.length > 0) {\n    changes.push({\n      category: 'colors',\n      light: lightDesign.colors.all.length,\n      dark: darkDesign.colors.all.length,\n      added: addedInDark.map(c => c.hex),\n      removed: removedInDark.map(c => c.hex),\n    });\n  }\n\n  // CSS variable changes\n  const lightVars = flattenVars(lightDesign.variables);\n  const darkVars = flattenVars(darkDesign.variables);\n  const varChanges = [];\n\n  for (const [key, lightVal] of Object.entries(lightVars)) {\n    const darkVal = darkVars[key];\n    if (darkVal && darkVal !== lightVal) {\n      varChanges.push({ name: key, light: lightVal, dark: darkVal });\n    }\n  }\n  const newDarkVars = Object.entries(darkVars)\n    .filter(([key]) => !lightVars[key])\n    .map(([name, dark]) => ({ name, light: null, dark }));\n\n  if (varChanges.length > 0 || newDarkVars.length > 0) {\n    changes.push({\n      category: 'cssVariables',\n      changed: varChanges,\n      newInDark: newDarkVars,\n    });\n  }\n\n  return {\n    hasChanges: changes.length > 0,\n    changes,\n    summary: {\n      colorsChanged: (addedInDark.length + removedInDark.length) || 0,\n      variablesChanged: varChanges.length,\n      newDarkVariables: newDarkVars.length,\n    },\n  };\n}\n\nfunction flattenVars(variables) {\n  const flat = {};\n  for (const [, group] of Object.entries(variables)) {\n    if (typeof group === 'object') {\n      for (const [key, val] of Object.entries(group)) {\n        flat[key] = val;\n      }\n    }\n  }\n  return flat;\n}"},title:'src/darkdiff.js',inputs:[{id:'de_darkdiff_i0',name:'url',type:'Text'}],outputs:[{id:'de_darkdiff_o0',name:'darkDiff',type:'JSON'}]}],edges:[]}}
+
 ];
+
+
 /* __SKILLS_END__ */
 
 // ═══════════════════════════════════════════════════════════
@@ -1246,22 +1449,6 @@ let activePipelineId=pipelines.length?pipelines[0].id:null;
 
 // Advance _uid past every id already in loaded data so new uid() calls never collide.
 // Scans node ids, edge ids, and port ids across all pipelines and all stack frames.
-(function syncUid(){
-  const re=/^[a-z]+(\d+)$/;
-  function scan(str){const m=(str||'').match(re);if(m){const n=parseInt(m[1],10);if(n>_uid)_uid=n;}}
-  function scanFrame(f){
-    (f.nodes||[]).forEach(n=>{
-      scan(n.id);
-      (n.inputs||[]).forEach(p2=>scan(p2.id));
-      (n.outputs||[]).forEach(p2=>scan(p2.id));
-    });
-    (f.edges||[]).forEach(e=>scan(e.id));
-  }
-  pipelines.forEach(p=>{scan(p.id);(p.stack||[]).forEach(scanFrame);});
-  try{const closed=JSON.parse(localStorage.getItem('pb_pl_closed')||'[]');
-    closed.forEach(p=>{scan(p.id);(p.stack||[]).forEach(scanFrame);});}catch(e){}
-  if(typeof skills!=='undefined')skills.forEach(s=>scan(s.id));
-})();
 
 function activePipeline(){return pipelines.find(p=>p.id===activePipelineId)||pipelines[0]||null;}
 
@@ -1409,28 +1596,6 @@ function downloadPipeline(p){
 
 // ── Save to a chosen file (File System Access API) ────────
 // p.fileHandle is retained across saves so Ctrl+S silently overwrites.
-async function savePipelineToFile(id){
-  const p=pipelines.find(x=>x.id===id);if(!p)return;
-  if(!window.showSaveFilePicker){downloadPipeline(p);return;}
-  try{
-    if(!p.fileHandle){
-      p.fileHandle=await window.showSaveFilePicker({
-        suggestedName:(p.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.pipeline.json',
-        types:[{description:'Pipeline JSON',accept:{'application/json':['.json','.pipeline.json']}}]
-      });
-    }
-    const writable=await p.fileHandle.createWritable();
-    await writable.write(pipelinePayload(p));
-    await writable.close();
-    p.saved=true;p.fileBacked=true;savePipelines();renderPipelineTabs();
-    flashBtn('btn-save-pipeline','✓ Saved','💾 Save Pipeline');
-  }catch(e){
-    if(e.name==='AbortError')return;
-    // Handle permission errors by clearing the handle and retrying
-    p.fileHandle=null;
-    downloadPipeline(p);
-  }
-}
 
 // ── Save As — always show picker ──────────────────────────
 async function savePipelineAs(id){
@@ -1884,6 +2049,9 @@ let activeTab='content';
 let activeFilterTag=null;
 const getSk=id=>skills.find(s=>s.id===id);
 const nodeSk=n=>getSk(n.type||n.skillId);
+
+function safeStore(key,val){try{localStorage.setItem(key,typeof val==='string'?val:JSON.stringify(val));}catch(e){}}
+function safeStoreRemove(key){try{localStorage.removeItem(key);}catch(e){}}
 
 // Grid snapping
 const SNAP_SIZE=26;
@@ -2351,12 +2519,6 @@ function buildNode(node){
     const lbl=document.createElement('span');lbl.className='port-lbl';lbl.textContent=port.name||'in';
     row.appendChild(dot);row.appendChild(lbl);inCol.appendChild(row);
   });
-  // Legacy single in-port if no named inputs but sk.hasIn
-  if(!node.inputs.length&&sk.hasIn){
-    const row=document.createElement('div');row.className='port-row in-row';
-    row.appendChild(mkPort('in',node,color));inCol.appendChild(row);
-  }
-
   // Right col — outputs
   const outCol=document.createElement('div');outCol.className='node-ports-col port-out-col';
   node.outputs.forEach(port=>{
@@ -2365,11 +2527,6 @@ function buildNode(node){
     const lbl=document.createElement('span');lbl.className='port-lbl out-lbl';lbl.textContent=port.name||'out';
     row.appendChild(dot);row.appendChild(lbl);outCol.appendChild(row);
   });
-  // Legacy single out-port if no named outputs but sk.hasOut
-  if(!node.outputs.length&&sk.hasOut){
-    const row=document.createElement('div');row.className='port-row out-row';
-    row.appendChild(mkPort('out',node,color));outCol.appendChild(row);
-  }
 
   portsWrap.appendChild(inCol);portsWrap.appendChild(outCol);
   el.appendChild(portsWrap);
@@ -2397,6 +2554,8 @@ function mkNamedPort(side,node,color,portObj){
       if(!conn)return;
       const fromId=conn.fromId;
       if(fromId!==node.id&&!getEdges().find(ed=>ed.from===fromId&&ed.to===node.id&&ed.fromPort===conn.fromPort&&ed.toPort===portObj.id)){
+        // Block connection if it would create a cycle
+        if(wouldCycle(frame().nodes,frame().edges,fromId,node.id)){clearConn();renderEdges();return;}
         const eid=uid('e');
         pushHistory();frame().edges.push({id:eid,from:fromId,to:node.id,fromPort:conn.fromPort,toPort:portObj.id});markPipelineDirty(activePipelineId);
         clearConn();renderEdges(eid);
@@ -2426,46 +2585,6 @@ function mkNamedPort(side,node,color,portObj){
 }
 
 // Legacy single port (used when no named ports defined)
-function mkPort(side,node,color){
-  const p=document.createElement('div');
-  p.className='port port-'+side;p.dataset.side=side;p.dataset.nid=node.id;
-  p.innerHTML='<div class="port-dot"></div>';
-  p.addEventListener('pointerenter',()=>{
-    if(side==='in'&&conn&&conn.fromId!==node.id)p.classList.add('ready');
-    else if(!p.classList.contains('hot'))p.style.borderColor=color;
-  });
-  p.addEventListener('pointerleave',()=>{
-    p.classList.remove('ready');
-    if(!p.classList.contains('hot'))p.style.borderColor='';
-  });
-  function completeLegacyConn(e){
-    if(side==='in'){
-      e.stopPropagation();
-      if(!conn)return;
-      const fromId=conn.fromId;
-      if(fromId!==node.id&&!getEdges().find(ed=>ed.from===fromId&&ed.to===node.id)){
-        const eid=uid('e');
-        pushHistory();frame().edges.push({id:eid,from:fromId,to:node.id});markPipelineDirty(activePipelineId);
-        clearConn();renderEdges(eid);
-      }else{clearConn();}
-    }
-  }
-  p.addEventListener('pointerdown',e=>{
-    e.stopPropagation();if(e.button!==0)return;
-    if(side==='out'){
-      clearConn();conn={fromId:node.id};
-      const pos=portPos(node,'out');conn.ox=pos.x;conn.oy=pos.y;
-      p.classList.add('hot');
-      scene.querySelectorAll('.port-in').forEach(ip=>{if(ip.dataset.nid!==node.id)ip.classList.add('ready');});
-      document.getElementById('conn-hint').style.display='block';
-    }else{
-      completeLegacyConn(e);
-    }
-  });
-  // Also complete on pointerup so drag-and-release works
-  p.addEventListener('pointerup',e=>{if(e.button!==0)return;completeLegacyConn(e);});
-  return p;
-}
 
 function clearConn(){
   conn=null;clearPending();
@@ -3076,6 +3195,7 @@ document.getElementById('btn-pipeline-to-node').addEventListener('click',()=>{
   const p=activePipeline();if(!p)return;
   if(p.id===activePipelineId)p.stack=canvasStack;
   const sk=pipelineToSkill(p);
+  renderLib();
   flashBtn('btn-pipeline-to-node','✓ Saved to PIPELINES tab','⬡ Save as Node');
   // Switch to pipelines tab so user can see it
   activeLibTab='pipelines';
@@ -3434,7 +3554,7 @@ function renderInspector(){
         w.className='code-lang-bar';w.style.marginBottom='4px';
         const lspan=document.createElement('span');lspan.className='flbl';lspan.style.marginBottom='0';lspan.textContent='Language';w.appendChild(lspan);
         const sel=document.createElement('select');sel.className='code-lang-sel';
-        sel.innerHTML=(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');
+        (f.opts||[]).forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;if(canvasNode.values?.[f.key]===o)opt.selected=true;sel.appendChild(opt);});
         sel.addEventListener('change',()=>{canvasNode.values[f.key]=sel.value;rebuildNode(canvasNode);});
         w.appendChild(sel);ifields.appendChild(w);return;
       }
@@ -3470,7 +3590,7 @@ function renderInspector(){
       else if(f.type==='codeeditor-lang'){
         // Language selector — rendered as a styled select, no label wrapper needed
         ctrl=document.createElement('select');ctrl.className='code-lang-sel';
-        ctrl.innerHTML=(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');
+        (f.opts||[]).forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;if(canvasNode.values?.[f.key]===o)opt.selected=true;ctrl.appendChild(opt);});
         ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});
       }
       else if(f.type==='codeeditor'){
@@ -3630,7 +3750,7 @@ function renderLib(){
     filtered.forEach(sk=>{const c=sk.category||'Uncategorized';if(!groups[c])groups[c]=[];groups[c].push(sk);});
     Object.entries(groups).sort().forEach(([cat,sks])=>{
       const h=document.createElement('div');h.className='sec-hdr';
-      h.innerHTML=`<span>${cat.toUpperCase().slice(0,22)}</span><span>${sks.length}</span>`;list.appendChild(h);
+      const catSpan=document.createElement('span');catSpan.textContent=cat.toUpperCase().slice(0,22);const cntSpan=document.createElement('span');cntSpan.textContent=sks.length;h.appendChild(catSpan);h.appendChild(cntSpan);list.appendChild(h);
       sks.forEach(sk=>list.appendChild(mkLibRow(sk)));
     });
     if(!filtered.length){
@@ -3666,11 +3786,9 @@ function pipelineToSkill(p){
   const nodeCount=rootFrame.nodes?.length||0;
   const existing=skills.find(s=>s._pipelineId===p.id);
   if(existing){
-    // Update in place
     existing.internalGraph={nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]};
     existing.label=p.name.toUpperCase();
     existing.desc=nodeCount+' node'+(nodeCount!==1?'s':'')+' · saved from pipeline';
-    renderLib();
     return existing;
   }
   const sk={
@@ -3679,10 +3797,9 @@ function pipelineToSkill(p){
     tags:['pipeline'],isBuiltin:false,rawContent:'',deps:[],
     internalGraph:{nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]},
     hasOut:true,hasIn:true,fields:[],defaultInputs:[],defaultOutputs:[],
-    _pipelineId:p.id,  // link back for update-in-place
+    _pipelineId:p.id,
   };
   skills.push(sk);
-  renderLib();
   return sk;
 }
 
@@ -3756,64 +3873,244 @@ function mkLibRow(sk){
 
 document.getElementById('lib-search').addEventListener('input',renderLib);
 
+// ── Pipeline row edit overlay ──────────────────────────────
+function openPipelineEdit(p){
+  // Remove any existing edit overlay
+  document.getElementById('pl-edit-overlay')?.remove();
+
+  const ov=document.createElement('div');ov.id='pl-edit-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:900;display:flex;align-items:center;justify-content:center';
+
+  const modal=document.createElement('div');
+  modal.style.cssText='background:var(--panel);border:1px solid var(--brdhi);border-radius:12px;width:440px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;overflow:hidden';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--brd);flex-shrink:0';
+  const htitle=document.createElement('span');htitle.textContent='EDIT PIPELINE';
+  htitle.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.1em;flex:1';
+  const hclose=document.createElement('button');hclose.className='mbtn';hclose.textContent='✕';
+  hclose.addEventListener('click',()=>ov.remove());
+  hdr.appendChild(htitle);hdr.appendChild(hclose);modal.appendChild(hdr);
+
+  // Body
+  const body=document.createElement('div');body.style.cssText='padding:14px 16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1';
+
+  // Name field
+  const nameLbl=document.createElement('div');nameLbl.className='mlbl';nameLbl.textContent='PIPELINE NAME';
+  const nameIn=document.createElement('input');nameIn.type='text';nameIn.value=p.name;
+  nameIn.style.cssText='width:100%;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--txt)';
+  body.appendChild(nameLbl);body.appendChild(nameIn);
+
+  // Node tree
+  const treeLbl=document.createElement('div');treeLbl.className='mlbl';treeLbl.textContent='PIPELINE NODES';
+  body.appendChild(treeLbl);
+
+  const tree=document.createElement('div');
+  tree.style.cssText='display:flex;flex-direction:column;gap:3px';
+
+  const liveStack=p.stack&&p.stack[0]?p.stack[0]:{nodes:[],edges:[]};
+  // Work on a mutable reference — changes go live on save
+  const editNodes=liveStack.nodes;
+  const editEdges=liveStack.edges;
+
+  const renderTree=()=>{
+    tree.innerHTML='';
+    if(!editNodes.length){
+      const em=document.createElement('div');
+      em.style.cssText='font-size:10px;color:var(--dim);font-style:italic;padding:4px 0';
+      em.textContent='No nodes in this pipeline';
+      tree.appendChild(em);return;
+    }
+    // Use topoWalk if available for ordered display, else raw order
+    const ordered=(typeof topoWalk==='function')?topoWalk(editNodes,editEdges):[...editNodes];
+    ordered.forEach((node,i)=>{
+      const sk=nodeSk(node);
+      const label=node.title||(node.values?.name)||(sk?.label)||('Node '+(i+1));
+      const nodeRow=document.createElement('div');
+      nodeRow.style.cssText='display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surf);border:1px solid var(--brd);border-radius:6px';
+
+      const glyph=document.createElement('span');
+      glyph.textContent=sk?.glyph||'◆';
+      glyph.style.cssText='font-size:12px;color:'+(sk?'var(--dhi)':'var(--dim)');
+
+      const info=document.createElement('div');info.style.cssText='flex:1;min-width:0';
+      const nlabel=document.createElement('div');nlabel.style.cssText='font-family:var(--mono);font-size:9px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+      nlabel.textContent=label.toUpperCase();
+      const nmeta=document.createElement('div');nmeta.style.cssText='font-size:9px;color:var(--dim)';
+      nmeta.textContent=(sk?.label||'')+(sk?.label&&label!==sk.label?' · '+sk.label:'')+(node.inputs?.length?' · '+node.inputs.length+' in':'')+(node.outputs?.length?' · '+node.outputs.length+' out':'');
+      info.appendChild(nlabel);info.appendChild(nmeta);
+
+      const del=document.createElement('button');
+      del.style.cssText='font-size:11px;color:var(--dim);padding:2px 6px;border-radius:3px;border:1px solid transparent;flex-shrink:0';
+      del.textContent='×';del.title='Remove node';
+      del.addEventListener('pointerenter',()=>{del.style.color='var(--red)';del.style.borderColor='rgba(248,113,113,.3)';});
+      del.addEventListener('pointerleave',()=>{del.style.color='var(--dim)';del.style.borderColor='transparent';});
+      del.addEventListener('click',()=>{
+        const idx2=editNodes.findIndex(n=>n.id===node.id);
+        if(idx2<0)return;
+        editNodes.splice(idx2,1);
+        // Remove connected edges
+        const nid=node.id;
+        const before=editEdges.length;
+        editEdges.splice(0,editEdges.length,...editEdges.filter(e=>e.from!==nid&&e.to!==nid));
+        renderTree();
+      });
+      nodeRow.appendChild(glyph);nodeRow.appendChild(info);nodeRow.appendChild(del);
+      tree.appendChild(nodeRow);
+    });
+  };
+  renderTree();
+  body.appendChild(tree);
+  modal.appendChild(body);
+
+  // Footer
+  const foot=document.createElement('div');
+  foot.style.cssText='display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--brd);flex-shrink:0';
+  const cancelBtn=document.createElement('button');cancelBtn.className='mbtn';cancelBtn.textContent='Cancel';
+  cancelBtn.addEventListener('click',()=>ov.remove());
+  const saveBtn=document.createElement('button');saveBtn.className='mbtn pri';saveBtn.textContent='Save Changes';
+  saveBtn.addEventListener('click',()=>{
+    const newName=nameIn.value.trim()||p.name;
+    // Apply name change
+    renamePipeline(p.id,newName);
+    // If this pipeline is live on canvas, sync canvas state
+    const liveP=pipelines.find(x=>x.id===p.id);
+    if(liveP){
+      if(liveP.id===activePipelineId){
+        // Sync the canvas
+        canvasStack[0].nodes=editNodes;
+        canvasStack[0].edges=editEdges;
+        scene.querySelectorAll('.node').forEach(n=>{
+          const nid=n.id.slice(3);
+          if(!editNodes.find(x=>x.id===nid))n.remove();
+        });
+        renderEdges();
+        if(selNode&&!editNodes.find(n=>n.id===selNode.id))clearSel();
+      } else {
+        liveP.stack[0].nodes=editNodes;
+        liveP.stack[0].edges=editEdges;
+      }
+      liveP.saved=false;
+      markPipelineDirty(liveP.id);
+      savePipelines();
+    } else {
+      // It's in the recently-closed list — update it there
+      const closed=loadClosedPipelines();
+      const ci=closed.findIndex(c=>c.id===p.id);
+      if(ci>=0){closed[ci].name=newName;closed[ci].stack[0].nodes=editNodes;closed[ci].stack[0].edges=editEdges;saveClosedPipelines(closed);}
+    }
+    renderLib();renderPipelineTabs();
+    ov.remove();
+  });
+  foot.appendChild(cancelBtn);foot.appendChild(saveBtn);modal.appendChild(foot);
+
+  ov.appendChild(modal);
+  // Click outside to close
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+  nameIn.focus();nameIn.select();
+}
+
+function deletePipelineRow(p){
+  const isOpen=pipelines.some(op=>op.id===p.id);
+  const msg='"'+p.name+'" will be permanently removed'+(isOpen?' and closed':'')+'.\n\nThis cannot be undone.';
+  if(!confirm(msg))return;
+  // Close it if open (moves to closed list)
+  if(isOpen)closePipeline(p.id);
+  // Also remove from recently-closed so it's truly gone
+  const closed=loadClosedPipelines().filter(c=>c.id!==p.id);
+  saveClosedPipelines(closed);
+  renderLib();
+}
+
+let selPipelineId=null;
+
+// Ensure a pipeline has a matching skill entry (for drag) without touching the DOM
+function ensurePipelineSkill(p){
+  const rootFrame=p.stack&&p.stack[0]?JSON.parse(JSON.stringify(p.stack[0])):{nodes:[],edges:[]};
+  const nodeCount=rootFrame.nodes?.length||0;
+  const existing=skills.find(s=>s._pipelineId===p.id);
+  if(existing){
+    existing.internalGraph={nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]};
+    existing.label=p.name.toUpperCase();
+    return existing;
+  }
+  const sk={id:uid('gpt'),label:p.name.toUpperCase(),color:'purple',glyph:'⬡',shape:'default',
+    category:'Pipelines',desc:nodeCount+' node'+(nodeCount!==1?'s':'')+' · saved from pipeline',
+    tags:['pipeline'],isBuiltin:false,rawContent:'',deps:[],
+    internalGraph:{nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]},
+    hasOut:true,hasIn:true,fields:[],defaultInputs:[],defaultOutputs:[],_pipelineId:p.id};
+  skills.push(sk);
+  return sk;
+}
+
 function mkPipelineRow(p){
   const isOpen=pipelines.some(op=>op.id===p.id);
   const rootFrame=p.stack&&p.stack[0]?p.stack[0]:{nodes:[],edges:[]};
   const nodeCount=rootFrame.nodes?.length||0;
   const edgeCount=rootFrame.edges?.length||0;
+  const color='#c084fc';
 
-  const row=document.createElement('div');row.className='lib-row';row.style.cursor='grab';
+  const row=document.createElement('div');row.className='lib-row';
+  if(selPipelineId===p.id)row.classList.add('sel');
+
+  // acts declared here so click handler below can reference it
+  const acts=document.createElement('div');acts.className='row-acts';acts.style.display='none';
+  [{t:'Edit',fn:e=>{e.stopPropagation();openPipelineEdit(p);}},
+   {t:'Open Graph',fn:e=>{e.stopPropagation();const sk=ensurePipelineSkill(p);if(sk.id!==frame().skillId)pushGraph(sk.id);}},
+   {t:'Delete',cls:'del',fn:e=>{e.stopPropagation();deletePipelineRow(p);}}
+  ].forEach(({t,cls,fn})=>{
+    const b=document.createElement('button');b.className='ract'+(cls?' '+cls:'');b.textContent=t;
+    b.addEventListener('click',fn);acts.appendChild(b);
+  });
 
   const inner=document.createElement('div');inner.className='lri';
-  const color='#c084fc'; // purple for pipelines
-  const plLg=document.createElement('span');plLg.className='lg';plLg.style.color=color;plLg.textContent='⬡';
-  const plLi=document.createElement('div');plLi.className='li';
-  const plLn=document.createElement('div');plLn.className='ln';plLn.style.color=color;plLn.textContent=p.name;
-  const plLd=document.createElement('div');plLd.className='ld';
-  plLd.textContent=nodeCount+' node'+(nodeCount!==1?'s':'')+' · '+edgeCount+' edge'+(edgeCount!==1?'s':'')+(isOpen?' · open':'');
-  plLi.appendChild(plLn);plLi.appendChild(plLd);
-  inner.appendChild(plLg);inner.appendChild(plLi);
+  const lgEl=document.createElement('span');lgEl.className='lg';lgEl.style.color=color;lgEl.textContent='⬡';
+  const liEl=document.createElement('div');liEl.className='li';
+  const lnEl=document.createElement('div');lnEl.className='ln';lnEl.style.color=color;lnEl.textContent=p.name;
+  const ldEl=document.createElement('div');ldEl.className='ld';
+  ldEl.textContent=nodeCount+' node'+(nodeCount!==1?'s':'')+' · '+edgeCount+' edge'+(edgeCount!==1?'s':'')+(isOpen?' · open':'');
+  liEl.appendChild(lnEl);liEl.appendChild(ldEl);
+  inner.appendChild(lgEl);inner.appendChild(liEl);
 
-  // + button: convert pipeline → skill node and place on canvas
   const add=document.createElement('button');add.className='ladd';add.innerHTML='+';
-  add.title='Place as node on canvas';
   add.style.borderColor='var(--brd)';add.style.color='var(--dhi)';
   add.addEventListener('pointerenter',()=>{add.style.color=color;add.style.borderColor=color;});
   add.addEventListener('pointerleave',()=>{add.style.color='var(--dhi)';add.style.borderColor='var(--brd)';});
-  add.addEventListener('click',e=>{
-    e.stopPropagation();
-    const sk=pipelineToSkill(p);
-    placeNode(sk.id);
-  });
+  add.addEventListener('click',e=>{e.stopPropagation();const sk=ensurePipelineSkill(p);renderLib();placeNode(sk.id);});
   inner.appendChild(add);
-  row.appendChild(inner);
 
-  // Drag to canvas
-  inner.addEventListener('pointerdown',e=>{
-    if(e.target.closest('.ladd'))return;
-    // Ensure skill exists then drag it
-    const sk=pipelineToSkill(p);
+  row.appendChild(inner);
+  row.appendChild(acts);
+
+  // pointerdown: drag using same startLibDrag as skill rows
+  row.addEventListener('pointerdown',e=>{
+    if(e.button!==0||e.target.closest('.ladd')||e.target.closest('.row-acts'))return;
+    const sk=ensurePipelineSkill(p); // no renderLib — just mutates skills array
     startLibDrag(sk.id,e);
   });
 
-  // Right-click: open or switch to pipeline
+  // click: select row and show actions (same pattern as mkLibRow)
+  row.addEventListener('click',e=>{
+    if(e.target.closest('.ladd')||e.target.closest('.row-acts'))return;
+    document.querySelectorAll('.row-acts').forEach(a=>a.style.display='none');
+    const alreadySel=selPipelineId===p.id;
+    document.querySelectorAll('.lib-row.sel').forEach(r=>r.classList.remove('sel'));
+    selPipelineId=alreadySel?null:p.id;
+    if(!alreadySel){row.classList.add('sel');acts.style.display='flex';}
+  });
+
   row.addEventListener('contextmenu',e=>{
     e.preventDefault();
     if(!isOpen){
-      // Reopen from closed list
-      const remaining=loadClosedPipelines().filter(c=>c.id!==p.id);
-      saveClosedPipelines(remaining);
+      const rem=loadClosedPipelines().filter(c=>c.id!==p.id);
+      saveClosedPipelines(rem);
       const restored={...p,saved:true};
-      pipelines.push(restored);
-      savePipelines();
-      hideEmptyState();
-      switchPipeline(restored.id);
-    } else {
-      switchPipeline(p.id);
-    }
+      pipelines.push(restored);savePipelines();hideEmptyState();switchPipeline(restored.id);
+    } else switchPipeline(p.id);
   });
 
-  row.title=isOpen?'Right-click to switch to this pipeline · drag to place as node':'Right-click to reopen · drag to place as node';
   return row;
 }
 document.getElementById('add-skill-btn').addEventListener('click',()=>openWiz(null));
@@ -3908,6 +4205,7 @@ function startLibDragMulti(skIds,e){
   window.addEventListener('pointerup',onDrop);
 }
 
+
 function startLibDrag(skId,e){
   if(e.button!==0)return;
   dragSkId=skId;dragActive=false;dragOverCanvas=false;
@@ -3985,7 +4283,7 @@ document.getElementById('confirm-yes').addEventListener('click',()=>{
   });
   renderEdges();
   if(selSkillId===pendingDelId)clearSel();
-  renderLib();updateTopbar();
+  renderLib();updateTopbar();autoSaveLibrary();
   document.getElementById('confirm-overlay').classList.remove('open');
 });
 
@@ -4011,7 +4309,7 @@ let tagSectionOpen=false;
 const TAG_FILTER_KEY='pb_tag_filters';
 let customFilterTags=JSON.parse(localStorage.getItem(TAG_FILTER_KEY)||'[]');
 
-function saveCustomTags(){localStorage.setItem(TAG_FILTER_KEY,JSON.stringify(customFilterTags));}
+function saveCustomTags(){safeStore(TAG_FILTER_KEY,customFilterTags);}
 const LIB_RECENT_KEY='pb_recent_skills';
 let recentSkillIds=JSON.parse(localStorage.getItem(LIB_RECENT_KEY)||'[]');
 
@@ -4019,7 +4317,7 @@ function trackRecent(id){
   recentSkillIds=recentSkillIds.filter(x=>x!==id);
   recentSkillIds.unshift(id);
   if(recentSkillIds.length>20)recentSkillIds.length=20;
-  localStorage.setItem(LIB_RECENT_KEY,JSON.stringify(recentSkillIds));
+  safeStore(LIB_RECENT_KEY,recentSkillIds);
 }
 
 // Tag section toggle
@@ -4052,7 +4350,10 @@ document.getElementById('lib-tabs').addEventListener('click',e=>{
 let wiz={};
 function openWiz(editId){
   const ed=editId?getSk(editId):null;
-  wiz={step:ed?'edit':'method',method:null,raw:ed?.rawContent||'',name:ed?.label||'',desc:ed?.desc||'',color:ed?.color||'blue',shape:ed?.shape||'default',glyph:ed?.glyph||'◆',tags:[...(ed?.tags||[])],category:ed?.category||'Skills',editId};
+  const defOut=[{id:uid('p'),name:'output',type:'Any'}];
+  wiz={step:ed?'edit':'method',method:null,raw:ed?.rawContent||'',name:ed?.label||'',desc:ed?.desc||'',color:ed?.color||'blue',shape:ed?.shape||'default',glyph:ed?.glyph||'◆',tags:[...(ed?.tags||[])],category:ed?.category||'Skills',editId,
+    inputs:JSON.parse(JSON.stringify(ed?.defaultInputs||[])),
+    outputs:JSON.parse(JSON.stringify(ed?.defaultOutputs?.length?ed.defaultOutputs:defOut))};
   document.getElementById('wiz-title').textContent=ed?'EDIT SKILL':'ADD SKILL';
   document.getElementById('wiz-overlay').classList.add('open');drawWiz();
 }
@@ -4092,7 +4393,7 @@ function drawUrl(b){
   })]));
 }
 // ═══════════════════════════════════════════════════════════
-// AI GENERATE OVERLAY — Skills, Pipelines, URL Fetch
+// AI GENERATE OVERLAY — Skill generator
 // ═══════════════════════════════════════════════════════════
 
 // Shared: call the active AI provider and return generated text
@@ -4126,7 +4427,6 @@ async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
   }
 }
 
-let _aiMode='skill'; // 'skill' | 'pipeline' | 'url'
 
 function openAIOverlay(){
   document.getElementById('ai-body').innerHTML='';
@@ -4138,42 +4438,10 @@ function drawAIOverlay(){
   const b=document.getElementById('ai-body');
   b.innerHTML='';
 
-  const anthropicCreds=vaultCreds.filter(c=>c.type==='anthropic-key'||c.type==='api-key');
-  const openaiCreds=vaultCreds.filter(c=>c.type==='openai-key');
-  const geminiCreds=vaultCreds.filter(c=>c.type==='gemini-key');
+  const anthropicCreds=CryptoManager.creds.filter(c=>c.type==='anthropic-key'||c.type==='api-key');
+  const openaiCreds=CryptoManager.creds.filter(c=>c.type==='openai-key');
+  const geminiCreds=CryptoManager.creds.filter(c=>c.type==='gemini-key');
   const allAICreds=[...anthropicCreds,...openaiCreds,...geminiCreds];
-
-  // ── URL Fetch mode — no API key needed ──────────────────
-  if(_aiMode==='url'){
-    wf(b,'FETCH URL',()=>{
-      const i=document.createElement('input');i.type='text';i.id='ai-url-inp';
-      i.placeholder='https://raw.githubusercontent.com/…';
-      i.style.cssText='width:100%;background:var(--panel);border:1px solid var(--brd);border-radius:6px;color:var(--txt);padding:8px 10px;font-family:var(--mono);font-size:11px;box-sizing:border-box';
-      return i;
-    });
-    const notice=document.createElement('div');notice.className='notice';
-    notice.innerHTML='<strong>Note:</strong> CORS may block some URLs. For GitHub raw files, use the raw.githubusercontent.com URL.';
-    b.appendChild(notice);
-    const err=document.createElement('div');err.style.cssText='font-size:10px;color:var(--org);display:none;margin-bottom:8px';b.appendChild(err);
-    b.appendChild(mkMRow([
-      mkMBtn('Try Fetch →',true,async()=>{
-        const url=document.getElementById('ai-url-inp')?.value?.trim();
-        if(!url)return;err.style.display='none';
-        try{
-          const r=await fetch(url,{mode:'cors'});
-          if(!r.ok)throw new Error('HTTP '+r.status);
-          const raw=await r.text();
-          // Open in skill wizard with content pre-filled
-          document.getElementById('ai-overlay').classList.remove('open');
-          wiz={step:'edit',method:'url',raw,name:'',desc:'',color:'blue',shape:'default',glyph:'◆',tags:[],category:'Skills',editId:null};
-          parseMeta();
-          document.getElementById('wiz-title').textContent='ADD SKILL';
-          document.getElementById('wiz-overlay').classList.add('open');drawWiz();
-        }catch(e){err.textContent='Fetch failed — '+e.message+'. Try copying the content and using Paste instead.';err.style.display='block';}
-      })
-    ]));
-    return;
-  }
 
   // ── AI modes need a key ─────────────────────────────────
   if(!allAICreds.length){
@@ -4249,10 +4517,8 @@ function drawAIOverlay(){
   rebuildAIModelSel();
 
   // Prompt
-  const promptLabel=_aiMode==='pipeline'?'DESCRIBE THE PIPELINE':'DESCRIBE THE SKILL';
-  const promptPh=_aiMode==='pipeline'
-    ? 'e.g. "A content pipeline: collect posts, schedule them weekly, publish to LinkedIn and Twitter"'
-    : 'e.g. "A skill for analyzing CSV data with Python — reads, cleans, and exports. Include error handling for malformed rows."';
+  const promptLabel='DESCRIBE THE SKILL';
+  const promptPh='e.g. "A skill for analyzing CSV data with Python — reads, cleans, and exports. Include error handling for malformed rows."';
   let aiPrompt='';
   wf(b,promptLabel,()=>{
     const ta=document.createElement('textarea');ta.rows=5;ta.placeholder=promptPh;
@@ -4269,8 +4535,7 @@ function drawAIOverlay(){
     genBtn.disabled=true;genBtn.textContent='Generating…';setStatus('Calling AI…','info');
 
     try{
-      if(_aiMode==='skill'){
-        const sys=`You are a skill author for a visual pipeline builder. A skill is a markdown file with YAML frontmatter.
+      const sys=`You are a skill author for a visual pipeline builder. A skill is a markdown file with YAML frontmatter.
 
 Format:
 ---
@@ -4304,42 +4569,11 @@ Output ONLY the markdown. No preamble.`;
           }
         }catch(e){console.warn('internalGraph gen failed',e);}
         document.getElementById('ai-overlay').classList.remove('open');
-        wiz={step:'edit',method:'ai',raw,name:'',desc:'',color:'blue',shape:'default',glyph:'◆',tags:[],category:'Skills',editId:null,_generatedGraph:generatedGraph};
+        wiz={step:'edit',method:'ai',raw,name:'',desc:'',color:'blue',shape:'default',glyph:'◆',tags:[],category:'Skills',editId:null,_generatedGraph:generatedGraph,inputs:[],outputs:[{id:uid('p'),name:'output',type:'Any'}]};
         parseMeta();
         document.getElementById('wiz-title').textContent='ADD SKILL';
         document.getElementById('wiz-overlay').classList.add('open');drawWiz();
 
-      } else if(_aiMode==='pipeline'){
-        const sys=`You are a pipeline designer for a visual node-based tool. Given a description, output a JSON pipeline with this exact structure:
-{
-  "name": "Pipeline Name",
-  "nodes": [
-    {"id":"n1","title":"Node Title","skillId":"post","x":60,"y":160,"inputs":[],"outputs":[{"id":"n1o1","name":"content","type":"Text"}]},
-    ...
-  ],
-  "edges": [
-    {"id":"e1","from":"n1","to":"n2","fromPort":"n1o1","toPort":"n2i1"}
-  ]
-}
-Available skillIds: post, collection, schedule, publisher, code. Use these for built-in nodes.
-For custom steps, use skillId null and give a descriptive title.
-Lay nodes left-to-right: x increments by 280 per step, y=160.
-Output ONLY valid JSON. No markdown, no explanation.`;
-        const raw=await callAI(aiPrompt.trim(),sys,aiProvider,apiKey,aiModel);
-        if(!raw)throw new Error('Empty response');
-        // Strip markdown fences if model wrapped it
-        const clean=raw.replace(/^```(?:json)?\n?/,'').replace(/\n?```$/,'').trim();
-        const data=JSON.parse(clean);
-        document.getElementById('ai-overlay').classList.remove('open');
-        // Create a new pipeline from the generated data
-        const newP={id:uid('pl'),name:data.name||'AI Pipeline',
-          stack:[{nodes:data.nodes||[],edges:data.edges||[],tx:{x:0,y:0,s:1},label:'Root',skillId:null}],
-          saved:false};
-        pipelines.push(newP);
-        hideEmptyState();
-        switchPipeline(newP.id);
-        flashBtn('btn-save-pipeline','✦ Pipeline created','💾 Save Pipeline');
-      }
     }catch(e){
       setStatus('Error: '+e.message,'err');
       genBtn.disabled=false;genBtn.textContent='✦ Generate';
@@ -4348,13 +4582,7 @@ Output ONLY valid JSON. No markdown, no explanation.`;
   b.appendChild(mkMRow([genBtn]));
 }
 
-// Wire mode tabs
-document.getElementById('ai-mode-tabs').addEventListener('click',e=>{
-  const tab=e.target.closest('.out-fmt-tab');if(!tab)return;
-  _aiMode=tab.dataset.mode;
-  document.querySelectorAll('#ai-mode-tabs .out-fmt-tab').forEach(t=>t.classList.toggle('on',t===tab));
-  drawAIOverlay();
-});
+
 document.getElementById('ai-close').addEventListener('click',()=>document.getElementById('ai-overlay').classList.remove('open'));
 document.getElementById('ai-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('ai-overlay').classList.remove('open');});
 document.getElementById('btn-ai-generate').addEventListener('click',openAIOverlay);
@@ -4384,15 +4612,58 @@ function drawEdit(b){
     if(wiz.method==='manual'){const ta=document.createElement('textarea');ta.rows=6;ta.value=wiz.raw;ta.placeholder='# My Skill\n\nDescribe what this skill does…';ta.addEventListener('input',()=>wiz.raw=ta.value);return ta;}
     const d=document.createElement('div');d.className='cprev';d.textContent=wiz.raw.slice(0,400)+(wiz.raw.length>400?'…':'');return d;
   });
+  // ── PORT EDITOR (shown in all edit modes) ───────────────
+  const PORT_TYPES_WIZ=['Text','Number','Boolean','Image','Video','Audio','JSON','File','Any'];
+  ['inputs','outputs'].forEach(side=>{
+    if(!wiz[side])wiz[side]=side==='outputs'?[{id:uid('p'),name:'output',type:'Any'}]:[];
+    const sec=document.createElement('div');sec.className='io-section';sec.style.marginTop='10px';
+    const hdr=document.createElement('div');hdr.className='io-section-hdr';
+    const lbl=document.createElement('span');lbl.className='io-lbl';lbl.textContent=side==='inputs'?'INPUTS':'OUTPUTS';
+    const addBtn=document.createElement('button');addBtn.className='io-add-btn';addBtn.textContent='+ Add';
+    addBtn.addEventListener('click',()=>{
+      wiz[side].push({id:uid('p'),name:'',type:'Any'});
+      refreshPortList();
+    });
+    hdr.appendChild(lbl);hdr.appendChild(addBtn);sec.appendChild(hdr);
+    const list=document.createElement('div');list.className='io-port-list';sec.appendChild(list);
+    const refreshPortList=()=>{
+      list.innerHTML='';
+      if(!wiz[side].length){
+        const em=document.createElement('div');em.className='io-empty';
+        em.textContent=side==='inputs'?'No inputs — node only produces data':'At least one output required';
+        list.appendChild(em);return;
+      }
+      wiz[side].forEach((port,i)=>{
+        const row=document.createElement('div');row.className='io-port-row';
+        const nameIn=document.createElement('input');nameIn.type='text';nameIn.className='io-port-name';
+        nameIn.placeholder=side==='inputs'?'input name…':'output name…';
+        nameIn.value=port.name||'';
+        nameIn.addEventListener('input',()=>{wiz[side][i].name=nameIn.value;});
+        const typeSel=document.createElement('select');typeSel.className='io-port-type';
+        PORT_TYPES_WIZ.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;if(t===port.type)o.selected=true;typeSel.appendChild(o);});
+        typeSel.addEventListener('change',()=>{wiz[side][i].type=typeSel.value;});
+        const del=document.createElement('button');del.className='io-port-del';del.textContent='×';del.title='Remove';
+        del.addEventListener('click',()=>{wiz[side].splice(i,1);refreshPortList();});
+        row.appendChild(nameIn);row.appendChild(typeSel);row.appendChild(del);list.appendChild(row);
+      });
+    };
+    refreshPortList();
+    b.appendChild(sec);
+  });
   b.appendChild(mkMRow([!wiz.editId?mkMBtn('← Back',false,()=>{wiz.step='method';drawWiz();}):null,mkMBtn('Save Skill',true,doSaveWiz)]));
 }
 function doSaveWiz(){
   const id=wiz.editId||uid('sk');
   const existing=getSk(id);
+  const wizIns=(wiz.inputs||[]).filter(p=>p.name?.trim());
+  const wizOuts=(wiz.outputs||[]).filter(p=>p.name?.trim());
   const s={
     id,label:wiz.name||'Unnamed',desc:wiz.desc,rawContent:wiz.raw,
     color:wiz.color,shape:wiz.shape,glyph:wiz.glyph,category:wiz.category||'Skills',
-    tags:wiz.tags||[],isBuiltin:false,fields:[],hasOut:true,hasIn:true,
+    tags:wiz.tags||[],isBuiltin:false,fields:[],
+    hasIn:wizIns.length>0,hasOut:wizOuts.length>0,
+    defaultInputs:wizIns,
+    defaultOutputs:wizOuts,
     deps:existing?.deps||[],
     internalGraph:wiz._generatedGraph||existing?.internalGraph||{nodes:[],edges:[]}
   };
@@ -4412,7 +4683,9 @@ function buildMD(){
 
   // Render one node and optionally recurse into its internal graph.
   // Uses topoWalk for correct execution order at every level.
+  const MAX_GRAPH_DEPTH=10;
   const renderNode=(node,depth,frameVisited)=>{
+    if(depth>MAX_GRAPH_DEPTH)return'⚠ Max nesting depth reached\n';
     if(frameVisited.has(node.id))return'';
     frameVisited.add(node.id);
     const sk=nodeSk(node);if(!sk)return'';
@@ -4476,12 +4749,13 @@ function buildMD(){
 
   // Appended skill documents (full rawContent)
   const skillsSeen=new Set();
-  const collectSkills=(nodes)=>{
+  const collectSkills=(nodes,depth=0)=>{
+    if(depth>10)return;
     nodes.forEach(n=>{
       const sk=nodeSk(n);
       if(!sk||sk.isBuiltin||!sk.rawContent||skillsSeen.has(sk.id))return;
       skillsSeen.add(sk.id);
-      if(sk.internalGraph?.nodes?.length)collectSkills(sk.internalGraph.nodes);
+      if(sk.internalGraph?.nodes?.length)collectSkills(sk.internalGraph.nodes,depth+1);
     });
   };
   collectSkills(rootFrame.nodes);
@@ -4498,39 +4772,109 @@ function buildMD(){
 }
 // ── Topological walk: start nodes → ordered list ─────────
 function topoWalk(nodes, edges){
-  const inDeg=new Map(nodes.map(n=>[n.id,0]));
-  edges.forEach(e=>{if(inDeg.has(e.to))inDeg.set(e.to,(inDeg.get(e.to)||0)+1);});
-  const queue=nodes.filter(n=>!inDeg.get(n.id));
-  const visited=new Set();
+  // Kahn's algorithm with proper in-degree tracking and cycle detection
+  const adj=new Map();     // id → [successor ids]
+  const inDeg=new Map();   // id → number of incoming edges
+  nodes.forEach(n=>{adj.set(n.id,[]);inDeg.set(n.id,0);});
+  edges.forEach(e=>{
+    if(adj.has(e.from)&&inDeg.has(e.to)){
+      adj.get(e.from).push(e.to);
+      inDeg.set(e.to,inDeg.get(e.to)+1);
+    }
+  });
+  const queue=[];
+  inDeg.forEach((deg,id)=>{if(deg===0)queue.push(id);});
   const ordered=[];
   while(queue.length){
-    const n=queue.shift();
-    if(visited.has(n.id))continue;
-    visited.add(n.id);ordered.push(n);
-    edges.filter(e=>e.from===n.id).forEach(e=>{
-      const next=nodes.find(x=>x.id===e.to);
-      if(next&&!visited.has(next.id))queue.push(next);
+    const id=queue.shift();
+    const node=nodes.find(n=>n.id===id);
+    if(node)ordered.push(node);
+    (adj.get(id)||[]).forEach(succ=>{
+      const newDeg=inDeg.get(succ)-1;
+      inDeg.set(succ,newDeg);
+      if(newDeg===0)queue.push(succ);
     });
   }
-  // Append any disconnected nodes not yet visited
-  nodes.forEach(n=>{if(!visited.has(n.id))ordered.push(n);});
+  // Nodes not in ordered are part of cycles — append them with a warning flag
+  if(ordered.length<nodes.length){
+    const orderedIds=new Set(ordered.map(n=>n.id));
+    nodes.forEach(n=>{
+      if(!orderedIds.has(n.id)){
+        n._cyclic=true;  // mark for UI/export to flag
+        ordered.push(n);
+      }
+    });
+  }
   return ordered;
+}
+
+// Check if adding an edge from→to would create a cycle
+function wouldCycle(nodes, edges, fromId, toId){
+  // BFS from toId following existing edges — if we reach fromId, it's a cycle
+  const adj=new Map();
+  nodes.forEach(n=>adj.set(n.id,[]));
+  edges.forEach(e=>{if(adj.has(e.from))adj.get(e.from).push(e.to);});
+  const visited=new Set();
+  const queue=[toId];
+  while(queue.length){
+    const id=queue.shift();
+    if(id===fromId)return true;
+    if(visited.has(id))continue;
+    visited.add(id);
+    (adj.get(id)||[]).forEach(s=>{if(!visited.has(s))queue.push(s);});
+  }
+  return false;
 }
 
 // ── Render one graph's nodes to GPT instruction text ──────
 function graphToInstructions(nodes, edges, depth){
   depth=depth||0;
+  if(depth>10)return'⚠ Max nesting depth\n';
   const pad='  '.repeat(depth);
   const ordered=topoWalk(nodes,edges);
   let text='';
   ordered.forEach((node,i)=>{
     const sk=nodeSk(node);
-    const label=(node.title||sk?.label||'Step '+(i+1)).toUpperCase();
-    const content=sk?.rawContent||'';
+    const displayTitle=node.title||(node.values?.name)||sk?.label||('Step '+(i+1));
+    const label=displayTitle.toUpperCase();
     text+=pad+'### '+label+'\n';
-    if(node.inputs?.length)text+=pad+'**Inputs:** '+node.inputs.map(p=>p.name+(p.type&&p.type!=='Any'?' ('+p.type+')':'')).join(', ')+'\n';
-    if(node.outputs?.length)text+=pad+'**Outputs:** '+node.outputs.map(p=>p.name+(p.type&&p.type!=='Any'?' ('+p.type+')':'')).join(', ')+'\n';
-    if(content.trim())text+=content.trim()+'\n\n';
+
+    // I/O ports
+    const ins=node.inputs||[];
+    const outs=node.outputs||[];
+    if(ins.length)text+=pad+'**Input:** '+ins.map(p=>p.name+(p.type&&p.type!=='Any'?' ('+p.type+')':'')).join(', ')+'\n';
+    if(outs.length)text+=pad+'**Output:** '+outs.map(p=>p.name+(p.type&&p.type!=='Any'?' ('+p.type+')':'')).join(', ')+'\n';
+
+    // User-filled field values — show any non-empty field
+    const fields=sk?.fields||[];
+    const valueLines=[];
+    fields.forEach(f=>{
+      const v=node.values?.[f.key];
+      if(v===undefined||v===null||v==='')return;
+      if(f.type==='codeeditor'){
+        const lang=(node.values?.lang||'').toLowerCase()||'';
+        if(String(v).trim())valueLines.push('```'+lang+'\n'+String(v).trim()+'\n```');
+      } else if(f.type==='medialist'&&Array.isArray(v)&&v.length){
+        valueLines.push('**'+f.label+':** '+v.filter(x=>x.url).map(x=>'['+x.type+'] '+x.url).join(', '));
+      } else if(Array.isArray(v)&&v.length){
+        valueLines.push('**'+f.label+':** '+v.join(', '));
+      } else if(String(v).trim()){
+        valueLines.push('**'+f.label+':** '+String(v).trim());
+      }
+    });
+    // Also show code-node lang+code when sk.id==='code'
+    if(sk?.id==='code'&&node.values?.code){
+      const lang=(node.values.lang||'').toLowerCase()||'js';
+      const code=node.values.code.trim();
+      if(code&&!valueLines.length)valueLines.push('```'+lang+'\n'+code+'\n```');
+    }
+    if(valueLines.length)text+=pad+valueLines.join('\n'+pad)+'\n';
+
+    // rawContent for custom skills; skip if already shown via fields
+    const content=sk?.rawContent||'';
+    if(content.trim()&&!sk?.isBuiltin)text+=pad+content.trim()+'\n';
+
+    // Recurse into internal graph
     const ig=sk?.internalGraph;
     if(ig?.nodes?.length){
       text+=pad+'*Sub-steps:*\n';
@@ -4554,7 +4898,8 @@ function buildGPT(){
   // Collect CODE nodes as tools — walks all levels of internal graphs
   const tools=[];
   const toolNames=new Set();
-  const collectTools=(nodeList)=>{
+  const collectTools=(nodeList,depth=0)=>{
+    if(depth>10)return;
     nodeList.forEach(n=>{
       const sk=nodeSk(n);
       if(sk?.id==='code'&&(n.values?.code||'').trim()){
@@ -4573,7 +4918,7 @@ function buildGPT(){
       }
       // Recurse into internal graphs
       const ig=sk?.internalGraph;
-      if(ig?.nodes?.length)collectTools(ig.nodes);
+      if(ig?.nodes?.length)collectTools(ig.nodes,depth+1);
     });
   };
   collectTools(nodes);
@@ -4607,6 +4952,7 @@ function buildGem(){
   lines.push('## Workflow: '+pipelineName);
   lines.push('');
   const renderGemNode=(node,depth)=>{
+    if(depth>10)return;
     const sk=nodeSk(node);if(!sk)return;
     const pad='  '.repeat(depth);
     const label=(node.title||sk.label).toUpperCase();
@@ -4653,8 +4999,22 @@ function _refreshOutput(){
   const cp=document.getElementById('out-copy');
   if(_outFmt==='gpt'){
     const gpt=buildGPT();
-    pre.textContent=gpt?JSON.stringify(gpt,null,2):'No nodes to export.';
-    dl.textContent='↓ Download .json';cp.textContent='Copy JSON';
+    if(!gpt){pre.textContent='No nodes to export.';dl.textContent='↓ Download .json';cp.textContent='Copy JSON';}
+    else{
+      // Render as readable markdown — the JSON is available for download
+      const toolList=gpt.tools.length
+        ? gpt.tools.map(t=>'  • '+t.function.name+' ('+t.function.language+')').join('\n')
+        : '  (none)';
+      pre.textContent=
+        '# '+gpt.name+'\n'+
+        '─'.repeat(Math.min(gpt.name.length+2,60))+'\n\n'+
+        '## System Prompt\n'+gpt.systemPrompt+'\n\n'+
+        '## Step-by-step Instructions\n'+gpt.instructions+'\n'+
+        (gpt.tools.length?'## Tools\n'+toolList+'\n\n':'' )+
+        '---\n'+
+        'Nodes: '+gpt.nodeCount+'  |  Edges: '+gpt.edgeCount+'  |  Exported: '+new Date(gpt.exportedAt).toLocaleString();
+      dl.textContent='↓ Download .json';cp.textContent='Copy JSON';
+    }
   }else if(_outFmt==='gem'){
     pre.textContent=buildGem();
     dl.textContent='↓ Download .md';cp.textContent='Copy Gem Prompt';
@@ -4709,23 +5069,70 @@ document.getElementById('out-download').addEventListener('click',()=>{
 // SAVE LIBRARY
 // ═══════════════════════════════════════════════════════════
 let _fileHandle=null;
-document.getElementById('btn-save-lib').addEventListener('click',saveLibrary);
+let _libFileHandle=null;
 
-async function saveLibrary(){
-  // Always save internal graphs back to skills before serializing
-  saveCurrentFrameToSkill();
+// ── Skills library JSON file ───────────────────────────────────
+async function saveLibraryJSON(silent=false){
+  const blob=new Blob([JSON.stringify(skills.filter(s=>!s.isBuiltin),null,2)],{type:'application/json'});
   const btn=document.getElementById('btn-save-lib');
-  if(!window.showSaveFilePicker){downloadSelf();return;}
-  try{
-    if(!_fileHandle){
-      _fileHandle=await window.showSaveFilePicker({suggestedName:'pipeline-builder.html',types:[{description:'HTML file',accept:{'text/html':['.html']}}]});
+  if(window.showSaveFilePicker){
+    try{
+      if(!_libFileHandle){
+        _libFileHandle=await window.showSaveFilePicker({
+          suggestedName:'pipeline-skills.json',
+          types:[{description:'Skills Library',accept:{'application/json':['.json']}}]
+        });
+      }
+      const w=await _libFileHandle.createWritable();await w.write(blob);await w.close();
+      if(!silent){btn.textContent='✓ Library Saved';btn.style.color='var(--grn)';btn.style.borderColor='var(--grn)';
+        setTimeout(()=>{btn.textContent='Save Library';btn.style.color='';btn.style.borderColor='';},2000);}
+    }catch(e){
+      if(e.name==='AbortError')return;
+      _libFileHandle=null;
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pipeline-skills.json';a.click();URL.revokeObjectURL(a.href);
     }
-    const writable=await _fileHandle.createWritable();
-    await writable.write(buildSelf());await writable.close();
-    btn.textContent='✓ Saved';btn.style.color='var(--grn)';btn.style.borderColor='var(--grn)';
-    setTimeout(()=>{btn.textContent='💾 Save Library';btn.style.color='';btn.style.borderColor='';},2000);
-  }catch(e){if(e.name!=='AbortError'){_fileHandle=null;downloadSelf();}}
+  }else{
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pipeline-skills.json';a.click();URL.revokeObjectURL(a.href);
+    if(!silent){btn.textContent='↓ Downloaded';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent='Save Library';btn.style.color='';},2500);}
+  }
 }
+
+async function loadLibraryJSON(){
+  const btn=document.getElementById('btn-load-lib');
+  try{
+    let text;
+    if(window.showOpenFilePicker){
+      const [fh]=await window.showOpenFilePicker({types:[{description:'Skills Library',accept:{'application/json':['.json']}}]});
+      _libFileHandle=fh;text=await(await fh.getFile()).text();
+    }else{
+      text=await new Promise((res,rej)=>{
+        const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+        inp.addEventListener('change',async()=>{if(!inp.files[0])return rej(new Error('no file'));res(await inp.files[0].text());});
+        inp.click();
+      });
+    }
+    const loaded=JSON.parse(text);
+    if(!Array.isArray(loaded))throw new Error('Expected JSON array');
+    let added=0,updated=0;
+    loaded.forEach(sk=>{
+      if(!sk.id||!sk.label)return;
+      sk.isBuiltin=false;
+      const idx=skills.findIndex(s=>s.id===sk.id);
+      if(idx>=0){skills[idx]=sk;updated++;}else{skills.push(sk);added++;}
+    });
+    renderLib();
+    btn.textContent='✓ +'+added+' / ∼'+updated;btn.style.color='var(--grn)';
+    setTimeout(()=>{btn.textContent='⬆ Load Library';btn.style.color='';},2500);
+  }catch(e){
+    if(e.name==='AbortError')return;
+    btn.textContent='✗ Failed';btn.style.color='var(--red)';
+    setTimeout(()=>{btn.textContent='⬆ Load Library';btn.style.color='';},2500);
+    console.error('loadLibraryJSON:',e);
+  }
+}
+
+document.getElementById('btn-load-lib').addEventListener('click',loadLibraryJSON);
+document.getElementById('btn-save-lib').addEventListener('click',saveLibraryJSON);
 
 function downloadSelf(){
   const blob=new Blob([buildSelf()],{type:'text/html'});
@@ -4819,9 +5226,8 @@ function saveNodeAsSkill(nodeId){
     tags:[...(existingSk?.tags||[])],
     category:existingSk?.category||'Skills',
     editId:null,
-    // Carry over ports so the new skill matches the node
-    _seedInputs:JSON.parse(JSON.stringify(node.inputs||[])),
-    _seedOutputs:JSON.parse(JSON.stringify(node.outputs||[])),
+    inputs:JSON.parse(JSON.stringify(node.inputs||[])),
+    outputs:JSON.parse(JSON.stringify(node.outputs?.length?node.outputs:[{id:uid('p'),name:'output',type:'Any'}])),
   };
   document.getElementById('wiz-title').textContent='SAVE NODE AS SKILL';
   document.getElementById('wiz-overlay').classList.add('open');
@@ -4978,9 +5384,92 @@ document.getElementById('ctx-delete').addEventListener('click',()=>{
 // CREDENTIAL VAULT — AES-GCM encryption via Web Crypto API
 // Master password never stored — only ciphertext + salt + IV
 // ═══════════════════════════════════════════════════════════
-const VAULT_KEY = 'pb_vault_v1';
-let vaultKey = null;       // CryptoKey in memory, cleared on close
-let vaultCreds = [];       // [{id, name, type, value}] — decrypted in memory only
+// ════════════════════════════════════════════════════════════
+// CRYPTOMANAGER — AES-GCM + PBKDF2 credential vault
+// ════════════════════════════════════════════════════════════
+const CryptoManager = (() => {
+  const STORAGE_KEY = 'pb_vault_v1';
+  const b64   = buf => btoa(String.fromCharCode(...buf));
+  const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+
+  async function deriveKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+      keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encrypt(key, data) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv }, key,
+      new TextEncoder().encode(JSON.stringify(data))
+    );
+    return { iv: b64(iv), data: b64(new Uint8Array(ct)) };
+  }
+
+  async function decrypt(key, payload) {
+    const pt = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: unb64(payload.iv) }, key, unb64(payload.data)
+    );
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  return {
+    key:   null,   // CryptoKey in memory, cleared on lock
+    creds: [],     // [{id, name, type, value}] — decrypted in memory only
+
+    exists() {
+      const s = localStorage.getItem(STORAGE_KEY);
+      return !!(s && JSON.parse(s).data);
+    },
+
+    lock() {
+      this.key   = null;
+      this.creds = [];
+    },
+
+    async save() {
+      if (!this.key) return;
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const enc = await encrypt(this.key, this.creds);
+      stored.iv = enc.iv; stored.data = enc.data;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    },
+
+    async unlock(password) {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+      const salt = stored.salt ? unb64(stored.salt) : crypto.getRandomValues(new Uint8Array(16));
+      const key = await deriveKey(password, salt);
+      if (stored.data) {
+        this.creds = await decrypt(key, stored);
+      } else {
+        // New vault — store salt
+        stored.salt = b64(salt);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+        this.creds = [];
+      }
+      this.key = key;
+    },
+
+    async reset() {
+      localStorage.removeItem(STORAGE_KEY);
+      this.lock();
+    },
+
+    deriveKey, encrypt, decrypt, b64, unb64, STORAGE_KEY,
+  };
+})();
+
+// Legacy aliases — existing call sites use these directly
+const VAULT_KEY = CryptoManager.STORAGE_KEY;
+const b64   = CryptoManager.b64;
+const unb64 = CryptoManager.unb64;
+// vaultKey / vaultCreds are now proxied via CryptoManager; access via helpers below
 
 const CRED_TYPES = {
   'github-token': { label: 'GitHub Token',      icon: '⎇', ph: 'ghp_xxxxxxxxxxxx' },
@@ -4992,58 +5481,11 @@ const CRED_TYPES = {
   'custom':       { label: 'Custom',             icon: '◆', ph: 'value' },
 };
 
-// ── Crypto helpers ──────────────────────────────────────────
-async function deriveKey(password, salt) {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false, ['encrypt', 'decrypt']
-  );
-}
-
-async function encryptVault(key, data) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(JSON.stringify(data)));
-  return { iv: b64(iv), data: b64(new Uint8Array(ct)) };
-}
-
-async function decryptVault(key, payload) {
-  const dec = new TextDecoder();
-  const pt = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: unb64(payload.iv) },
-    key, unb64(payload.data)
-  );
-  return JSON.parse(dec.decode(pt));
-}
-
-const b64   = buf => btoa(String.fromCharCode(...buf));
-const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
-
-// ── Persist encrypted vault ─────────────────────────────────
-async function saveVault() {
-  if (!vaultKey) return;
-  const stored = JSON.parse(localStorage.getItem(VAULT_KEY) || '{}');
-  const encrypted = await encryptVault(vaultKey, vaultCreds);
-  stored.iv   = encrypted.iv;
-  stored.data = encrypted.data;
-  localStorage.setItem(VAULT_KEY, JSON.stringify(stored));
-}
-
-function vaultExists() {
-  const s = localStorage.getItem(VAULT_KEY);
-  return s && JSON.parse(s).data;
-}
-
-function lockVault() {
-  vaultKey   = null;
-  vaultCreds = [];
-}
+async function saveVault()   { await CryptoManager.save(); }
+function  vaultExists()      { return CryptoManager.exists(); }
+function  lockVault()        { CryptoManager.lock(); }
+async function deriveKey(p,s){ return CryptoManager.deriveKey(p,s); }
+async function decryptVault(k,p){ return CryptoManager.decrypt(k,p); }
 
 // ── Vault UI ────────────────────────────────────────────────
 document.getElementById('btn-vault').addEventListener('click', openVault);
@@ -5063,7 +5505,7 @@ function renderVault() {
   const body = document.getElementById('vault-body');
   body.innerHTML = '';
 
-  if (!vaultKey) {
+  if (!CryptoManager.key) {
     // Show unlock or setup screen
     if (vaultExists()) {
       renderUnlockScreen(body);
@@ -5096,8 +5538,8 @@ function renderSetupScreen(body) {
     if (!p1) return showStatus(status, 'err', 'Enter a password.');
     if (p1 !== p2) return showStatus(status, 'err', 'Passwords don\'t match.');
     const salt = crypto.getRandomValues(new Uint8Array(16));
-    vaultKey   = await deriveKey(p1, salt);
-    vaultCreds = [];
+    CryptoManager.key = await deriveKey(p1, salt);
+    CryptoManager.creds = [];
     const stored = { salt: b64(salt) };
     localStorage.setItem(VAULT_KEY, JSON.stringify(stored));
     await saveVault();
@@ -5125,8 +5567,8 @@ function renderUnlockScreen(body) {
       const stored = JSON.parse(localStorage.getItem(VAULT_KEY));
       const salt   = unb64(stored.salt);
       const key    = await deriveKey(pwIn.value, salt);
-      vaultCreds   = await decryptVault(key, stored);
-      vaultKey     = key;
+      CryptoManager.creds = await decryptVault(key, stored);
+      CryptoManager.key   = key;
       renderVault();
     } catch {
       showStatus(status, 'err', 'Wrong password.');
@@ -5144,15 +5586,15 @@ function renderUnlockScreen(body) {
 
 function renderCredsScreen(body) {
   // Status bar
-  const bar = el('div', 'vault-status ok', `🔓 Vault unlocked — ${vaultCreds.length} credential${vaultCreds.length !== 1 ? 's' : ''} stored`);
+  const bar = el('div', 'vault-status ok', `🔓 Vault unlocked — ${CryptoManager.creds.length} credential${CryptoManager.creds.length !== 1 ? 's' : ''} stored`);
   body.appendChild(bar);
 
   // Credential list
   const list = el('div', 'vault-cred-list'); body.appendChild(list);
-  if (!vaultCreds.length) {
+  if (!CryptoManager.creds.length) {
     list.appendChild(el('div', 'vault-status info', 'No credentials yet. Add one below.'));
   }
-  vaultCreds.forEach(cred => list.appendChild(renderCredItem(cred)));
+  CryptoManager.creds.forEach(cred => list.appendChild(renderCredItem(cred)));
 
   // Add new credential form
   body.appendChild(el('div', 'vcf-lbl', 'ADD CREDENTIAL'));
@@ -5180,7 +5622,7 @@ function renderCredsScreen(body) {
     const name = nameIn.value.trim(), val = valIn.value.trim();
     if (!name) return showStatus(addStatus, 'err', 'Enter a name.');
     if (!val)  return showStatus(addStatus, 'err', 'Enter a value.');
-    vaultCreds.push({ id: uid('vc'), name, type: typeSel.value, value: val });
+    CryptoManager.creds.push({ id: uid('vc'), name, type: typeSel.value, value: val });
     await saveVault();
     nameIn.value = ''; valIn.value = '';
     showStatus(addStatus, 'ok', 'Credential saved.');
@@ -5237,7 +5679,7 @@ function renderCredItem(cred) {
   delBtn.addEventListener('click', async e => {
     e.stopPropagation();
     if (!confirm(`Delete "${cred.name}"?`)) return;
-    vaultCreds = vaultCreds.filter(c => c.id !== cred.id);
+    CryptoManager.creds = CryptoManager.creds.filter(c => c.id !== cred.id);
     await saveVault(); renderVault();
   });
   return wrap;
@@ -5273,7 +5715,7 @@ document.getElementById('gh-overlay').addEventListener('click', e => { if (e.tar
 
 function updateGhBtnState() {
   const btn = document.getElementById('btn-github');
-  const unlocked = !!vaultKey;
+  const unlocked = !!CryptoManager.key;
   btn.style.color = unlocked ? 'var(--cyn)' : '';
   btn.style.borderColor = unlocked ? 'rgba(34,211,238,.4)' : '';
 }
@@ -5287,7 +5729,7 @@ function renderGitHub() {
   const body = document.getElementById('gh-body'); body.innerHTML = '';
 
   // Vault lock state banner
-  if (!vaultKey) {
+  if (!CryptoManager.key) {
     const warn = el('div', 'vault-status info', '🔑 Vault is locked. Open the Vault first to use stored credentials, or enter them manually below.');
     body.appendChild(warn);
   }
@@ -5300,7 +5742,7 @@ function renderGitHub() {
   tokenSec.appendChild(tokenNote);
 
   // Stored token selector
-  const storedTokens = vaultCreds.filter(c => c.type === 'github-token');
+  const storedTokens = CryptoManager.creds.filter(c => c.type === 'github-token');
   let tokenSel = null;
   if (storedTokens.length) {
     tokenSel = document.createElement('select'); tokenSel.className = 'gh-cred-sel'; tokenSel.style.width = '100%';
@@ -5317,14 +5759,14 @@ function renderGitHub() {
   const tRow = el('div', 'vcf-secret'); tRow.appendChild(tokenIn); tRow.appendChild(tokenRev); tokenSec.appendChild(tRow);
 
   // Save token to vault shortcut
-  if (vaultKey) {
+  if (CryptoManager.key) {
     const saveLink = document.createElement('button');
     saveLink.style.cssText = 'font-family:var(--mono);font-size:8px;color:var(--grn);background:none;border:none;cursor:pointer;text-align:left;padding:2px 0';
     saveLink.textContent = '+ Save this token to vault';
     saveLink.addEventListener('click', async () => {
       const v = tokenIn.value.trim(); if (!v) return;
       const name = prompt('Name for this credential:', 'GitHub Token') || 'GitHub Token';
-      vaultCreds.push({ id: uid('vc'), name, type: 'github-token', value: v });
+      CryptoManager.creds.push({ id: uid('vc'), name, type: 'github-token', value: v });
       await saveVault(); renderGitHub();
     });
     tokenSec.appendChild(saveLink);
@@ -5337,7 +5779,7 @@ function renderGitHub() {
   gistNote.style.cssText = 'font-size:10px;color:var(--dim);line-height:1.6';
   gistSec.appendChild(gistNote);
 
-  const storedGists = vaultCreds.filter(c => c.type === 'gist-id');
+  const storedGists = CryptoManager.creds.filter(c => c.type === 'gist-id');
   let gistSel = null;
   if (storedGists.length) {
     gistSel = document.createElement('select'); gistSel.className = 'gh-cred-sel'; gistSel.style.width = '100%';
@@ -5351,14 +5793,14 @@ function renderGitHub() {
   const gistIn = inp('text', 'e.g. 6a9f8b2c1d3e4f5a7890abcd12345678');
   gistSec.appendChild(gistIn);
 
-  if (vaultKey) {
+  if (CryptoManager.key) {
     const saveGistLink = document.createElement('button');
     saveGistLink.style.cssText = 'font-family:var(--mono);font-size:8px;color:var(--grn);background:none;border:none;cursor:pointer;text-align:left;padding:2px 0';
     saveGistLink.textContent = '+ Save this Gist ID to vault';
     saveGistLink.addEventListener('click', async () => {
       const v = gistIn.value.trim(); if (!v) return;
       const name = prompt('Name for this Gist:', 'Pipeline Builder Skills') || 'Pipeline Builder Skills';
-      vaultCreds.push({ id: uid('vc'), name, type: 'gist-id', value: v });
+      CryptoManager.creds.push({ id: uid('vc'), name, type: 'gist-id', value: v });
       await saveVault(); renderGitHub();
     });
     gistSec.appendChild(saveGistLink);
@@ -5376,11 +5818,11 @@ function renderGitHub() {
 
   // Helper: resolve token and gist ID from selects or manual inputs
   function resolveToken() {
-    if (tokenSel?.value) return vaultCreds.find(c => c.id === tokenSel.value)?.value || '';
+    if (tokenSel?.value) return CryptoManager.creds.find(c => c.id === tokenSel.value)?.value || '';
     return tokenIn.value.trim();
   }
   function resolveGist() {
-    if (gistSel?.value) return vaultCreds.find(c => c.id === gistSel.value)?.value || '';
+    if (gistSel?.value) return CryptoManager.creds.find(c => c.id === gistSel.value)?.value || '';
     return gistIn.value.trim();
   }
 
@@ -5465,7 +5907,7 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
   function applyTheme(theme){
     document.body.classList.toggle('light',theme==='light');
     document.getElementById('btn-theme').textContent=theme==='light'?'🌑':'🌙';
-    localStorage.setItem('pb_theme',theme);
+    safeStore('pb_theme',theme);
   }
 
   let _sizeStyleEl=null;
@@ -5480,7 +5922,7 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
     }
     // Scale topbar, left panel, right panel, modals, breadcrumb — but NOT #scene or #canvas-wrap
     _sizeStyleEl.textContent=`
-      #topbar,#left,#right,#breadcrumb,
+      #topbar,#left,#right,#breadcrumb,#pipeline-tabbar,
       .overlay,.vault-overlay,#ctx-menu,
       #branch-overlay,#confirm-overlay{
         font-size:${(13*scale).toFixed(2)}px!important;
@@ -5499,9 +5941,13 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
       .if-name{font-size:${(10*scale).toFixed(2)}px!important}
       .size-lbl:first-child{font-size:${(8*scale).toFixed(2)}px!important}
       .size-lbl:last-child{font-size:${(11*scale).toFixed(2)}px!important}
+      .ptab{font-size:${(9*scale).toFixed(2)}px!important}
+      .ptab-close{font-size:${(11*scale).toFixed(2)}px!important}
+      .ptab-new{font-size:${(16*scale).toFixed(2)}px!important}
+      .ptab-open{font-size:${(8*scale).toFixed(2)}px!important}
     `;
     document.getElementById('size-slider').value=px;
-    localStorage.setItem('pb_size',px);
+    safeStore('pb_size',px);
   }
 
   applyTheme(savedTheme);
@@ -5511,9 +5957,31 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
     applyTheme(document.body.classList.contains('light')?'dark':'light');
   });
 
-  document.getElementById('size-slider').addEventListener('input',e=>{
-    applySize(parseFloat(e.target.value));
+  // Show zoom% while dragging; apply only on release
+  const _sizeSlider=document.getElementById('size-slider');
+  const _zoomLabel=document.createElement('span');
+  _zoomLabel.id='zoom-pct';
+  _zoomLabel.style.cssText='position:fixed;background:var(--panel);border:1px solid var(--brdhi);border-radius:5px;padding:2px 7px;font-family:var(--mono);font-size:10px;color:var(--acc);pointer-events:none;z-index:9999;display:none;white-space:nowrap';
+  document.body.appendChild(_zoomLabel);
+
+  _sizeSlider.addEventListener('input',e=>{
+    const pct=Math.round((parseFloat(e.target.value)/13)*100);
+    _zoomLabel.textContent=pct+'%';
+    _zoomLabel.style.display='block';
+    // Position label above the slider thumb
+    const rect=_sizeSlider.getBoundingClientRect();
+    const ratio=(parseFloat(e.target.value)-parseFloat(_sizeSlider.min))/(parseFloat(_sizeSlider.max)-parseFloat(_sizeSlider.min));
+    const thumbX=rect.left+ratio*(rect.width-12)+6;
+    _zoomLabel.style.left=(thumbX-_zoomLabel.offsetWidth/2)+'px';
+    _zoomLabel.style.top=(rect.top-28)+'px';
   });
+
+  _sizeSlider.addEventListener('change',e=>{
+    applySize(parseFloat(e.target.value));
+    _zoomLabel.style.display='none';
+  });
+
+  _sizeSlider.addEventListener('pointerup',()=>{_zoomLabel.style.display='none';});
 
   // Snap toggle
   function applySnapUI(){
@@ -5527,7 +5995,7 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
   applySnapUI();
   document.getElementById('btn-snap').addEventListener('click',()=>{
     snapEnabled=!snapEnabled;
-    localStorage.setItem('pb_snap',snapEnabled?'1':'0');
+    safeStore('pb_snap',snapEnabled?'1':'0');
     applySnapUI();
   });
 })();
