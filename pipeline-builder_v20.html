@@ -272,8 +272,9 @@ select option{background:var(--panel)}
 .lri{padding:7px 10px;display:flex;align-items:center;gap:7px}
 .lri:hover{background:rgba(255,255,255,.02)}
 .lib-row.sel .lri{background:rgba(255,255,255,.04)}
-.lib-row.lib-multi-sel{background:rgba(232,160,32,.07);border-left:2px solid var(--acc)}
+.lib-row.lib-multi-sel{background:rgba(232,160,32,.15);border-left:3px solid var(--acc);box-shadow:inset 0 0 0 1px rgba(232,160,32,.25)}
 .lib-row.lib-multi-sel .lri{background:transparent}
+.lib-row.lib-multi-sel .ln{color:var(--acc)!important}
 #lib-multi-bar{display:none;flex-shrink:0;align-items:center;gap:6px;padding:7px 10px;border-top:1px solid var(--brd);background:var(--panel)}
 #lib-multi-bar.visible{display:flex}
 #lib-multi-count{font-family:var(--mono);font-size:9px;color:var(--acc);flex:1}
@@ -2033,6 +2034,7 @@ function closeOpenPanel(){if(_openPanelEl){_openPanelEl.remove();_openPanelEl=nu
 let selNode=null;
 let selSkillId=null;
 const selLibIds=new Set(); // multi-selected skill ids in library panel
+let _lastSelectedId=null;  // anchor for shift-range selection
 
 function updateLibMultiBar(){
   const bar=document.getElementById('lib-multi-bar');
@@ -3828,12 +3830,33 @@ function mkLibRow(sk){
     if(e.button!==0)return;
     if(e.target.closest('.ladd'))return;
     if(e.shiftKey){
-      // Selection only — no drag
-      if(selLibIds.has(sk.id)){selLibIds.delete(sk.id);row.classList.remove('lib-multi-sel');}
-      else{selLibIds.add(sk.id);row.classList.add('lib-multi-sel');}
+      // Range selection: shift+click selects everything between anchor and target
+      e.preventDefault();
       selSkillId=null;selNode=null;
       document.querySelectorAll('.lib-row.sel').forEach(r=>r.classList.remove('sel'));
       document.querySelectorAll('.row-acts').forEach(a=>a.style.display='none');
+
+      if(_lastSelectedId&&_lastSelectedId!==sk.id){
+        // Get all visible lib-rows in DOM order
+        const rows=[...document.querySelectorAll('#lib-list .lib-row[data-sid]')];
+        const ids=rows.map(r=>r.dataset.sid);
+        const anchorIdx=ids.indexOf(_lastSelectedId);
+        const targetIdx=ids.indexOf(sk.id);
+        if(anchorIdx!==-1&&targetIdx!==-1){
+          const lo=Math.min(anchorIdx,targetIdx);
+          const hi=Math.max(anchorIdx,targetIdx);
+          for(let i=lo;i<=hi;i++){
+            selLibIds.add(ids[i]);
+            rows[i].classList.add('lib-multi-sel');
+          }
+        } else {
+          selLibIds.add(sk.id);row.classList.add('lib-multi-sel');
+        }
+      } else {
+        // No anchor — start fresh
+        selLibIds.add(sk.id);row.classList.add('lib-multi-sel');
+        _lastSelectedId=sk.id;
+      }
       updateLibMultiBar();
       return;
     }
@@ -3848,10 +3871,26 @@ function mkLibRow(sk){
   // Plain click (no shift, no drag movement) — single select
   row.addEventListener('click',e=>{
     if(e.shiftKey)return; // handled in pointerdown
+    if(e.ctrlKey||e.metaKey){
+      // Ctrl+click: toggle this item in multi-selection
+      if(selLibIds.has(sk.id)){
+        selLibIds.delete(sk.id);row.classList.remove('lib-multi-sel');
+      } else {
+        selLibIds.add(sk.id);row.classList.add('lib-multi-sel');
+        _lastSelectedId=sk.id;
+      }
+      selSkillId=null;selNode=null;
+      document.querySelectorAll('.lib-row.sel').forEach(r=>r.classList.remove('sel'));
+      document.querySelectorAll('.row-acts').forEach(a=>a.style.display='none');
+      updateLibMultiBar();
+      return;
+    }
+    // Plain click — single select, clear multi
     selLibIds.clear();
     document.querySelectorAll('.lib-row.lib-multi-sel').forEach(r=>r.classList.remove('lib-multi-sel'));
     updateLibMultiBar();
     selectLib(sk.id);
+    _lastSelectedId=sk.id;
   });
 
   const acts=document.createElement('div');acts.className='row-acts';acts.style.display='none';
