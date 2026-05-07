@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GUIness — Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0e1117;--surf:#161b22;--card:#1c2129;--brd:#2d333b;--txt:#c9d1d9;--dim:#636e7b;--acc:#e8a020;--grn:#34d399;--cyn:#22d3ee;--red:#f87171;--purple:#c084fc;--mono:'JetBrains Mono',monospace;--sans:'Space Grotesk',system-ui,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.7;font-size:15px}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:13px;background:var(--card);padding:2px 6px;border-radius:4px;color:var(--cyn)}
+pre{font-family:var(--mono);font-size:13px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:16px 20px;overflow-x:auto;line-height:1.6;margin:16px 0;color:var(--cyn)}
+pre code{background:none;padding:0}
+
+/* Layout */
+.page{display:flex;min-height:100vh}
+nav{width:260px;background:var(--surf);border-right:1px solid var(--brd);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;padding:24px 0;flex-shrink:0;z-index:100}
+nav .logo{padding:0 24px 20px;border-bottom:1px solid var(--brd);margin-bottom:16px}
+nav .logo h1{font-family:var(--mono);font-size:14px;color:var(--acc);letter-spacing:.12em;font-weight:700}
+nav .logo span{font-size:11px;color:var(--dim)}
+nav ul{list-style:none}
+nav ul li{margin:0}
+nav ul li a{display:block;padding:6px 24px;font-size:13px;color:var(--dim);transition:all .15s;border-left:2px solid transparent}
+nav ul li a:hover{color:var(--txt);background:rgba(255,255,255,.03);text-decoration:none}
+nav ul li a.active{color:var(--acc);border-left-color:var(--acc);background:rgba(232,160,32,.05)}
+nav .section-title{font-family:var(--mono);font-size:14px; font-weight:800; color:var(--acc);letter-spacing:.14em;padding:16px 24px 6px;text-transform:uppercase}
+
+main{margin-left:260px;flex:1;max-width:900px;padding:48px 60px 120px}
+main h1{font-family:var(--mono);font-size:28px;color:var(--acc);letter-spacing:.06em;margin-bottom:8px;font-weight:700}
+main h2{font-family:var(--mono);font-size:18px;color:var(--txt);letter-spacing:.04em;margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--brd);font-weight:600}
+main h3{font-family:var(--mono);font-size:14px;color:var(--acc);letter-spacing:.06em;margin:32px 0 12px;font-weight:700}
+main p{margin:12px 0;color:var(--txt)}
+main ul,main ol{margin:12px 0 12px 24px}
+main li{margin:4px 0;color:var(--txt)}
+main li strong{color:var(--acc)}
+
+/* Section cards */
+.section{display:none}
+.section.active{display:block}
+
+/* Screenshot map */
+.screenshot-wrap{position:relative;margin:24px auto;border:1px solid var(--brd);border-radius:12px;width:200%;max-width:1920px}
+.screenshot-wrap img{width:100%;display:block;border-radius:12px}
+.hotspot{position:absolute;border:2px solid transparent;border-radius:4px;cursor:pointer;transition:all .2s}
+.hotspot:hover{border-color:var(--acc);background:rgba(232,160,32,.12)}
+.hotspot .tip{display:none;position:fixed;background:var(--card);border:1px solid var(--acc);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--txt);z-index:1000;box-shadow:0 8px 32px rgba(0,0,0,.5);width:320px;line-height:1.6;pointer-events:none}
+.hotspot:hover .tip{display:block}
+.tip strong{color:var(--acc);font-family:var(--mono);font-size:12px}
+
+/* Primitive cards */
+.prim-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+.prim-card{background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:18px;transition:border-color .2s}
+.prim-card:hover{border-color:var(--acc)}
+.prim-card .prim-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.prim-card .prim-glyph{font-size:20px}
+.prim-card .prim-name{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em}
+.prim-card .prim-desc{font-size:12px;color:var(--dim);line-height:1.5}
+
+/* Feature list */
+.feature-list{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.feature-item{background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:14px 18px}
+.feature-item strong{color:var(--acc);font-family:var(--mono);font-size:12px}
+.feature-item p{font-size:13px;color:var(--dim);margin:4px 0 0}
+
+/* Keyboard shortcuts table */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+th{font-family:var(--mono);font-size:10px;color:var(--dim);text-align:left;padding:8px 12px;border-bottom:1px solid var(--brd);letter-spacing:.08em}
+td{padding:8px 12px;border-bottom:1px solid rgba(45,51,59,.5);color:var(--txt)}
+td code{font-size:11px}
+
+/* Responsive */
+@media(max-width:900px){
+  nav{width:200px}
+  main{margin-left:200px;padding:32px 28px 80px}
+}
+@media(max-width:640px){
+  nav{display:none}
+  main{margin-left:0;padding:24px 16px 80px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav>
+  <div class="logo">
+    <h1>◈ GUIness</h1>
+    <span>Documentation</span>
+  </div>
+  <ul>
+    <li><a href="#getting-started" class="active" onclick="showSection('getting-started')">Getting Started</a></li>
+    <li><a href="#ui-overview" onclick="showSection('ui-overview')">UI Overview</a></li>
+  </ul>
+  <div class="section-title">Core Concepts</div>
+  <ul>
+    <li><a href="#primitives" onclick="showSection('primitives')">Primitives</a></li>
+    <li><a href="#connections" onclick="showSection('connections')">Connections & Flow</a></li>
+    <li><a href="#pipelines" onclick="showSection('pipelines')">Building Pipelines</a></li>
+    <li><a href="#internal-graphs" onclick="showSection('internal-graphs')">Internal Graphs</a></li>
+  </ul>
+  <div class="section-title">Panels</div>
+  <ul>
+    <li><a href="#library" onclick="showSection('library')">Node Library</a></li>
+    <li><a href="#inspector" onclick="showSection('inspector')">Inspector Panel</a></li>
+    <li><a href="#canvas" onclick="showSection('canvas')">Canvas & Navigation</a></li>
+  </ul>
+  <div class="section-title">Execution</div>
+  <ul>
+    <li><a href="#export" onclick="showSection('export')">Export to LLM</a></li>
+    <li><a href="#run" onclick="showSection('run')">Run Pipeline</a></li>
+    <li><a href="#social" onclick="showSection('social')">Post to Social</a></li>
+  </ul>
+  <div class="section-title">Features</div>
+  <ul>
+    <li><a href="#vault" onclick="showSection('vault')">Vault & Credentials</a></li>
+    <li><a href="#autosave" onclick="showSection('autosave')">Autosave & Backup</a></li>
+    <li><a href="#gist-sync" onclick="showSection('gist-sync')">GitHub Gist Sync</a></li>
+    <li><a href="#import-export" onclick="showSection('import-export')">Import & Export</a></li>
+    <li><a href="#shortcuts" onclick="showSection('shortcuts')">Keyboard Shortcuts</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- GETTING STARTED -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="getting-started" class="section active">
+<h1>Getting Started</h1>
+<p>GUIness is a self-contained, single-file HTML application for designing, testing, and executing AI skill pipelines. It runs entirely in the browser — no server, no install, no dependencies.</p>
+
+<h3>Quick Start</h3>
+<ol>
+  <li><strong>Open the file</strong> — Double-click <code>pipeline-builder.html</code> or serve it from <code>localhost</code> for full File System Access API support.</li>
+  <li><strong>Explore the primitives</strong> — The Node Library on the left contains 6 primitive node types. Click the <code>+</code> button next to any primitive to add it to the canvas.</li>
+  <li><strong>Connect nodes</strong> — Drag from an output port (solid circle) to an input port (open circle) to create connections.</li>
+  <li><strong>Configure nodes</strong> — Select a node to see its fields in the Inspector panel on the right. Fill in instructions, code, variables, or conditions.</li>
+  <li><strong>Run your pipeline</strong> — Click <strong>Export → LLM</strong> in the top right to open the Run drawer. Add your API key to the Vault, select a provider, and hit <strong>▶ Send to LLM</strong>.</li>
+</ol>
+
+<h3>Requirements</h3>
+<ul>
+  <li>A modern browser (Chrome, Edge, Firefox, Safari)</li>
+  <li>An API key for at least one LLM provider (Anthropic, OpenAI, Gemini, or a local Ollama/OpenClaw instance)</li>
+</ul>
+
+<h3>Local LLM Setup</h3>
+<p>For free, private execution, install <a href="https://ollama.com" target="_blank">Ollama</a> and run a model:</p>
+<pre>ollama run llama3</pre>
+<p>Then enable CORS for browser access:</p>
+<pre>OLLAMA_ORIGINS=* ollama serve</pre>
+<p>In the Run drawer, select <strong>⊙ Local</strong>, leave the URL as <code>http://localhost:11434</code>, and hit <strong>Detect</strong> to find your models.</p>
+
+<h3>OpenClaw Integration</h3>
+<p>If you use <a href="https://openclaw.dev" target="_blank">OpenClaw</a>, enable the chat completions endpoint in <code>~/.openclaw/openclaw.json</code>, set the URL to <code>http://localhost:18789</code>, and add your gateway token to the Vault as an <strong>🦞 OpenClaw Token</strong>.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- UI OVERVIEW -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="ui-overview" class="section">
+<h1>UI Overview</h1>
+<p>Hover over any region of the screenshot to see what it does.</p>
+
+<div class="screenshot-wrap">
+  <img src="img/ui-overview.png" alt="GUIness UI"/>
+
+  <!-- Hotspot: Top toolbar -->
+  <div class="hotspot" style="left:0;top:0;width:100%;height:3.5%">
+    <span class="tip"><strong>Top Toolbar</strong> — Pipeline name, quick actions (Delete Node, Reset View, Clear), save/load buttons, Vault access, key count, snap toggle, and the Export → LLM drawer.</span>
+  </div>
+
+  <!-- Hotspot: Tab bar -->
+  <div class="hotspot" style="left:0;top:3.5%;width:76%;height:3%">
+    <span class="tip"><strong>Pipeline Tabs</strong> — Each open pipeline is a tab. Click to switch, double-click to rename, drag to reorder, × to close. The <code>+</code> button creates a new pipeline.</span>
+  </div>
+
+  <!-- Hotspot: Left panel - Library -->
+  <div class="hotspot" style="left:0;top:6.5%;width:15.5%;height:93.5%">
+    <span class="tip"><strong>Node Library</strong> — Browse, search, and filter your skills. Four tabs: My Skills, Built-In, Recent, Pipelines. Click <code>+</code> next to any skill to add it to the canvas. Use Generate to create skills with AI, Add Skill to create manually, or Import File to load from disk.</span>
+  </div>
+
+  <!-- Hotspot: Canvas -->
+  <div class="hotspot" style="left:15.5%;top:6.5%;width:54%;height:93.5%">
+    <span class="tip"><strong>Pipeline Canvas</strong> — The main workspace. Drop nodes here, connect them with edges, drag to move, scroll to zoom. Pan with middle-click or spacebar+drag. The minimap in the bottom-right shows an overview. The dot grid helps with alignment.</span>
+  </div>
+
+  <!-- Hotspot: Right panel - Inspector -->
+  <div class="hotspot" style="left:69.5%;top:6.5%;width:30.5%;height:93.5%">
+    <span class="tip"><strong>Inspector Panel</strong> — Shows details for the selected node. Edit the name, description, tags, color, shape, and category at the top. Below that: node fields (instructions, code, variables), I/O ports, and the Skill Content viewer/editor.</span>
+  </div>
+
+  <!-- Hotspot: Minimap -->
+  <div class="hotspot" style="left:55%;top:85%;width:14%;height:13%">
+    <span class="tip"><strong>Minimap</strong> — A birds-eye view of your pipeline. Nodes appear as colored rectangles, edges as lines. Click to navigate, drag to pan. Collapse with the ▾ MAP toggle.</span>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PRIMITIVES -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="primitives" class="section">
+<h1>Primitives</h1>
+<p>GUIness has 6 primitive node types. Everything else — custom skills, templates, agents — is composed from these primitives.</p>
+
+<div class="prim-grid">
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">✦</span><span class="prim-name" style="color:#60a5fa">TEXT</span></div>
+    <div class="prim-desc">Raw text entry point. Type or paste content directly. No LLM call, no inputs — output only. Use as the starting point for static content like prompts, templates, or reference material.</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">⬡</span><span class="prim-name" style="color:#e8a020">INPUTS</span></div>
+    <div class="prim-desc">General-purpose input boundary. Accepts text, files (with upload), URLs, API endpoints, or clipboard data. Has a Source Type selector and supports file upload with automatic content extraction.</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">⚙</span><span class="prim-name" style="color:#fb923c">COMPUTE</span></div>
+    <div class="prim-desc">The unit of work. Runs LLM inference, function calls, HTTP requests, or code execution. Has an Instructions field for describing what the node should do, and an Executor selector (LLM, Function, HTTP, Code).</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">⊞</span><span class="prim-name" style="color:#22d3ee">CODE</span></div>
+    <div class="prim-desc">A code block with language selection. Supports Python, JavaScript, TypeScript, Bash, SQL, and more. Use to define scripts, queries, configs, or any executable dependency in your pipeline.</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">◇</span><span class="prim-name" style="color:#c084fc">ROUTER</span></div>
+    <div class="prim-desc">The decision-maker. Branches execution based on conditions. Has pass/fail output ports, a Condition field, and evaluation mode (LLM natural language or JS expression). Supports loops with configurable max iterations.</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">◎</span><span class="prim-name" style="color:#34d399">CONTEXT</span></div>
+    <div class="prim-desc">State aggregation — no LLM call. Merges multiple inputs and variables into a unified context object. Use to combine research, audience data, and constraints before feeding into Compute nodes.</div>
+  </div>
+</div>
+
+<h3>System Nodes</h3>
+<p>Two additional nodes are used for sub-graph wiring:</p>
+<ul>
+  <li><strong>▶ GRAPH INPUT</strong> — Exposes parent node inputs inside a sub-graph</li>
+  <li><strong>◀ GRAPH OUTPUT</strong> — Sends sub-graph results back to the parent node</li>
+</ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- CONNECTIONS -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="connections" class="section">
+<h1>Connections & Flow</h1>
+
+<h3>Port Types</h3>
+<ul>
+  <li><strong>Input ports</strong> (left side) — Open circles with a colored stroke. Accept data from upstream nodes. When connected, the stroke fills with the node's color.</li>
+  <li><strong>Output ports</strong> (right side) — Solid filled circles. Send data downstream.</li>
+</ul>
+
+<h3>Making Connections</h3>
+<ol>
+  <li>Hover over an output port until the cursor changes to a crosshair</li>
+  <li>Click and drag toward an input port on another node</li>
+  <li>Release on the target port to complete the connection</li>
+</ol>
+<p>Connections flow left-to-right by convention. The system prevents cycles — you can't create a loop that would cause infinite execution (except through Router nodes with explicit loop control).</p>
+
+<h3>Data Flow</h3>
+<p>In <strong>Single mode</strong>, all connected nodes are compiled into one monolithic prompt sent to the LLM. In <strong>Chain mode</strong>, nodes execute sequentially in topological order, with each node's output piped as input to the next. Context nodes merge multiple inputs without an LLM call. Router nodes evaluate conditions and branch execution.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- BUILDING PIPELINES -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pipelines" class="section">
+<h1>Building Pipelines</h1>
+
+<h3>Creating a Pipeline</h3>
+<p>Click the <code>+</code> button in the tab bar to create a new empty pipeline. Each pipeline has its own canvas, nodes, edges, and undo/redo history.</p>
+
+<h3>Adding Nodes</h3>
+<p>Click the <code>+</code> button next to any skill in the Node Library to place it on the canvas. You can also use <strong>Import File</strong> to import <code>.md</code>, <code>.json</code>, <code>.txt</code>, or <code>.skill/.zip</code> files as nodes.</p>
+
+<h3>Organizing</h3>
+<ul>
+  <li><strong>Drag nodes</strong> to position them</li>
+  <li><strong>Resize width</strong> by dragging the left or right edge of a node</li>
+  <li><strong>Multi-select</strong> with Shift+click or lasso (click and drag on empty canvas)</li>
+  <li><strong>Snap to grid</strong> toggle in the top toolbar for precise alignment</li>
+</ul>
+
+<h3>Node Features</h3>
+<ul>
+  <li><strong>Double-click the title</strong> to rename a node inline</li>
+  <li><strong>Content drawer</strong> — click the <code>▸ CONTENT</code> toggle to expand/collapse a preview of the node's skill content. Includes View/Edit modes.</li>
+  <li><strong>Bottom drag bar</strong> on the content drawer — resize the drawer height</li>
+  <li><strong>Double-click the node body</strong> to open its internal graph (for custom skills)</li>
+</ul>
+
+<h3>Saving</h3>
+<p>Pipelines auto-save at a configurable interval (default: 1 minute). You can also manually save with <strong>💾 Save Pipeline</strong> or <strong>◎ Save as Node</strong> to save as a reusable file.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- INTERNAL GRAPHS -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="internal-graphs" class="section">
+<h1>Internal Graphs</h1>
+<p>Every custom (non-primitive) skill can contain its own internal graph — a sub-pipeline that defines the skill's behavior as a composition of other nodes.</p>
+
+<h3>Opening</h3>
+<p>Double-click any custom skill node to "dive into" its internal graph. The canvas zooms into the sub-graph, and a breadcrumb trail appears showing your navigation depth.</p>
+
+<h3>Graph I/O</h3>
+<p>Inside a sub-graph, use <strong>▶ Graph Input</strong> and <strong>◀ Graph Output</strong> nodes to wire data from the parent node's ports into the sub-graph and back out.</p>
+
+<h3>Navigation</h3>
+<p>Click the breadcrumb links to navigate back up. The root level shows your main pipeline canvas.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- LIBRARY -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="library" class="section">
+<h1>Node Library</h1>
+<p>The left panel contains all available skills organized into tabs and categories.</p>
+
+<h3>Tabs</h3>
+<div class="feature-list">
+  <div class="feature-item"><strong>MY SKILLS</strong><p>User-created skills. Editable, deletable, organized by category.</p></div>
+  <div class="feature-item"><strong>BUILT-IN</strong><p>The 6 primitive nodes plus Graph I/O. Locked — can't be edited or deleted.</p></div>
+  <div class="feature-item"><strong>RECENT</strong><p>Recently used skills for quick access.</p></div>
+  <div class="feature-item"><strong>PIPELINES</strong><p>Open and recently closed pipelines.</p></div>
+</div>
+
+<h3>Actions</h3>
+<ul>
+  <li><strong>✦ Generate</strong> — Create a skill using AI. Select a provider, model, and describe what you want.</li>
+  <li><strong>+ Add Skill</strong> — Create a skill manually via the wizard (name, color, glyph, ports, fields, content).</li>
+  <li><strong>⬆ Import File</strong> — Import <code>.md</code>, <code>.json</code>, <code>.txt</code>, <code>.skill</code>, or <code>.zip</code> files. Supports multiple files at once. Zip files are unpacked and reconstructed as connected node graphs.</li>
+</ul>
+
+<h3>Skill Card Actions</h3>
+<p>Hover over any skill in the library to reveal action buttons:</p>
+<ul>
+  <li><strong>Edit</strong> — Open the skill wizard to modify</li>
+  <li><strong>Duplicate</strong> — Create an editable copy</li>
+  <li><strong>Open Graph</strong> — View the skill's internal node graph</li>
+  <li><strong>Delete</strong> — Remove from library (with confirmation)</li>
+</ul>
+
+<h3>Categories</h3>
+<p>Skills are grouped by category. Category headers are collapsible (click to toggle) and editable (double-click to rename). Sorting within categories is controlled by the dropdown next to the search bar: A→Z, Z→A, Newest, Oldest.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- INSPECTOR -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="inspector" class="section">
+<h1>Inspector Panel</h1>
+<p>The right panel shows details for the currently selected node. It adapts based on whether you selected a node from the library or from the canvas.</p>
+
+<h3>Top Section — Metadata</h3>
+<ul>
+  <li><strong>Glyph</strong> — Click to change the node's icon</li>
+  <li><strong>Name</strong> — The skill label. Editable.</li>
+  <li><strong>Description</strong> — Auto-resizing textarea</li>
+  <li><strong>Tags</strong> — Type and press Enter to add. Click × to remove.</li>
+  <li><strong>Color dots</strong> — Click to assign a color. Double-click any dot to customize it with a color picker. <code>+</code> adds new custom colors.</li>
+  <li><strong>Shape</strong> — Standard (solid border), Dashed, or Ghost (minimal)</li>
+  <li><strong>Category</strong> — Dropdown with existing categories + Custom option</li>
+  <li><strong>Built-In toggle</strong> — On/Off for whether the skill is locked</li>
+</ul>
+
+<h3>Fields Section</h3>
+<p>When a canvas node is selected, the inspector shows its configurable fields. These vary by primitive:</p>
+<ul>
+  <li><strong>Text</strong> — Content (codeeditor)</li>
+  <li><strong>Inputs</strong> — Source Type, Content/Path/URL, Upload File, Headers, Description</li>
+  <li><strong>Compute</strong> — Instructions, Executor</li>
+  <li><strong>Code</strong> — Language, Code</li>
+  <li><strong>Router</strong> — Condition, Evaluation mode, Max Loops</li>
+  <li><strong>Context</strong> — Variables, Merge Mode</li>
+</ul>
+
+<h3>I/O Ports</h3>
+<p>The INPUTS and OUTPUTS sections let you add, remove, rename, and set types for the node's connection ports. Click <code>+ Add</code> to create new ports. Click <code>Edit</code> to modify port names.</p>
+
+<h3>Content Tab</h3>
+<p>Shows the skill's raw content rendered as markdown. Click <strong>Edit</strong> to modify the content directly. <strong>Save</strong> creates a new skill branch with your changes.</p>
+
+<h3>Graph Tab</h3>
+<p>For custom skills, shows an overview and the <strong>Open Graph</strong> button to dive into the internal sub-graph.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- CANVAS -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="canvas" class="section">
+<h1>Canvas & Navigation</h1>
+
+<h3>Pan & Zoom</h3>
+<ul>
+  <li><strong>Pan</strong> — Middle-click drag, or hold Spacebar + left-click drag</li>
+  <li><strong>Zoom</strong> — Scroll wheel. The zoom percentage is shown in the bottom-right.</li>
+  <li><strong>Reset View</strong> — Click the Reset View button in the toolbar</li>
+</ul>
+
+<h3>Selection</h3>
+<ul>
+  <li><strong>Click</strong> a node to select it</li>
+  <li><strong>Shift+Click</strong> to add/remove from selection</li>
+  <li><strong>Lasso</strong> — Click and drag on empty canvas to draw a selection rectangle</li>
+  <li><strong>Alt+Click</strong> a node to select it and all downstream connected nodes</li>
+</ul>
+
+<h3>Minimap</h3>
+<p>A collapsible birds-eye view in the bottom-right corner. Shows all nodes as colored rectangles with edges. Click to navigate, drag to pan. Selected nodes are highlighted with a thicker border.</p>
+
+<h3>Collapsible Panels</h3>
+<p>Both the left (Library) and right (Inspector) panels can be collapsed to give the canvas more room. Click the <code>◂</code> / <code>▸</code> button, or click the vertical label strip to expand.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- EXPORT -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="export" class="section">
+<h1>Export to LLM</h1>
+<p>Click <strong>Export → LLM</strong> in the top right to open the export drawer.</p>
+
+<h3>Output Formats</h3>
+<p>Three tabs compile your pipeline into different formats:</p>
+<div class="feature-list">
+  <div class="feature-item"><strong>Markdown</strong><p>A structured document with execution sequence, step details, and reference materials. Download as <code>.md</code> or copy to clipboard.</p></div>
+  <div class="feature-item"><strong>GPT (JSON)</strong><p>A JSON payload with <code>systemPrompt</code>, <code>instructions</code>, and <code>tools</code> — ready for the OpenAI Assistants API or Custom GPTs.</p></div>
+  <div class="feature-item"><strong>Gem</strong><p>Plain text format for Google Gemini Gems, with identity, instructions, and step sequence.</p></div>
+</div>
+
+<h3>Prompt Size</h3>
+<p>The bottom of the drawer shows an estimated token count (~4 chars/token) and cost estimate based on the selected model's pricing.</p>
+
+<h3>Connected Nodes Only</h3>
+<p>Only nodes that are connected to at least one edge are included in the export. Disconnected nodes are ignored.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- RUN -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="run" class="section">
+<h1>Run Pipeline</h1>
+<p>The Run section in the Export drawer lets you send your compiled pipeline directly to an LLM and see results in real time.</p>
+
+<h3>Providers</h3>
+<p>Select from Anthropic, OpenAI, Gemini, or Local (Ollama/OpenClaw). Each provider uses API keys stored in the Vault. Gemini models are fetched live from the API.</p>
+
+<h3>Execution Modes</h3>
+<div class="feature-list">
+  <div class="feature-item"><strong>Single</strong><p>Compiles the entire pipeline into one prompt and sends it as a single LLM call. The response streams in real time.</p></div>
+  <div class="feature-item"><strong>Chain</strong><p>Runs connected nodes sequentially in topological order. Each node's output is piped as input to the next. Router nodes evaluate conditions and branch. Context nodes merge inputs without an LLM call. The response shows step-by-step progress with headers.</p></div>
+</div>
+
+<h3>Response Area</h3>
+<ul>
+  <li><strong>Raw / Preview</strong> — Toggle between markdown rendering and live HTML preview (with sandboxed iframes for HTML blocks)</li>
+  <li><strong>Edit</strong> — Make the response editable inline. Formatting is preserved.</li>
+  <li><strong>Copy / Save</strong> — Copy as text or download with auto-detected file extension (.md, .html, .py, etc.)</li>
+  <li><strong>Follow-up</strong> — Send additional messages with full conversation history preserved</li>
+  <li><strong>Clear</strong> — Reset the response and conversation history</li>
+</ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SOCIAL -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="social" class="section">
+<h1>Post to Social</h1>
+<p>The Post to Social panel sits below the Run section in the Export drawer. Click <strong>▸ POST TO SOCIAL</strong> to expand it.</p>
+
+<h3>Rich Text Editor</h3>
+<p>A full formatting toolbar with bold, italic, underline, strikethrough, headings (H1/H2/H3), bullet and numbered lists, alignment, font selection, font size, link insertion, and clear formatting. The LLM response automatically loads into the editor when opened.</p>
+
+<h3>Platforms</h3>
+<p>Four platform chips: Bluesky, LinkedIn, Twitter, and Instagram. Each shows a live character count. Grey chips indicate no credentials in the Vault. Multiple platforms can be selected for simultaneous posting.</p>
+
+<h3>Images</h3>
+<p>Drag and drop or click to browse. Supports multiple images with thumbnail previews. Per-platform limits are enforced at preview time.</p>
+
+<h3>Preview & Post</h3>
+<p>The <strong>👁 Preview</strong> button shows a per-platform preview with character counts and truncation warnings. The <strong>📤 Post</strong> button shows a confirmation dialog before posting. Results are displayed per-platform with success/failure status.</p>
+
+<h3>Save as HTML</h3>
+<p>The 💾 button in the toolbar saves the editor content as a standalone HTML file.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- VAULT -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="vault" class="section">
+<h1>Vault & Credentials</h1>
+<p>The Vault stores API keys and tokens encrypted with a master password using AES-GCM. Credentials are only decrypted in memory during your session.</p>
+
+<h3>Supported Credential Types</h3>
+<table>
+  <tr><th>Type</th><th>Icon</th><th>Used For</th></tr>
+  <tr><td>Anthropic API Key</td><td>✦</td><td>Claude models via Run Pipeline</td></tr>
+  <tr><td>OpenAI API Key</td><td>⬡</td><td>GPT models via Run Pipeline</td></tr>
+  <tr><td>Gemini API Key</td><td>✧</td><td>Gemini models + live model list</td></tr>
+  <tr><td>OpenClaw Token</td><td>🦞</td><td>OpenClaw gateway authentication</td></tr>
+  <tr><td>GitHub Token</td><td>⎇</td><td>Gist sync (classic token with gist scope)</td></tr>
+  <tr><td>Gist ID</td><td>◈</td><td>Target Gist for sync</td></tr>
+  <tr><td>Bluesky Credentials</td><td>🦋</td><td>Post to Bluesky (handle:app-password)</td></tr>
+  <tr><td>LinkedIn Token</td><td>💼</td><td>Post to LinkedIn</td></tr>
+  <tr><td>Twitter Token</td><td>𝕏</td><td>Post to Twitter</td></tr>
+  <tr><td>Meta/IG Token</td><td>📷</td><td>Post to Instagram</td></tr>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- AUTOSAVE -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="autosave" class="section">
+<h1>Autosave & Backup</h1>
+
+<h3>localStorage</h3>
+<p>Both skills and pipelines are saved to localStorage at the configured interval (default: 1 minute). The timestamp of the last save is shown in the toolbar.</p>
+
+<h3>File System Backup</h3>
+<p>Click the <strong>📁</strong> button in the toolbar to select a backup directory. Three files are written on each autosave:</p>
+<ul>
+  <li><code>pb-skills-autosave.json</code> — Your skill library</li>
+  <li><code>pb-pipelines-autosave.json</code> — All open pipelines</li>
+  <li><code>pb-autosave-snapshot.json</code> — Combined snapshot with timestamp</li>
+</ul>
+<p><em>Note: Requires HTTPS or localhost. Not available on <code>file://</code> protocol.</em></p>
+
+<h3>Page Unload</h3>
+<p>A safety-net save fires on page close/refresh to catch anything between the last autosave tick and the tab closing.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- GIST SYNC -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="gist-sync" class="section">
+<h1>GitHub Gist Sync</h1>
+<p>Sync your skills and pipelines to a private GitHub Gist for cloud backup and cross-device access.</p>
+
+<h3>Setup</h3>
+<ol>
+  <li>Create a <a href="https://github.com/settings/tokens" target="_blank">classic GitHub token</a> (not fine-grained) with <code>gist</code> scope</li>
+  <li>Add it to the Vault as a <strong>GitHub Token</strong></li>
+  <li>Click <strong>⎇ GitHub</strong> in the toolbar to open the sync panel</li>
+  <li>Click <strong>+ Create Gist</strong> to create a new private Gist, or paste an existing Gist ID</li>
+</ol>
+
+<h3>Sync Options</h3>
+<ul>
+  <li><strong>Scope: Skills / All</strong> — Sync just skills, or skills + pipelines</li>
+  <li><strong>Auto-Sync: On / Off</strong> — When On, pushes to Gist on every autosave tick</li>
+  <li><strong>↓ Pull</strong> — Download from Gist. Conflict detection: remote wins if newer, local wins if newer (skipped).</li>
+  <li><strong>↑ Push</strong> — Upload to Gist. Only user skills are pushed (builtins are excluded).</li>
+</ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- IMPORT EXPORT -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="import-export" class="section">
+<h1>Import & Export</h1>
+
+<h3>Skill Import</h3>
+<p>The <strong>⬆ Import File</strong> button accepts multiple files. Supported formats:</p>
+<ul>
+  <li><strong>.md / .txt / .json</strong> — Imported as a single skill node with the file content as rawContent</li>
+  <li><strong>.skill / .zip</strong> — Unpacked and reconstructed as a connected graph of primitives:
+    <ul>
+      <li>Python/JS/Bash files → Code nodes</li>
+      <li>JSON/YAML/config files → Context nodes</li>
+      <li>SKILL.md → Main Compute skill</li>
+      <li>Other .md files → Compute nodes</li>
+      <li>Connections inferred from import statements, numbered file prefixes, and folder structure</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Pipeline Save/Load</h3>
+<ul>
+  <li><strong>💾 Save Pipeline</strong> — Saves to localStorage</li>
+  <li><strong>◎ Save as Node</strong> — Exports as a <code>.pipeline.json</code> file with bundled skills</li>
+  <li><strong>Open</strong> — Click the 📂 Open button in the tab bar to load a saved pipeline. Missing skills are detected and you're prompted to import them.</li>
+</ul>
+
+<h3>Library Save/Load</h3>
+<ul>
+  <li><strong>↑ Save Library</strong> — Exports your entire skill library as a <code>.json</code> file</li>
+  <li><strong>↑ Load Library</strong> — Imports a saved library, merging with existing skills</li>
+</ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- SHORTCUTS -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="shortcuts" class="section">
+<h1>Keyboard Shortcuts</h1>
+
+<table>
+  <tr><th>Key</th><th>Action</th></tr>
+  <tr><td><code>Delete</code></td><td>Delete selected node(s)</td></tr>
+  <tr><td><code>Ctrl+Z</code></td><td>Undo</td></tr>
+  <tr><td><code>Ctrl+Shift+Z</code></td><td>Redo</td></tr>
+  <tr><td><code>Ctrl+C</code></td><td>Copy selected node(s)</td></tr>
+  <tr><td><code>Ctrl+V</code></td><td>Paste node(s)</td></tr>
+  <tr><td><code>Shift+D</code></td><td>Duplicate selected node(s)</td></tr>
+  <tr><td><code>Spacebar + Drag</code></td><td>Pan the canvas</td></tr>
+  <tr><td><code>Scroll Wheel</code></td><td>Zoom in/out</td></tr>
+  <tr><td><code>Ctrl+A</code></td><td>Select all nodes</td></tr>
+  <tr><td><code>Escape</code></td><td>Deselect all</td></tr>
+  <tr><td><code>Alt+Click</code></td><td>Select node + all downstream</td></tr>
+</table>
+</div>
+
+</main>
+</div>
+
+<script>
+// Position tooltips dynamically to avoid clipping
+document.querySelectorAll('.hotspot').forEach(hs=>{
+  const tip=hs.querySelector('.tip');
+  if(!tip)return;
+  hs.addEventListener('mouseenter',e=>{
+    const rect=hs.getBoundingClientRect();
+    const tipW=320,tipH=tip.offsetHeight||120;
+    // Default: above and centered
+    let left=rect.left+rect.width/2-tipW/2;
+    let top=rect.top-tipH-12;
+    // If above would clip, show below
+    if(top<8){top=rect.bottom+12;}
+    // If left would clip, shift right
+    if(left<8)left=8;
+    // If right would clip, shift left
+    if(left+tipW>window.innerWidth-8)left=window.innerWidth-tipW-8;
+    // If bottom would clip, shift up
+    if(top+tipH>window.innerHeight-8)top=window.innerHeight-tipH-8;
+    tip.style.left=left+'px';
+    tip.style.top=top+'px';
+  });
+});
+
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+  document.querySelectorAll('nav a').forEach(a=>{
+    a.classList.toggle('active',a.getAttribute('href')==='#'+id);
+  });
+  window.scrollTo(0,0);
+}
+// Handle direct hash navigation
+if(location.hash){const id=location.hash.slice(1);if(document.getElementById(id))showSection(id);}
+</script>
+</body>
+</html>
