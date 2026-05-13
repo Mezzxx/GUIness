@@ -111,6 +111,79 @@ not supported.
 ================================================================================
 -->
 <!DOCTYPE html>
+<!--
+  ╔═══════════════════════════════════════════════════════════════╗
+  ║  GUIness — Visual AI Pipeline Builder                       ║
+  ║  A self-contained, single-file HTML application              ║
+  ║  https://github.com/Mezzxx/GUIness                     ║
+  ╚═══════════════════════════════════════════════════════════════╝
+
+  FILE STRUCTURE
+  ══════════════
+  This file is organized into clearly delineated sections:
+
+  HTML STRUCTURE (lines ~1-1060)
+  ├── <head> — Meta, fonts, favicon
+  ├── <style> — All CSS (see STYLE GUIDE below)
+  └── <body> — DOM structure
+      ├── Top toolbar
+      ├── Pipeline tab bar
+      ├── Left panel (Node Library)
+      ├── Canvas area + minimap
+      ├── Right panel (Inspector)
+      ├── LLM Export drawer
+      ├── Overlays (vault, gist, generate, branch, confirm, shortcuts)
+      └── Social posting panel
+
+  JAVASCRIPT (after the script tag)
+  ├── CONFIG & CONSTANTS — Colors, primitives, spacing
+  ├── SKILLS ARRAY — Built-in primitive node definitions
+  ├── PERSISTENCE — localStorage save/load for skills & pipelines
+  ├── PIPELINE MANAGEMENT — Create, switch, close, rename, save
+  ├── TAB BAR — Drag-to-reorder, click-to-switch, rename
+  ├── CANVAS — Pan, zoom, grid, transform
+  ├── NODE RENDERING — buildNode(), rebuildNode(), node DOM
+  ├── EDGE RENDERING — SVG edges, connection drawing
+  ├── SELECTION — Click, shift-click, lasso, multi-select
+  ├── KEYBINDINGS — All keyboard shortcuts
+  ├── INSPECTOR — Right panel rendering, field editors
+  ├── LIBRARY — Left panel rendering, search, sort, categories
+  ├── EXPORT — Markdown, GPT JSON, Gem format builders
+  ├── LLM CALLS — callAI, callAIStreaming, callAIWithHistory
+  ├── RUN PIPELINE — Send handler, chain execution, streaming
+  ├── FILE CARDS — File detection and download cards in responses
+  ├── SOCIAL POSTING — Rich editor, platform APIs, preview/post
+  ├── MINIMAP — Canvas overview, click-to-navigate
+  ├── VAULT — AES-GCM encryption, credential management
+  ├── GITHUB SYNC — Gist push/pull/auto-sync
+  ├── AUTOSAVE — Timer, file system backup, beforeunload
+  ├── THEME — Light/dark toggle, text scaling
+  └── INIT — Startup, restore state, render
+
+  CUSTOMIZATION GUIDE
+  ═══════════════════
+  All visual appearance is controlled in three places:
+
+  1. CSS CUSTOM PROPERTIES (search: ":root{")
+     — Colors (OKLCH), fonts, easing curves, spacing scale
+     — Change these to retheme the entire app
+
+  2. COLORS MAP (search: "const COLORS=")
+     — Node color palette used by the canvas
+     — Each entry maps a name to an OKLCH color string
+
+  3. CSS CLASSES (in the <style> block)
+     — All component styles: nodes, panels, buttons, etc.
+     — Organized by component with section comments
+
+  To customize:
+  • Change accent color: edit --acc in :root
+  • Change node colors: edit the COLORS map
+  • Change fonts: edit --mono and --body in :root
+  • Change spacing: edit --sp-xs through --sp-2xl
+  • Change transitions: edit --ease and --ease-out
+  • Add a new primitive: add to the skills[] array (search: "PRIMITIVE NODES")
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -162,8 +235,12 @@ select option{background:var(--panel)}
 .hidden{display:none!important}
 
 #app{display:flex;flex-direction:column;height:100vh;width:100vw}
+
+/* ── TOOLBAR ── */
 #topbar{height:51px;background:var(--surf);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 16px;gap:9px;flex-shrink:0;z-index:100}
 #body{flex:1;display:flex;overflow:hidden;min-height:0;flex-direction:column}
+
+/* ── CANVAS ── */
 #canvas-area{flex:1;display:flex;overflow:hidden;min-height:0}
 .panel-collapse-btn{width:20px;height:20px;border-radius:4px;background:transparent;border:1px solid var(--brd);color:var(--dim);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s var(--ease);line-height:1;flex-shrink:0}
 .panel-collapse-btn:hover{color:var(--acc);border-color:var(--acc);background:rgba(232,160,32,.06)}
@@ -193,6 +270,8 @@ select option{background:var(--panel)}
 #no-pipeline-screen .nps-btn.sec{background:transparent;border-color:var(--brd);color:var(--dhi)}
 #no-pipeline-screen .nps-btn:hover.pri{background:rgba(232,160,32,.18)}
 #no-pipeline-screen .nps-btn:hover.sec{border-color:var(--dhi)}
+
+/* ── PIPELINE TABS ── */
 #pipeline-tabbar{height:34px;background:var(--panel);border-bottom:1px solid var(--brd);display:flex;align-items:stretch;flex-shrink:0;overflow-x:auto;overflow-y:hidden;z-index:90}
 #pipeline-tabbar::-webkit-scrollbar{height:3px}
 #pipeline-tabbar::-webkit-scrollbar-thumb{background:var(--brd)}
@@ -248,6 +327,8 @@ select option{background:var(--panel)}
 
 
 /* LEFT */
+
+/* ── LEFT PANEL (NODE LIBRARY) ── */
 #left{width:450px;min-width:120px;max-width:840px;background:var(--surf);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;user-select:none;position:relative;transition:width .2s var(--ease),min-width .2s}
 #left.collapsed{width:28px!important;min-width:28px!important;overflow:hidden}
 #left.collapsed>*:not(.panel-expand-btn){display:none!important}
@@ -333,6 +414,8 @@ select option{background:var(--panel)}
 
 /* CANVAS */
 #canvas-wrap{flex:1;position:relative;overflow:hidden;background-image:radial-gradient(circle,var(--brd) 1px,transparent 1px);transition:outline .2s var(--ease) var(--ease)}
+
+/* ── MINIMAP ── */
 #minimap{position:absolute;bottom:12px;right:12px;width:180px;height:120px;background:var(--panel);border:1px solid var(--brd);border-radius:8px;z-index:20;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:height .2s var(--ease),opacity .2s;opacity:.85}
 #minimap:hover{opacity:1}
 #minimap.collapsed{height:20px}
@@ -352,7 +435,9 @@ select option{background:var(--panel)}
 #zoom-lbl{position:absolute;bottom:16px;right:200px;font-family:var(--mono);font-size:8px;color:var(--dim);background:var(--surf);border:1px solid var(--brd);border-radius:4px;padding:2px 7px;pointer-events:none}
 
 /* NODES */
-.node{position:absolute;width:214px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible}
+
+/* ── NODES ── */
+.node{position:absolute;width:'+CONFIG.DEFAULT_NODE_WIDTH+'px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible}
 .node-card{background:var(--card);border:1.5px solid var(--brd);border-radius:9px;position:relative;z-index:2}
 /* Side resize zones on the card */
 .node-side-resize{position:absolute;top:0;width:6px;height:100%;cursor:ew-resize;z-index:3}
@@ -405,6 +490,8 @@ select option{background:var(--panel)}
 .node-editor textarea:focus{border-color:var(--brdhi);outline:none}
 
 /* ── File cards in response ── */
+
+/* ── FILE CARDS ── */
 .file-card{background:var(--card);border:1px solid var(--brd);border-radius:8px;margin:12px 0;overflow:hidden}
 .file-card-header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--brd);background:var(--surf)}
 .file-card-icon{font-size:14px}
@@ -427,6 +514,8 @@ select option{background:var(--panel)}
 .section-divider{height:3px;background:linear-gradient(90deg,var(--acc),var(--cyn));flex-shrink:0;opacity:.6}
 
 /* ── Social Posting Panel ── */
+
+/* ── SOCIAL POSTING ── */
 .social-toggle{font-family:var(--mono);font-size:9px;color:var(--dhi);padding:8px 16px;cursor:pointer;border-top:1px solid var(--brd);user-select:none;letter-spacing:.1em;display:flex;align-items:center;gap:6px;transition:all .15s var(--ease);background:rgba(255,255,255,.02)}
 .social-toggle:hover{color:var(--acc);background:rgba(255,255,255,.04)}
 .social-panel{display:none;flex-direction:column;border-top:1px solid var(--brd);background:var(--panel);overflow:hidden;flex:1;min-height:0}
@@ -460,6 +549,8 @@ select option{background:var(--panel)}
 .port-row.out-row{flex-direction:row-reverse;padding-right:0}
 .port-lbl{font-family:var(--mono);font-size:7px;color:var(--dim);white-space:nowrap;pointer-events:none;letter-spacing:.04em;line-height:1;padding:0 4px}
 .port-lbl.out-lbl{text-align:right}
+
+/* ── PORTS & CONNECTIONS ── */
 .port{width:12px;height:12px;border-radius:50%;cursor:crosshair;z-index:50;display:flex;align-items:center;justify-content:center;transition:border-color .15s var(--ease),background .15s,transform .15s;flex-shrink:0;position:relative;box-sizing:border-box}
 .port:hover{transform:scale(1.3)}
 .port-in{background:transparent;border:2.5px solid var(--brdhi)}
@@ -495,10 +586,14 @@ select option{background:var(--panel)}
 .ctx-sep{height:1px;background:var(--brd);margin:2px 0}
 
 /* RIGHT PANEL */
+
+/* ── RIGHT PANEL (INSPECTOR) ── */
 #right{width:650px;min-width:200px;max-width:840px;background:var(--surf);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0;position:relative;transition:width .2s var(--ease),min-width .2s}
 #right.collapsed{width:28px!important;min-width:28px!important;overflow:hidden}
 #right.collapsed>*:not(.panel-expand-btn){display:none!important}
 #right.collapsed>.panel-expand-btn{display:flex!important}
+
+/* ── INSPECTOR SECTIONS ── */
 #insp-meta{padding:10px 12px;border-bottom:1px solid var(--brd);flex-shrink:0;overflow-y:visible}
 #insp-form {display:flex; flex-direction:column; flex:1;}
 #insp-placeholder{font-size:11px;color:var(--dim);line-height:1.7}
@@ -736,6 +831,42 @@ select option{background:var(--panel)}
 .ghbtn.push{border-color:var(--grn);color:var(--grn)}
 .ghbtn.push:hover{background:rgba(52,211,153,.08)}
 .ghbtn:disabled{opacity:.4;cursor:default}
+
+/* ══════════════════════════════════════════════════════════
+   CUSTOMIZATION HELPERS
+   ══════════════════════════════════════════════════════════
+   These utility classes are used throughout the HTML.
+   Edit them here to change appearance globally.
+   ══════════════════════════════════════════════════════════ */
+
+/* Mono label used for section headers, field labels, etc. */
+.mlbl{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.08em;margin-bottom:4px}
+
+/* Standard text input styling */
+.field-input{width:100%;background:var(--panel);border:1px solid var(--brd);border-radius:6px;color:var(--txt);padding:6px 8px;font-size:11px;font-family:var(--mono);box-sizing:border-box}
+.field-input:focus{border-color:var(--acc);outline:none}
+
+/* Pill toggle group (used for Skills/All, On/Off, Single/Chain, etc.) */
+.pill-group{display:flex;gap:1px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:2px}
+.pill-btn{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:4px;border:none;cursor:pointer;transition:all .2s var(--ease)}
+.pill-btn.on{background:var(--alo);color:var(--acc)}
+.pill-btn.off{background:transparent;color:var(--dim)}
+
+/* Status indicators */
+.status-ok{font-family:var(--mono);font-size:9px;color:var(--grn)}
+.status-err{font-family:var(--mono);font-size:9px;color:var(--red)}
+.status-dim{font-family:var(--mono);font-size:9px;color:var(--dim)}
+
+
+/* Repeated inline style extractions — edit here instead of hunting through JS */
+.flex-col-gap{display:flex;flex-direction:column;gap:6px}
+.flex-row-center{display:flex;align-items:center;gap:6px}
+.empty-state{padding:16px;text-align:center;font-size:11px;color:var(--dim)}
+.section-label{font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:6px;letter-spacing:.08em}
+.group-label{font-family:var(--mono);font-size:10px;color:var(--dhi);letter-spacing:.08em}
+.hidden-picker{position:absolute;opacity:0;pointer-events:none}
+.field-select{width:100%;font-size:10px;padding:4px 6px;background:var(--panel);border:1px solid var(--brd);border-radius:5px;color:var(--dhi);font-family:var(--mono)}
+
 </style>
 </head>
 <body>
@@ -751,7 +882,7 @@ select option{background:var(--panel)}
     <button class="tbtn danger hidden" id="btn-del">Delete Node</button>
     <button class="tbtn" id="btn-reset">Reset View</button>
     <button class="tbtn hidden" id="btn-clear">Clear</button>
-    <button class="tbtn" id="btn-save-pipeline" title="Save pipeline (Ctrl+S) · Save As… (Ctrl+Shift+S)">💾 Save Pipeline</button>
+    <button class="tbtn" id="btn-save-pipeline" title="Save As… (choose location) · Ctrl+S to quick-save to last location">💾 Save Pipeline</button>
     <button class="tbtn" id="btn-pipeline-to-node" title="Save active pipeline as a reusable node in the PIPELINES library tab">⬡ Save as Node</button>
     <button class="tbtn" id="btn-load-lib" title="Load a skills library JSON file">⬆ Load Library</button>
     <button class="tbtn" id="btn-save-lib">Save Library</button>
@@ -768,6 +899,13 @@ select option{background:var(--panel)}
     </div>
     <div style="width:1px;height:18px;background:var(--brd);margin:0 2px"></div>
     <button id="btn-theme" title="Toggle light/dark mode">🌙</button>
+    <select id="theme-preset" title="Color theme preset" style="font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:4px;color:var(--dhi);padding:2px 4px;cursor:pointer;width:100px">
+      <option value="midnight">Midnight</option>
+      <option value="ember">Ember</option>
+      <option value="forest">Forest</option>
+      <option value="ocean">Ocean</option>
+      <option value="violet">Violet</option>
+    </select>
     <button class="tbtn" id="btn-snap" title="Toggle grid snapping (26px)">⊞ Snap</button>
     <div class="size-wrap" title="UI text size">
       <span class="size-lbl">A</span>
@@ -1176,6 +1314,110 @@ select option{background:var(--panel)}
 </div>
 
 <script>
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║  CONFIG — All magic numbers and tunable constants live here  ║
+// ║  Edit these to customize behavior without touching logic     ║
+// ╚═══════════════════════════════════════════════════════════════╝
+const CONFIG={
+  // ── Canvas ──────────────────────────────────────────────
+  SNAP_SIZE:           26,      // Grid snap increment (px)
+  DEFAULT_NODE_WIDTH:  214,     // Default node width (px)
+  MIN_NODE_WIDTH:      140,     // Minimum node width (px)
+  MIN_DRAWER_HEIGHT:   60,      // Minimum content drawer height (px)
+  MAX_DRAWER_HEIGHT:   250,     // Max code textarea height (px)
+  ZOOM_MIN:            0.15,    // Minimum zoom level
+  ZOOM_MAX:            4,       // Maximum zoom level
+  ZOOM_STEP:           0.001,   // Zoom sensitivity per wheel delta
+
+  // ── Autosave ────────────────────────────────────────────
+  AUTOSAVE_DEFAULT_MIN: 1,      // Default autosave interval (minutes, 0=off)
+  AUTOSAVE_MAX_MIN:     60,     // Maximum autosave interval (minutes)
+
+  // ── Pipeline ────────────────────────────────────────────
+  CLOSED_PIPELINES_MAX: 20,     // Max recently-closed pipelines to remember
+  UNDO_MAX:             80,     // Max undo history depth
+  TAB_DBLCLICK_MS:      400,    // Double-click timing for tab rename (ms)
+
+  // ── Router ──────────────────────────────────────────────
+  DEFAULT_MAX_LOOPS:    3,      // Default max loop iterations for Router nodes
+
+  // ── LLM ─────────────────────────────────────────────────
+  MAX_OUTPUT_TOKENS:    8192,   // Default max_tokens for LLM calls
+  STREAM_THROTTLE_MS:   50,     // Min ms between DOM updates during streaming
+
+  // ── Node rendering ──────────────────────────────────────
+  NODE_PORT_SIZE:       12,     // Port circle diameter (px)
+  NODE_BORDER_ALPHA:    0.27,   // Border color alpha for unselected nodes
+  NODE_SHADOW_ALPHA:    0.19,   // Box shadow alpha for selected nodes
+  NODE_LABEL_DBLCLICK_MS: 400,  // Double-click timing for node rename (ms)
+
+  // ── Layout ──────────────────────────────────────────────
+  IMPORT_NODE_OFFSET:   40,     // Stagger offset when importing multiple nodes
+  ZIP_GRAPH_COL_W:      260,    // Column width for zip-imported graphs
+  ZIP_GRAPH_ROW_H:      160,    // Row height for zip-imported graphs
+
+  // ── Minimap ─────────────────────────────────────────────
+  MINIMAP_W:            180,    // Minimap width (px)
+  MINIMAP_H:            120,    // Minimap height (px)
+  MINIMAP_PAD:          60,     // Padding around nodes in minimap
+};
+
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║  THEME PRESETS — Swap :root variables by name                ║
+// ║  Call applyThemePreset('midnight') to switch themes           ║
+// ╚═══════════════════════════════════════════════════════════════╝
+const THEME_PRESETS={
+  midnight:{
+    name:'Midnight',
+    vars:{'--bg':'oklch(0.12 0.008 250)','--surf':'oklch(0.15 0.01 250)','--panel':'oklch(0.18 0.012 250)',
+      '--card':'oklch(0.21 0.014 250)','--brd':'oklch(0.28 0.014 250)','--brdhi':'oklch(0.36 0.016 250)',
+      '--txt':'oklch(0.88 0.01 250)','--dim':'oklch(0.5 0.016 250)','--dhi':'oklch(0.66 0.014 250)',
+      '--acc':'oklch(0.75 0.16 70)','--alo':'oklch(0.25 0.06 70)','--grn':'oklch(0.72 0.17 165)',
+      '--red':'oklch(0.65 0.2 25)'},
+  },
+  ember:{
+    name:'Ember',
+    vars:{'--bg':'oklch(0.12 0.012 20)','--surf':'oklch(0.15 0.014 20)','--panel':'oklch(0.18 0.016 20)',
+      '--card':'oklch(0.21 0.018 20)','--brd':'oklch(0.28 0.016 20)','--brdhi':'oklch(0.36 0.018 20)',
+      '--txt':'oklch(0.88 0.01 40)','--dim':'oklch(0.5 0.02 20)','--dhi':'oklch(0.66 0.016 30)',
+      '--acc':'oklch(0.7 0.2 25)','--alo':'oklch(0.25 0.08 25)','--grn':'oklch(0.72 0.17 165)',
+      '--red':'oklch(0.65 0.2 25)'},
+  },
+  forest:{
+    name:'Forest',
+    vars:{'--bg':'oklch(0.12 0.01 150)','--surf':'oklch(0.15 0.012 150)','--panel':'oklch(0.18 0.014 150)',
+      '--card':'oklch(0.21 0.016 150)','--brd':'oklch(0.28 0.014 150)','--brdhi':'oklch(0.36 0.016 150)',
+      '--txt':'oklch(0.88 0.008 150)','--dim':'oklch(0.5 0.016 150)','--dhi':'oklch(0.66 0.012 150)',
+      '--acc':'oklch(0.72 0.17 165)','--alo':'oklch(0.25 0.06 165)','--grn':'oklch(0.75 0.16 130)',
+      '--red':'oklch(0.65 0.2 25)'},
+  },
+  ocean:{
+    name:'Ocean',
+    vars:{'--bg':'oklch(0.12 0.01 230)','--surf':'oklch(0.15 0.012 230)','--panel':'oklch(0.18 0.014 230)',
+      '--card':'oklch(0.21 0.016 230)','--brd':'oklch(0.28 0.014 230)','--brdhi':'oklch(0.36 0.016 230)',
+      '--txt':'oklch(0.88 0.008 220)','--dim':'oklch(0.5 0.016 230)','--dhi':'oklch(0.66 0.012 220)',
+      '--acc':'oklch(0.76 0.12 200)','--alo':'oklch(0.25 0.05 200)','--grn':'oklch(0.72 0.17 165)',
+      '--red':'oklch(0.65 0.2 25)'},
+  },
+  violet:{
+    name:'Violet',
+    vars:{'--bg':'oklch(0.12 0.012 290)','--surf':'oklch(0.15 0.014 290)','--panel':'oklch(0.18 0.016 290)',
+      '--card':'oklch(0.21 0.018 290)','--brd':'oklch(0.28 0.016 290)','--brdhi':'oklch(0.36 0.018 290)',
+      '--txt':'oklch(0.88 0.008 280)','--dim':'oklch(0.5 0.018 290)','--dhi':'oklch(0.66 0.014 280)',
+      '--acc':'oklch(0.68 0.16 300)','--alo':'oklch(0.25 0.06 300)','--grn':'oklch(0.72 0.17 165)',
+      '--red':'oklch(0.65 0.2 25)'},
+  },
+};
+
+// Applies a named theme preset by setting CSS custom properties on :root
+function applyThemePreset(name){
+  const preset=THEME_PRESETS[name];
+  if(!preset)return;
+  const root=document.documentElement;
+  Object.entries(preset.vars).forEach(([k,v])=>root.style.setProperty(k,v));
+  try{localStorage.setItem('pb_theme_preset',name);}catch(e){}
+}
+
 // ═══════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════
@@ -1325,6 +1567,7 @@ Use this to:
 // ── Skill persistence (localStorage) ──────────────────────
 const PB_SKILLS_STORE='pb_user_skills';
 
+// Saves all user-defined skills to localStorage
 function persistSkills(){
   const userSkills=skills.filter(s=>!s.isBuiltin);
   safeStore(PB_SKILLS_STORE,userSkills);
@@ -1352,7 +1595,7 @@ function persistSkills(){
 // ═══════════════════════════════════════════════════════════
 const PL_STORE='pb_pl_open';      // open pipeline tabs
 const PL_CLOSED_STORE='pb_pl_closed'; // recently closed (persists for reopening)
-const PL_CLOSED_MAX=20;
+const PL_CLOSED_MAX=CONFIG.CLOSED_PIPELINES_MAX;
 
 function loadPipelines(){
   try{
@@ -1380,6 +1623,7 @@ let activePipelineId=pipelines.length?pipelines[0].id:null;
 // Advance _uid past every id already in loaded data so new uid() calls never collide.
 // Scans node ids, edge ids, and port ids across all pipelines and all stack frames.
 
+// Returns the pipeline object matching activePipelineId, or null
 function activePipeline(){return pipelines.find(p=>p.id===activePipelineId)||null;}
 
 // canvasStack now points into the active pipeline's stack (empty frame when no pipelines)
@@ -1452,6 +1696,7 @@ function renamePipeline(id,name){
   renderPipelineTabs();
 }
 
+// Marks a pipeline as having unsaved changes (shows dot on tab)
 function markPipelineDirty(id){
   const p=pipelines.find(x=>x.id===id);
   if(!p||!p.saved)return; // already dirty, skip DOM work
@@ -1461,6 +1706,7 @@ function markPipelineDirty(id){
   if(tab){tab.classList.add('ptab-unsaved');tab.title=p.name+' (unsaved) · drag to reorder';}
 }
 
+// Quick-saves a pipeline to localStorage and its existing file handle (if any)
 function savePipeline(id){
   const p=pipelines.find(x=>x.id===id);if(!p)return;
   if(p.id===activePipelineId)p.stack=canvasStack;
@@ -1527,6 +1773,7 @@ function closePipeline(id){
 }
 
 // ── Build pipeline JSON payload ───────────────────────────
+// Serializes a pipeline to JSON for save/export, bundling referenced skills
 function pipelinePayload(p){
   // Sync active canvas before serialising
   if(p.id===activePipelineId)p.stack=canvasStack;
@@ -1555,6 +1802,7 @@ function downloadPipeline(p){
 // p.fileHandle is retained across saves so Ctrl+S silently overwrites.
 
 // ── Save As — always show picker ──────────────────────────
+// Saves a pipeline to a user-chosen file location via File System Access API
 async function savePipelineAs(id){
   const p=pipelines.find(x=>x.id===id);if(!p)return;
   if(!window.showSaveFilePicker){downloadPipeline(p);return;}
@@ -1641,6 +1889,7 @@ async function _checkAndImportBundledSkills(data,onComplete){
 }
 
 // ── Open pipeline from file ───────────────────────────────
+// Opens a pipeline JSON file and adds it as a new tab
 async function importPipelineFile(){
   // Prefer File System Access API so we can silently Save later
   if(window.showOpenFilePicker){
@@ -2100,13 +2349,14 @@ const nodeSk=n=>getSk(n.type||n.skillId);
 function safeStore(key,val){try{localStorage.setItem(key,typeof val==='string'?val:JSON.stringify(val));}catch(e){}}
 
 // Grid snapping
-const SNAP_SIZE=26;
+const SNAP_SIZE=CONFIG.SNAP_SIZE;
 let snapEnabled=localStorage.getItem('pb_snap')==='1';
 const snap=v=>snapEnabled?Math.round((v-SNAP_SIZE/2)/SNAP_SIZE)*SNAP_SIZE+SNAP_SIZE/2:v;
 
 // ═══════════════════════════════════════════════════════════
 // MARKDOWN
 // ═══════════════════════════════════════════════════════════
+// Renders markdown text as styled HTML for the inspector content panel
 function renderMD(text){
   if(!text)return'<p style="color:var(--dim);font-style:italic">No content.</p>';
   const inl=s=>s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`]+)`/g,'<code>$1</code>');
@@ -2143,6 +2393,7 @@ const scene=document.getElementById('scene');
 const svg=document.getElementById('svg');
 const wrap=document.getElementById('canvas-wrap');
 
+// Applies the current pan/zoom transform to the canvas scene element
 function applyTx(){
   const t=frame().tx;
   scene.style.transform=`translate(${t.x}px,${t.y}px) scale(${t.s})`;
@@ -2197,6 +2448,7 @@ function popToDepth(depth){
   rebuildCanvas();
 }
 
+// Navigates back up one level from a sub-graph to the parent canvas
 function popGraph(){
   saveCurrentFrameToSkill();
   canvasStack.pop();
@@ -2212,6 +2464,7 @@ function saveCurrentFrameToSkill(){
   }
 }
 
+// Navigates into a skill's internal sub-graph canvas
 function pushGraph(skId){
   saveCurrentFrameToSkill();
   const sk=getSk(skId);if(!sk)return;
@@ -2304,6 +2557,7 @@ function setPending(x1,y1,x2,y2){
 }
 function clearPending(){if(pendingPath){pendingPath.remove();pendingPath=null;}}
 
+// Renders all SVG edges between connected ports on the canvas
 function renderEdges(newEdgeId=null){
   svg.querySelectorAll('.e').forEach(e=>e.remove());
   getEdges().forEach(edge=>{
@@ -2322,7 +2576,7 @@ function renderEdges(newEdgeId=null){
     const vis=document.createElementNS('http://www.w3.org/2000/svg','path');
     vis.setAttribute('d',d);vis.setAttribute('fill','none');vis.setAttribute('stroke',color);
     vis.setAttribute('stroke-width','2');vis.setAttribute('stroke-opacity','.45');
-    vis.style.filter=`drop-shadow(0 0 2px ${cxa(color,0.27)})`;vis.style.pointerEvents='none';
+    vis.style.filter=`drop-shadow(0 0 2px ${cxa(color,CONFIG.NODE_BORDER_ALPHA)})`;vis.style.pointerEvents='none';
 
     // Flow particle
     const flow=document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -2385,6 +2639,7 @@ function renderEdges(newEdgeId=null){
 // ═══════════════════════════════════════════════════════════
 // NODES
 // ═══════════════════════════════════════════════════════════
+// Builds the complete DOM element for a canvas node: card, head, ports, body, content drawer
 function buildNode(node){
   const sk=nodeSk(node);if(!sk)return null;
   // Per-instance overrides: node.color/glyph/shape/title take precedence over sk defaults
@@ -2408,7 +2663,7 @@ function buildNode(node){
   let _labelLastClick=0;
   labelEl.addEventListener('pointerdown',e=>{
     const now=Date.now();
-    if(now-_labelLastClick<400){
+    if(now-_labelLastClick<CONFIG.NODE_LABEL_DBLCLICK_MS){
       // Double-click detected — open inline rename
       e.stopPropagation();e.preventDefault();
       _labelLastClick=0;
@@ -2438,7 +2693,7 @@ function buildNode(node){
   // Wrap everything in a card div for visual separation from drawer
   const card=document.createElement('div');card.className='node-card';
   card.style.borderStyle=nodeShape==='dashed'?'dashed':'solid';
-  card.style.borderColor=cxa(color,0.27);
+  card.style.borderColor=cxa(color,CONFIG.NODE_BORDER_ALPHA);
   if(nodeShape==='ghost')card.style.background='oklch(0.15 0.01 250 / 0.8)';
   card.appendChild(head);
   el.appendChild(card);
@@ -2455,10 +2710,10 @@ function buildNode(node){
       const onMove=ev=>{
         const dx=(ev.clientX-startX)/s;
         if(side==='right'){
-          const w=Math.max(140,startW+dx);
+          const w=Math.max(CONFIG.MIN_NODE_WIDTH,startW+dx);
           el.style.width=w+'px';node._w=w;
         }else{
-          const w=Math.max(140,startW-dx);
+          const w=Math.max(CONFIG.MIN_NODE_WIDTH,startW-dx);
           el.style.width=w+'px';node._w=w;
           node.x=startLeft+dx;el.style.left=node.x+'px';
         }
@@ -2588,7 +2843,7 @@ function buildNode(node){
       const startH=rdEl?rdEl.offsetHeight:(edEl?edEl.offsetHeight:160);
       const s=canvasStack[0].tx?.s||1;
       const onMove=ev=>{
-        const dh=Math.max(60,startH+(ev.clientY-startY)/s);
+        const dh=Math.max(CONFIG.MIN_DRAWER_HEIGHT,startH+(ev.clientY-startY)/s);
         if(rdEl)rdEl.style.maxHeight=dh+'px';
         if(edEl)edEl.style.height=dh+'px';
         node._drawerH=dh;
@@ -2744,6 +2999,7 @@ function buildNode(node){
 }
 
 // Named port — attached to a specific input/output port object
+// Creates a port DOM element (the draggable connection circle) for a node
 function mkNamedPort(side,node,color,portObj){
   const p=document.createElement('div');
   p.className='port port-'+side;
@@ -2804,7 +3060,7 @@ function clearConn(){
 // ═══════════════════════════════════════════════════════════
 // UNDO / REDO
 // ═══════════════════════════════════════════════════════════
-const HISTORY_MAX = 50;
+const HISTORY_MAX = CONFIG.UNDO_MAX;
 let undoStack = [];  // array of {nodes, edges} snapshots
 let redoStack = [];
 
@@ -2812,6 +3068,7 @@ function snapshotState() {
   return JSON.stringify({nodes: frame().nodes, edges: frame().edges});
 }
 
+// Pushes current canvas state onto the undo stack for undo/redo
 function pushHistory() {
   undoStack.push(snapshotState());
   if (undoStack.length > HISTORY_MAX) undoStack.shift();
@@ -2830,12 +3087,14 @@ function applySnapshot(snapshot) {
   markPipelineDirty(activePipelineId);
 }
 
+// Restores the previous canvas state from the undo stack
 function undoHistory() {
   if (!undoStack.length) return;
   redoStack.push(snapshotState());
   applySnapshot(undoStack.pop());
 }
 
+// Re-applies a previously undone canvas state from the redo stack
 function redoHistory() {
   if (!redoStack.length) return;
   undoStack.push(snapshotState());
@@ -2919,6 +3178,7 @@ function placeNodeAt(skId, sceneX, sceneY){
   markPipelineDirty(activePipelineId);updateTopbar();selectNode(id);
 }
 
+// Destroys and recreates a node's DOM to reflect changed state (color, title, ports, etc.)
 function rebuildNode(node){
   document.getElementById('nd-'+node.id)?.remove();
   const el=buildNode(node);if(el)scene.appendChild(el);
@@ -2976,7 +3236,7 @@ function applySelStyle(id){
     const n=getNodes().find(x=>x.id===nid);const sk=n?nodeSk(n):null;
     const c2=el.querySelector('.node-card');
     if(c2){
-      c2.style.borderColor=sk?cxa(cx(sk.color),0.27):'';
+      c2.style.borderColor=sk?cxa(cx(sk.color),CONFIG.NODE_BORDER_ALPHA):'';
       c2.style.boxShadow='';
     }
     el.classList.remove('downstream','dimmed','multi-sel');
@@ -3001,13 +3261,14 @@ function applySelStyle(id){
   if(el&&sk){
     const selColor=cx(n.color||sk.color);
     const cardEl=el.querySelector('.node-card');
-    if(cardEl){cardEl.style.borderColor=selColor;cardEl.style.boxShadow=`0 0 0 3px ${cxa(selColor,0.19)},0 8px 28px rgba(0,0,0,.5)`;}
+    if(cardEl){cardEl.style.borderColor=selColor;cardEl.style.boxShadow=`0 0 0 3px ${cxa(selColor,CONFIG.NODE_SHADOW_ALPHA)},0 8px 28px rgba(0,0,0,.5)`;}
   }
   // Only show downstream highlight in Alt mode — not on plain selection
   if(altDown&&selNodes.size<=1)highlightDownstream(id);
   else if(!altDown)highlightDownstream(null);
 }
 
+// Selects a node on the canvas, updating inspector and visual state
 function selectNode(id, shiftKey=false){
   if(shiftKey){
     // Toggle this node in the multi-selection
@@ -3044,6 +3305,7 @@ function selectLib(skId){trackRecent(skId);
   updateTopbar();renderInspector();
 }
 
+// Clears all node selection state (single and multi-select)
 function clearSel(){
   selNode=null;selSkillId=null;selNodes.clear();applySelStyle(null);
   document.querySelectorAll('.lib-row').forEach(r=>r.classList.remove('sel'));
@@ -3080,7 +3342,7 @@ const DEFAULT_BINDINGS=[
   {id:'undo',     section:'History',  desc:'Undo',                     chord:{ctrl:true,key:'z'},            noInput:true, noContentEditable:true, action:()=>undoHistory()},
   {id:'redo',     section:'History',  desc:'Redo',                     chord:{ctrl:true,shift:true,key:'z'}, noInput:true, noContentEditable:true, action:()=>redoHistory()},
   // ── Pipeline ─────────────────────────────────────────────────
-  {id:'save',     section:'Pipeline', desc:'Save pipeline',            chord:{ctrl:true,key:'s'},            action:()=>savePipeline(activePipelineId)},
+  {id:'save',     section:'Pipeline', desc:'Quick save (or Save As…)',  chord:{ctrl:true,key:'s'},            action:()=>{const p=activePipeline();if(p?.fileHandle)savePipeline(activePipelineId);else savePipelineAs(activePipelineId);}},
   {id:'save-as',  section:'Pipeline', desc:'Save pipeline as…',        chord:{ctrl:true,shift:true,key:'s'}, action:()=>savePipelineAs(activePipelineId)},
   // ── UI ───────────────────────────────────────────────────────
   {id:'ai',       section:'UI',       desc:'Open AI Generate',         chord:{ctrl:true,key:'g'}, action:()=>openAIOverlay()},
@@ -3417,11 +3679,6 @@ document.getElementById('btn-pipeline-to-node').addEventListener('click',()=>{
   renderLib();
 });
 document.getElementById('btn-save-pipeline').addEventListener('click',()=>{
-  savePipeline(activePipelineId);
-});
-document.getElementById('btn-save-pipeline').addEventListener('contextmenu',e=>{
-  e.preventDefault();
-  // Right-click 💾 button = Save As
   savePipelineAs(activePipelineId);
 });
 document.getElementById('btn-export').addEventListener('click',openOutput);
@@ -3482,7 +3739,7 @@ function renderColorDots(){
     d.addEventListener('dblclick',e=>{
       e.stopPropagation();
       const picker=document.createElement('input');picker.type='color';picker.value=hex;
-      picker.style.cssText='position:absolute;opacity:0;pointer-events:none';
+      picker.className='hidden-picker';
       document.body.appendChild(picker);
       picker.addEventListener('input',()=>{
         COLORS[id]=picker.value;
@@ -3503,7 +3760,7 @@ function renderColorDots(){
   addDot.textContent='+';addDot.title='Add custom color';
   addDot.addEventListener('click',()=>{
     const picker=document.createElement('input');picker.type='color';picker.value='#ffffff';
-    picker.style.cssText='position:absolute;opacity:0;pointer-events:none';
+    picker.className='hidden-picker';
     document.body.appendChild(picker);
     picker.addEventListener('change',()=>{
       const newId='c'+Date.now().toString(36);
@@ -3748,6 +4005,7 @@ function renderIOEditor(container, node, color){
   });
 }
 
+// Renders the right inspector panel for the currently selected node/skill
 function renderInspector(){
   const ph=document.getElementById('insp-placeholder');
   const form=document.getElementById('insp-form');
@@ -3869,7 +4127,7 @@ function renderInspector(){
       }
       else if(f.type==='select'){ctrl=document.createElement('select');ctrl.innerHTML='<option value="">— choose —</option>'+(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});}
       else if(f.type==='file_upload'){
-        ctrl=document.createElement('div');ctrl.style.cssText='display:flex;flex-direction:column;gap:6px';
+        ctrl=document.createElement('div');ctrl.className+=' flex-col-gap';
         const fileBtn=document.createElement('button');fileBtn.className='mbtn';fileBtn.textContent='📁 Choose File';fileBtn.style.cssText='font-size:9px;align-self:flex-start';
         const fileInfo=document.createElement('div');fileInfo.style.cssText='font-family:var(--mono);font-size:8px;color:var(--dim)';
         fileInfo.textContent=canvasNode.values?.[f.key+'_name']||'No file selected';
@@ -4141,6 +4399,7 @@ async function _downloadSkillAsZip(sk){
   a.click();URL.revokeObjectURL(a.href);
 }
 
+// Renders the left library panel: tabs, search, categories, skill cards
 function renderLib(){
   const f=document.getElementById('lib-search').value.toLowerCase();
   const list=document.getElementById('lib-list');list.innerHTML='';
@@ -4241,7 +4500,7 @@ function renderLib(){
     filtered.sort(_rcmp);
     // Show in flat list, no category groups
     if(!filtered.length){
-      const empty=document.createElement('div');empty.style.cssText='padding:16px;text-align:center;font-size:11px;color:var(--dim)';empty.textContent=recentSkillIds.length?'No recent skills match':'No recently used skills yet';list.appendChild(empty);
+      const empty=document.createElement('div');empty.className='empty-state';empty.textContent=recentSkillIds.length?'No recent skills match':'No recently used skills yet';list.appendChild(empty);
     } else {
       filtered.forEach(sk=>list.appendChild(mkLibRow(sk)));
     }
@@ -4296,7 +4555,7 @@ function renderLib(){
       if(!isCollapsed)sks.forEach(sk=>list.appendChild(mkLibRow(sk)));
     });
     if(!filtered.length){
-      const empty=document.createElement('div');empty.style.cssText='padding:16px;text-align:center;font-size:11px;color:var(--dim)';empty.textContent='No skills match';list.appendChild(empty);
+      const empty=document.createElement('div');empty.className='empty-state';empty.textContent='No skills match';list.appendChild(empty);
     }
   }
   document.getElementById('skill-count').textContent=skills.length+' skills';
@@ -4999,12 +5258,13 @@ function drawUrl(b){
 // ═══════════════════════════════════════════════════════════
 
 // Shared: call the active AI provider and return generated text
+// Sends a single prompt to an LLM provider and returns the full response
 async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
   if(provider==='openai'){
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
-      body:JSON.stringify({model:model||'gpt-4o',max_tokens:8192,
+      body:JSON.stringify({model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,
         messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
@@ -5013,7 +5273,7 @@ async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
     const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(model||'gemini-2.0-flash-lite')+':generateContent?key='+apiKey,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({systemInstruction:{parts:[{text:systemPrompt}]},
-        contents:[{role:'user',parts:[{text:userPrompt}]}],generationConfig:{maxOutputTokens:8192}})
+        contents:[{role:'user',parts:[{text:userPrompt}]}],generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
     const d=await resp.json();return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
@@ -5054,7 +5314,7 @@ async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:8192,system:systemPrompt,
+      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,system:systemPrompt,
         messages:[{role:'user',content:userPrompt}]})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
@@ -5063,6 +5323,7 @@ async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
 }
 
 // ── Streaming callAI — calls onChunk(text) progressively ──
+// Sends a prompt to an LLM with streaming — calls onChunk() progressively
 async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model, onChunk){
   async function readSSE(resp, extract){
     const reader=resp.body.getReader();
@@ -5091,7 +5352,7 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
-      body:JSON.stringify({model:model||'gpt-4o',max_tokens:8192,stream:true,
+      body:JSON.stringify({model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,stream:true,
         messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
@@ -5102,7 +5363,7 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
     const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(model||'gemini-2.0-flash-lite')+':streamGenerateContent?alt=sse&key='+apiKey,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({systemInstruction:{parts:[{text:systemPrompt}]},
-        contents:[{role:'user',parts:[{text:userPrompt}]}],generationConfig:{maxOutputTokens:8192}})
+        contents:[{role:'user',parts:[{text:userPrompt}]}],generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
     await readSSE(resp,j=>j.candidates?.[0]?.content?.parts?.[0]?.text||'');
@@ -5151,7 +5412,7 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:8192,stream:true,system:systemPrompt,
+      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,stream:true,system:systemPrompt,
         messages:[{role:'user',content:userPrompt}]})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
@@ -5180,12 +5441,13 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
 // callAI with full conversation history (for follow-ups)
 // history: [{role:'user'|'assistant', content:'...'}]
 // The pipeline prompt is already baked into history[0] as the first user turn
+// Sends a full conversation history to an LLM (for follow-up messages)
 async function callAIWithHistory(history, provider, apiKey, model){
   if(provider==='openai'){
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
-      body:JSON.stringify({model:model||'gpt-4o',max_tokens:8192,messages:history})
+      body:JSON.stringify({model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,messages:history})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
     const d=await resp.json();return d.choices?.[0]?.message?.content||'';
@@ -5193,7 +5455,7 @@ async function callAIWithHistory(history, provider, apiKey, model){
     const contents=history.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
     const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(model||'gemini-2.0-flash-lite')+':generateContent?key='+apiKey,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents,generationConfig:{maxOutputTokens:8192}})
+      body:JSON.stringify({contents,generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
     const d=await resp.json();return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
@@ -5220,7 +5482,7 @@ async function callAIWithHistory(history, provider, apiKey, model){
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:8192,messages:msgs})
+      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,messages:msgs})
     });
     if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
     const d=await resp.json();return d.content?.[0]?.text||'';
@@ -5270,7 +5532,7 @@ function drawAIOverlay(){
   function rebuildAIKeySel(){
     keyCont.innerHTML='';
     if(aiProvider==='local'){
-      const wrap=document.createElement('div');wrap.style.cssText='display:flex;flex-direction:column;gap:6px';
+      const wrap=document.createElement('div');wrap.className+=' flex-col-gap';
       const urlLbl=document.createElement('div');urlLbl.className='mlbl';urlLbl.textContent='LOCAL URL';wrap.appendChild(urlLbl);
       const urlInp=document.createElement('input');urlInp.type='text';urlInp.value=localUrl;urlInp.placeholder='http://localhost:11434';
       urlInp.style.cssText='width:100%;background:var(--panel);border:1px solid var(--brd);border-radius:6px;color:var(--txt);padding:6px 8px;font-size:11px;font-family:var(--mono);box-sizing:border-box';
@@ -5584,6 +5846,7 @@ function doSaveWiz(){
 // ═══════════════════════════════════════════════════════════
 
 // Return only nodes that are connected to at least one edge
+// Filters nodes to only those connected to at least one edge
 function connectedOnly(nodes, edges){
   const connected=new Set();
   edges.forEach(e=>{connected.add(e.from);connected.add(e.to);});
@@ -5626,6 +5889,7 @@ function getNodeContent(node){
 }
 
 // Recursively render nodes in execution order, depth-limited
+// Recursively renders pipeline steps as numbered markdown for export
 function renderSteps(nodes,edges,depth,maxDepth){
   if(depth>(maxDepth||10))return[];
   const ordered=topoWalk(nodes,edges);
@@ -5649,6 +5913,7 @@ function renderSteps(nodes,edges,depth,maxDepth){
 // Optimized for Claude's XML-aware parsing: clean headers,
 // numbered execution sequence, full skill docs appended
 // ═══════════════════════════════════════════════════════════
+// Compiles the pipeline into a Markdown document for LLM export
 function buildMD(){
   const rootFrame=canvasStack[0];
   const p=activePipeline();
@@ -5705,6 +5970,7 @@ function buildMD(){
 // ═══════════════════════════════════════════════════════════
 // TOPOLOGICAL WALK
 // ═══════════════════════════════════════════════════════════
+// Topologically sorts nodes by their edge dependencies (upstream first)
 function topoWalk(nodes, edges){
   const adj=new Map();
   const inDeg=new Map();
@@ -5758,6 +6024,7 @@ function wouldCycle(nodes, edges, fromId, toId){
 // Optimized for OpenAI Custom GPT / Assistants API:
 // structured system prompt, tools array, numbered steps
 // ═══════════════════════════════════════════════════════════
+// Compiles the pipeline into a GPT-compatible JSON payload
 function buildGPT(){
   const rootFrame=canvasStack[0];
   const edges=rootFrame.edges;
@@ -5823,6 +6090,7 @@ function buildGPT(){
 // Optimized for Gemini Gem Manager: flat numbered steps,
 // inline instructions, no markdown headers inside steps
 // ═══════════════════════════════════════════════════════════
+// Compiles the pipeline into Google Gem plain text format
 function buildGem(){
   const rootFrame=canvasStack[0];
   const p=activePipeline();
@@ -5951,6 +6219,7 @@ function _refreshOutput(){
   updateTokenCount();
 }
 
+// Opens/closes the LLM export drawer on the right side
 function openOutput(){
   _refreshOutput();
   document.getElementById('out-overlay').classList.add('open');
@@ -6128,8 +6397,9 @@ function _buildFileCardHtml(lang, code, filename){
 }
 
 function _mdToHtml(t){
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/```(\w*)\n([\s\S]*?)```/g,(_,l,c)=>{const fn=_detectFileName(l.toLowerCase(),c);if(fn){const card=_buildFileCardHtml(l.toLowerCase(),c,fn);return'</span>'+card+'<span>';}return'<pre style="background:var(--code-bg);color:var(--code-txt);padding:10px 12px;border-radius:6px;margin:8px 0;overflow-x:auto;font-family:var(--mono);font-size:11px;line-height:1.6">'+(l?'<div style="font-size:9px;color:var(--dim);margin-bottom:4px">'+l+'</div>':'')+c+'</pre>';}).replace(/`([^`]+)`/g,'<code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>').replace(/^### (.+)$/gm,'<h3 style="font-size:14px;font-weight:700;color:var(--acc);margin:16px 0 6px">$1</h3>').replace(/^## (.+)$/gm,'<h2 style="font-size:15px;font-weight:700;color:var(--acc);margin:20px 0 8px">$1</h2>').replace(/^# (.+)$/gm,'<h1 style="font-size:17px;font-weight:700;color:var(--acc);margin:20px 0 10px">$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/^- (.+)$/gm,'<div style="padding-left:14px;position:relative;margin:3px 0"><span style="position:absolute;left:0">\u2022</span>$1</div>').replace(/^\d+\. (.+)$/gm,(m,p)=>'<div style="padding-left:18px;margin:3px 0">'+m.match(/^\d+/)[0]+'. '+p+'</div>').replace(/\n{2,}/g,'<div style="height:12px"></div>').replace(/\n/g,'<br>');
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/```(\w*)\n([\s\S]*?)```/g,(_,l,c)=>{const fn=_detectFileName(l.toLowerCase(),c);if(fn){const card=_buildFileCardHtml(l.toLowerCase(),c,fn);return'</span>'+card+'<span>';}return'<pre style="background:var(--code-bg);color:var(--code-txt);padding:10px 12px;border-radius:6px;margin:8px 0;overflow-x:auto;font-family:var(--mono);font-size:11px;line-height:1.6">'+(l?'<div style="font-size:9px;color:var(--dim);margin-bottom:4px">'+l+'</div>':'')+c+'</pre>';}).replace(/`([^`]+)`/g,'<code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>').replace(/^### (.+)$/gm,'<h3 style="font-size:14px;font-weight:700;color:var(--acc);margin:16px 0 6px">$1</h3>').replace(/^## (.+)$/gm,'<h2 style="font-size:15px;font-weight:700;color:var(--acc);margin:20px 0 8px">$1</h2>').replace(/^# (.+)$/gm,'<h1 style="font-size:17px;font-weight:700;color:var(--acc);margin:20px 0 10px">$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">$1</a>').replace(/(?<!["=\/a-z])(https?:\/\/[^\s<>"'\)]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">$1</a>').replace(/^- (.+)$/gm,'<div style="padding-left:14px;position:relative;margin:3px 0"><span style="position:absolute;left:0">\u2022</span>$1</div>').replace(/^\d+\. (.+)$/gm,(m,p)=>'<div style="padding-left:18px;margin:3px 0">'+m.match(/^\d+/)[0]+'. '+p+'</div>').replace(/\n{2,}/g,'<div style="height:12px"></div>').replace(/\n/g,'<br>');
 }
+// Renders markdown/HTML response text for the run drawer output area
 function renderMdResponse(t){
   if(_looksLikeHtml(t))return t;
   return _mdToHtml(t);
@@ -6266,6 +6536,7 @@ document.getElementById('out-mode-single').addEventListener('click',()=>setExecM
 document.getElementById('out-mode-chain').addEventListener('click',()=>setExecMode('chain'));
 
 // ── Chain execution ─────────────────────────────────────
+// Executes pipeline nodes sequentially in topological order, piping outputs between steps
 async function runChain(provider,apiKey,model,rb,st){
   const rootFrame=canvasStack[0];
   const edges=rootFrame.edges;
@@ -6317,7 +6588,7 @@ async function runChain(provider,apiKey,model,rb,st){
     if(skId==='router'){
       const condition=node.values?.condition||'';
       const mode=node.values?.mode||'LLM (natural language)';
-      const maxLoops=parseInt(node.values?.max_loops)||3;
+      const maxLoops=parseInt(node.values?.max_loops)||CONFIG.DEFAULT_MAX_LOOPS;
       const incoming=edges.filter(e=>e.to===node.id);
       const inputCtx=incoming.map(e=>nodeOutputs[e.from]||'').filter(Boolean).join('\n\n');
       st.textContent='Step '+stepNum+': '+stepLabel+' (routing)';st.style.color='var(--dim)';
@@ -6389,7 +6660,7 @@ async function runChain(provider,apiKey,model,rb,st){
     await callAIStreaming(userMsg,systemPrompt,provider,apiKey,model,(chunk)=>{
       stepOutput+=chunk;
       const now=Date.now();
-      if(!runChain._lastRender||now-runChain._lastRender>50){
+      if(!runChain._lastRender||now-runChain._lastRender>CONFIG.STREAM_THROTTLE_MS){
         runChain._lastRender=now;
         rb.innerHTML=renderMdResponse(fullLog+stepOutput);
         rb.scrollTop=rb.scrollHeight;
@@ -6466,7 +6737,7 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
       await callAIStreaming(_userMsg,_sysPrompt,_runProvider,_runKey,_runModel||undefined,(chunk)=>{
         accumulated+=chunk;
         const now=Date.now();
-        if(now-lastRender>50){
+        if(now-lastRender>CONFIG.STREAM_THROTTLE_MS){
           lastRender=now;
           rb.innerHTML=renderMdResponse(accumulated);
           rb.scrollTop=rb.scrollHeight;
@@ -6860,7 +7131,7 @@ function importSkillFileAsNode(){
     if(!files.length){inp.remove();return;}
     pushHistory();
     let totalImported=0;
-    const OFFSET=40;
+    const OFFSET=CONFIG.IMPORT_NODE_OFFSET;
     const t=frame().tx;
     const baseCx=snap((scene.offsetWidth/2-t.x)/t.s);
     const baseCy=snap((scene.offsetHeight/2-t.y)/t.s);
@@ -7004,7 +7275,7 @@ async function _parseZip(buf){
 
 // ── Import a zip as a connected graph of primitives ──
 async function _importZipAsGraph(entries,zipName,startX,startY){
-  const COL_W=260,ROW_H=160;
+  const COL_W=CONFIG.ZIP_GRAPH_COL_W,ROW_H=CONFIG.ZIP_GRAPH_ROW_H;
   const baseName=zipName.replace(/\.(zip|skill)$/i,'').replace(/[-_]/g,' ');
 
   // Classify files into primitive types
@@ -7396,11 +7667,13 @@ document.getElementById('vault-overlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) document.getElementById('vault-overlay').classList.remove('open');
 });
 
+// Opens the encrypted credential vault modal
 function openVault() {
   document.getElementById('vault-overlay').classList.add('open');
   renderVault();
 }
 
+// Renders the vault UI: password entry or credential list
 function renderVault() {
   const body = document.getElementById('vault-body');
   body.innerHTML = '';
@@ -7660,6 +7933,7 @@ function openGitHub() {
   renderGitHub();
 }
 
+// Renders the GitHub Gist sync panel inside the vault modal
 function renderGitHub() {
   const body = document.getElementById('gh-body'); body.innerHTML = '';
 
@@ -7990,7 +8264,7 @@ function renderGitHub() {
       if(n.x<minX)minX=n.x;if(n.y<minY)minY=n.y;
       if(n.x+w>maxX)maxX=n.x+w;if(n.y+h>maxY)maxY=n.y+h;
     });
-    const PAD=60;
+    const PAD=CONFIG.MINIMAP_PAD;
     minX-=PAD;minY-=PAD;maxX+=PAD;maxY+=PAD;
     const worldW=maxX-minX||1,worldH=maxY-minY||1;
     const scale=Math.min(W/worldW,H/worldH);
@@ -8556,6 +8830,19 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
 
   applyTheme(savedTheme);
   applySize(savedSize);
+
+  // Theme preset selector
+  document.getElementById('theme-preset').addEventListener('change',e=>{
+    applyThemePreset(e.target.value);
+  });
+  // Restore saved preset
+  try{
+    const savedPreset=localStorage.getItem('pb_theme_preset');
+    if(savedPreset&&THEME_PRESETS[savedPreset]){
+      document.getElementById('theme-preset').value=savedPreset;
+      applyThemePreset(savedPreset);
+    }
+  }catch(e){}
 
   document.getElementById('btn-theme').addEventListener('click',()=>{
     applyTheme(document.body.classList.contains('light')?'dark':'light');
