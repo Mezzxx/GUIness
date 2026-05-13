@@ -115,7 +115,7 @@ not supported.
   ╔═══════════════════════════════════════════════════════════════╗
   ║  GUIness — Visual AI Workflow Pipeline Builder                ║
   ║  A self-contained, single-file HTML application               ║
-  ║  https://github.com/Mezzxx/GUIness                            ║
+  ║  https://github.com/discoposse/GUIness                        ║
   ╚═══════════════════════════════════════════════════════════════╝
 
   FILE STRUCTURE
@@ -251,7 +251,7 @@ select option{background:var(--panel)}
 
 /* TOPBAR */
 .t-logo{font-size:15px;color:var(--acc)}
-.t-title{font-family:var(--mono);font-size:24px !important;font-weight:700; color:var(--acc);letter-spacing:.05em}
+.t-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.05em}
 .t-badge{font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:1px 5px}
 .t-count{font-family:var(--mono);font-size:8px;color:var(--dhi);background:var(--card);border:1px solid var(--brd);border-radius:3px;padding:1px 7px}
 .tbtn{border:1px solid var(--brd);border-radius:6px;padding:5px 11px;font-size:10px;color:var(--dhi);font-family:var(--mono)}
@@ -663,15 +663,6 @@ select option{background:var(--panel)}
 #insp-textarea:focus{border-color:var(--brdhi);outline:none}
 
 /* Dependencies tab */
-.dep-item{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--card);border:1px solid var(--brd);border-radius:7px}
-.dep-glyph{font-size:12px;flex-shrink:0}
-.dep-info{flex:1;min-width:0}
-.dep-name{font-family:var(--mono);font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dep-cat{font-size:9px;color:var(--dim);margin-top:1px}
-.dep-remove{font-size:11px;color:var(--dim);padding:2px 5px;border-radius:3px}
-.dep-remove:hover{color:var(--red)}
-.dep-open{font-family:var(--mono);font-size:7px;border:1px solid var(--brd);border-radius:4px;padding:1px 6px;color:var(--dhi)}
-.dep-open:hover{border-color:var(--acc);color:var(--acc)}
 
 /* Graph tab */
 #insp-graph-tab{display:none;flex:1;flex-direction:column;overflow:hidden;padding:12px}
@@ -899,7 +890,7 @@ select option{background:var(--panel)}
     </div>
     <div style="width:1px;height:18px;background:var(--brd);margin:0 2px"></div>
     <button id="btn-theme" title="Toggle light/dark mode">🌙</button>
-    <select id="theme-preset" title="Color theme preset" style="font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:4px;color:var(--dhi);padding:2px 4px;cursor:pointer;width:100px">
+    <select id="theme-preset" title="Color theme preset" style="font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:4px;color:var(--dhi);padding:2px 4px;cursor:pointer;width:72px">
       <option value="midnight">Midnight</option>
       <option value="ember">Ember</option>
       <option value="forest">Forest</option>
@@ -1068,8 +1059,7 @@ select option{background:var(--panel)}
           <div id="insp-editor"><textarea id="insp-textarea" spellcheck="false"></textarea></div>
         </div>
 
-        <!-- Dependencies tab removed -->
-        <div id="insp-deps" style="display:none"></div>
+
 
         <!-- Graph tab -->
         <div id="insp-graph-tab" style="display:none">
@@ -3902,46 +3892,9 @@ document.getElementById('branch-new').addEventListener('click',()=>{
 // Dependencies tab
 // ── sync helpers ──────────────────────────────────────────────
 // Add depSkId as a dep of sk AND place a node for it in sk's internal graph
-function addDepWithNode(sk, depSkId){
-  if(!sk||!depSkId||depSkId===sk.id)return;
-  if(!sk.deps)sk.deps=[];
-  if(sk.deps.includes(depSkId))return; // already there
-  sk.deps.push(depSkId);
-  // Add a node to internal graph if not already represented
-  const ig=sk.internalGraph||(sk.internalGraph={nodes:[],edges:[]});
-  const already=ig.nodes.find(n=>(n.type||n.skillId)===depSkId);
-  if(!already){
-    const depSk=getSk(depSkId);if(!depSk)return;
-    const col=Math.floor(ig.nodes.length%4);
-    const row=Math.floor(ig.nodes.length/4);
-    const x=60+col*280,y=60+row*140;
-    const inputs=(depSk.defaultInputs||[]).map(p=>({...p,id:uid('p')}));
-    const outputs=(depSk.defaultOutputs||[]).map(p=>({...p,id:uid('p')}));
-    ig.nodes.push({id:uid('ign'),type:null,skillId:depSkId,x,y,values:{},title:'',inputs,outputs});
-  }
-}
 
 // Remove depSkId from sk.deps AND remove its node from the internal graph
-function removeDepWithNode(sk, depSkId){
-  if(!sk)return;
-  sk.deps=(sk.deps||[]).filter(d=>d!==depSkId);
-  const ig=sk.internalGraph;if(!ig)return;
-  // Remove nodes that represent this dep skill
-  const removed=ig.nodes.filter(n=>(n.type||n.skillId)===depSkId).map(n=>n.id);
-  ig.nodes=ig.nodes.filter(n=>(n.type||n.skillId)!==depSkId);
-  ig.edges=ig.edges.filter(e=>!removed.includes(e.from)&&!removed.includes(e.to));
-  // If we're currently inside this skill's internal graph, remove from live canvas too
-  if(frame().skillId===sk.id){
-    removed.forEach(nid=>{
-      frame().nodes=frame().nodes.filter(n=>n.id!==nid);
-      frame().edges=frame().edges.filter(e=>e.from!==nid&&e.to!==nid);
-      document.getElementById('nd-'+nid)?.remove();
-    });
-    renderEdges();
-  }
-}
 
-function renderDepsTab(sk){} // Dependencies tab removed
 
 // Graph tab
 document.getElementById('open-graph-btn').addEventListener('click',()=>{
@@ -4011,7 +3964,6 @@ function renderInspector(){
   const form=document.getElementById('insp-form');
   const ifields=document.getElementById('insp-fields');
   const icontent=document.getElementById('insp-content');
-  const ideps=document.getElementById('insp-deps');
   const igraph=document.getElementById('insp-graph-tab');
 
   const sk=selSkillId?getSk(selSkillId):null;
@@ -4020,7 +3972,7 @@ function renderInspector(){
   if(!sk){
     ph.style.display='block';form.style.display='none';
     showTabRegion(false);
-    ifields.style.display='none';icontent.style.display='none';ideps.style.display='none';igraph.style.display='none';
+    ifields.style.display='none';icontent.style.display='none';igraph.style.display='none';
     return;
   }
 
@@ -4186,7 +4138,7 @@ function renderInspector(){
   if(_isPrimitive&&canvasNode){
     // Hide tab bar for primitives
     document.getElementById('insp-tabs').style.display='none';
-    ideps.style.display='none';igraph.style.display='none';
+    igraph.style.display='none';
 
     // For text_input, io_input, code: no rawContent, hide content section entirely
     if(!sk.rawContent||!sk.rawContent.trim()){
@@ -7028,18 +6980,6 @@ async function loadLibraryJSON(){
 document.getElementById('btn-load-lib').addEventListener('click',loadLibraryJSON);
 document.getElementById('btn-save-lib').addEventListener('click',saveLibraryJSON);
 
-function buildSelf(){
-  const skillsJSON=JSON.stringify(skills,null,2);
-  const src=document.documentElement.outerHTML;
-  const sm='/* __SKILLS_START__ */';const em='/* __SKILLS_END__ */';
-  const nb=`${sm}\nskills=${skillsJSON};\n${em}`;
-  if(src.includes(sm)){
-    const re=new RegExp(sm.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[\\s\\S]*?'+em.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
-    return'<!DOCTYPE html>\n'+src.replace(re,nb);
-  }
-  const im='// ═══════════════════════════════════════════════════════════\n// INIT';
-  return'<!DOCTYPE html>\n'+src.replace(im,nb+'\n'+im);
-}
 
 // ═══════════════════════════════════════════════════════════
 // CONTEXT MENU
