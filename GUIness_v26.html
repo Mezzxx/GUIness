@@ -1,11 +1,11 @@
 <!--
 ================================================================================
-PIPELINE BUILDER — LLM INSTRUCTIONS
+GUIness — LLM INSTRUCTIONS
 ================================================================================
 
 ## What this file is
 
-This is a self-contained single-file HTML application called Pipeline Builder.
+This is a self-contained single-file HTML application called GUIness.
 It is a visual node-graph editor for designing, documenting, and managing AI
 "skill" pipelines — workflows where Claude or another LLM moves data through a
 series of named, typed nodes connected by edges.
@@ -113,9 +113,9 @@ not supported.
 <!DOCTYPE html>
 <!--
   ╔═══════════════════════════════════════════════════════════════╗
-  ║  GUIness — Visual AI Pipeline Builder                       ║
-  ║  A self-contained, single-file HTML application              ║
-  ║  https://github.com/Mezzxx/GUIness                     ║
+  ║  GUIness — Visual AI Workflow Pipeline Builder                ║
+  ║  A self-contained, single-file HTML application               ║
+  ║  https://github.com/Mezzxx/GUIness                            ║
   ╚═══════════════════════════════════════════════════════════════╝
 
   FILE STRUCTURE
@@ -187,7 +187,7 @@ not supported.
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>Pipeline Builder</title>
+<title>GUIness</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -919,7 +919,7 @@ select option{background:var(--panel)}
   <div id="body">
     <!-- NO-PIPELINE EMPTY STATE -->
     <div id="no-pipeline-screen">
-      <h2>⬡ PIPELINE BUILDER</h2>
+      <h2>⬡ GUIness</h2>
       <p>No pipelines open. Open an existing one or create a new one.</p>
       <div class="nps-btns">
         <button class="nps-btn pri" id="nps-open">📂 Open Pipeline</button>
@@ -8008,7 +8008,7 @@ function renderGitHub() {
     saveGistLink.textContent = '+ Save this Gist ID to vault';
     saveGistLink.addEventListener('click', async () => {
       const v = gistIn.value.trim(); if (!v) return;
-      const name = prompt('Name for this Gist:', 'Pipeline Builder Skills') || 'Pipeline Builder Skills';
+      const name = prompt('Name for this Gist:', 'GUIness Skills') || 'GUIness Skills';
       CryptoManager.creds.push({ id: uid('vc'), name, type: 'gist-id', value: v });
       await saveVault(); renderGitHub();
     });
@@ -8095,7 +8095,7 @@ function renderGitHub() {
       }
       const res=await fetch('https://api.github.com/gists',{method:'POST',
         headers:_gistHeaders(token),
-        body:JSON.stringify({description:'Pipeline Builder — Skills & Pipelines',public:false,files})
+        body:JSON.stringify({description:'GUIness — Skills & Pipelines',public:false,files})
       });
       if(!res.ok)throw new Error('HTTP '+res.status);
       const data=await res.json();
