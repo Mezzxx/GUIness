@@ -99,6 +99,18 @@ The ⎇ button syncs the skills library to/from a GitHub Gist using a classic
 personal access token (ghp_…) with the `gist` scope. Fine-grained tokens are
 not supported.
 
+## File formats
+
+- `.ppln`  — Pipeline file. JSON containing {name, stack, skills}. Skills
+  referenced by nodes are bundled for portability.
+- `.sklb`  — Skill library file. JSON array of skill objects.
+- `.json`  — Legacy format accepted on import. Content-sniffed: if it has a
+  `stack` property it's treated as a pipeline; if it's an array, a library.
+- `.md / .txt` — Imported as a single skill node (frontmatter parsed for name).
+- `.zip / .skill` — Multi-file skill archive.
+
+Drag-and-drop is supported on the canvas and library panel.
+
 ## Key keyboard shortcuts
 
   Space + drag   Pan the canvas
@@ -411,6 +423,13 @@ select option{background:var(--panel)}
 #drag-ghost{position:fixed;pointer-events:none;z-index:999;background:var(--card);border:1.5px solid var(--acc);border-radius:9px;padding:6px 10px;display:none;align-items:center;gap:7px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;opacity:.92;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 0 3px rgba(232,160,32,.2);white-space:nowrap;transform:translate(-50%,-50%)}
 #drag-ghost .dg-glyph{font-size:13px}
 #canvas-wrap.drag-over{outline:2px solid var(--acc)!important;outline-offset:-2px}
+#canvas-wrap.drop-file-over{outline:2px dashed var(--dim)!important;outline-offset:-2px}
+#left.drop-file-over{outline:2px dashed var(--dim)!important;outline-offset:-2px}
+.drop-banner{position:absolute;left:50%;top:16px;transform:translateX(-50%);font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:6px 16px;border-radius:6px;z-index:50;pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s var(--ease)}
+.drop-banner.visible{opacity:1}
+.drop-banner.type-pipeline{background:oklch(.25 .04 200);border:1px solid var(--cyn);color:var(--cyn)}
+.drop-banner.type-library{background:oklch(.25 .04 300);border:1px solid oklch(0.68 0.16 300);color:oklch(0.78 0.14 300)}
+.drop-banner.type-skill{background:oklch(.25 .04 165);border:1px solid var(--grn);color:var(--grn)}
 
 /* CANVAS */
 #canvas-wrap{flex:1;position:relative;overflow:hidden;background-image:radial-gradient(circle,var(--brd) 1px,transparent 1px);transition:outline .2s var(--ease) var(--ease)}
@@ -437,7 +456,7 @@ select option{background:var(--panel)}
 /* NODES */
 
 /* ── NODES ── */
-.node{position:absolute;width:'+CONFIG.DEFAULT_NODE_WIDTH+'px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible}
+.node{position:absolute;width:'+CONFIG.DEFAULT_NODE_WIDTH+'px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible;will-change:transform}
 .node-card{background:var(--card);border:1.5px solid var(--brd);border-radius:9px;position:relative;z-index:2}
 /* Side resize zones on the card */
 .node-side-resize{position:absolute;top:0;width:6px;height:100%;cursor:ew-resize;z-index:3}
@@ -574,6 +593,7 @@ select option{background:var(--panel)}
 .start-badge{font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:.12em;color:#0b0d11;background:#34d399;border-radius:3px;padding:1px 5px;flex-shrink:0}
 /* MULTI-SELECT */
 .node.multi-sel .node-card{box-shadow:0 0 0 2px var(--acc),0 4px 16px rgba(0,0,0,.4);border-color:var(--acc)}
+.node.deleting{transition:transform .15s var(--ease),opacity .15s var(--ease);opacity:0!important;pointer-events:none}
 
 /* CONTEXT MENU */
 #ctx-menu{position:fixed;background:var(--panel);border:1px solid var(--brdhi);border-radius:8px;padding:4px;z-index:999;display:none;flex-direction:column;gap:1px;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
@@ -594,7 +614,7 @@ select option{background:var(--panel)}
 #right.collapsed>.panel-expand-btn{display:flex!important}
 
 /* ── INSPECTOR SECTIONS ── */
-#insp-meta{padding:10px 12px;border-bottom:1px solid var(--brd);flex-shrink:0;overflow-y:visible}
+#insp-meta{padding:4px 12px 10px 12px;border-bottom:1px solid var(--brd);flex-shrink:0;overflow-y:visible}
 #insp-form {display:flex; flex-direction:column; flex:1;}
 #insp-placeholder{font-size:11px;color:var(--dim);line-height:1.7}
 #insp-form{display:none}
@@ -865,13 +885,16 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v26</span>
+    <span class="t-badge">v27</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
     <div style="width:1px;height:18px;background:var(--brd);margin:0 4px"></div>
     <button class="tbtn danger hidden" id="btn-del">Delete Node</button>
     <button class="tbtn" id="btn-reset">Reset View</button>
+    <button class="tbtn" id="btn-fit" title="Zoom to fit all nodes (Home)">⊞ Fit</button>
+    <button class="tbtn" id="btn-undo" title="Undo (Ctrl+Z)">↩</button>
+    <button class="tbtn" id="btn-redo" title="Redo (Ctrl+Shift+Z)">↪</button>
     <button class="tbtn hidden" id="btn-clear">Clear</button>
     <button class="tbtn" id="btn-save-pipeline" title="Save As… (choose location) · Ctrl+S to quick-save to last location">💾 Save Pipeline</button>
     <button class="tbtn" id="btn-pipeline-to-node" title="Save active pipeline as a reusable node in the PIPELINES library tab">⬡ Save as Node</button>
@@ -932,7 +955,7 @@ select option{background:var(--panel)}
           <div id="lib-head-btns">
             <button id="btn-ai-generate" class="btn-action" title="Generate skills or pipelines with AI">✦ Generate</button>
             <button id="add-skill-btn" class="btn-action">+ Add Skill</button>
-            <button id="import-skill-btn" class="btn-action" title="Import .skill / .md / .json / .txt files as nodes on the canvas (supports multiple)">⬆ Import File</button>
+            <button id="import-skill-btn" class="btn-action" title="Import .ppln / .sklb / .skill / .md / .json / .txt files (supports multiple)">⬆ Import File</button>
           </div>
           <div style="display:flex;gap:4px;align-items:center">
             <input id="lib-search" placeholder="Search skills…" type="text" style="flex:4"/>
@@ -998,6 +1021,10 @@ select option{background:var(--panel)}
       <!-- RIGHT INSPECTOR -->
       <div id="right">
         <button class="panel-expand-btn" id="right-expand" title="Expand inspector">INSPECTOR ▸</button>
+        <div id="insp-head" style="display:flex;align-items:center;gap:6px;padding:10px 12px 0 12px">
+          <div class="lbl" style="flex:1">INSPECTOR</div>
+          <button class="panel-collapse-btn" id="right-collapse" title="Collapse inspector">▸</button>
+        </div>
         <div id="insp-meta">
           <div id="insp-placeholder">Select a node in the library<br/>or on the canvas.</div>
           <div id="insp-form">
@@ -1005,7 +1032,6 @@ select option{background:var(--panel)}
               <span class="if-glyph" id="if-glyph" title="Click to change">◆</span>
               <input class="if-name" id="if-name" placeholder="Skill name…" type="text" title="Double-click to rename"/>
               <span class="if-id" id="if-id"></span>
-              <button class="panel-collapse-btn" id="right-collapse" title="Collapse inspector">▸</button>
             </div>
             <textarea class="if-desc" id="if-desc" rows="2" placeholder="Description…"></textarea>
             <div class="tags-row" id="tags-row">
@@ -1784,7 +1810,7 @@ function pipelinePayload(p){
 function downloadPipeline(p){
   const blob=new Blob([pipelinePayload(p)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=(p.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.pipeline.json';
+  a.download=(p.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.ppln';
   a.click();URL.revokeObjectURL(a.href);
 }
 
@@ -1798,15 +1824,15 @@ async function savePipelineAs(id){
   if(!window.showSaveFilePicker){downloadPipeline(p);return;}
   try{
     p.fileHandle=await window.showSaveFilePicker({
-      suggestedName:(p.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.pipeline.json',
-      types:[{description:'Pipeline JSON',accept:{'application/json':['.json','.pipeline.json']}}]
+      suggestedName:(p.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase()+'.ppln',
+      types:[{description:'GUIness Pipeline',accept:{'application/json':['.ppln','.json','.pipeline.json']}}]
     });
     const writable=await p.fileHandle.createWritable();
     await writable.write(pipelinePayload(p));
     await writable.close();
     // Rename pipeline to match filename if user changed it in the picker
     try{
-      const fname=p.fileHandle.name.replace(/\.pipeline\.json$|\.json$/,'');
+      const fname=p.fileHandle.name.replace(/\.ppln$|\.pipeline\.json$|\.json$/,'');
       if(fname&&fname!==p.name){p.name=fname;renamePipeline(id,fname);}
     }catch(_){}
     p.saved=true;p.fileBacked=true;savePipelines();renderPipelineTabs();
@@ -1843,7 +1869,7 @@ async function _checkAndImportBundledSkills(data,onComplete){
     missing.forEach(sk=>{
       const row=document.createElement('label');
       row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;cursor:pointer';
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;cb.style.cssText='margin-top:2px;accent-color:var(--acc);flex-shrink:0';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;cb.style.cssText='margin-top:2px;accent-color:var(--acc);flex-shrink:0;width:14px;height:14px';
       const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0';
       const lbl=document.createElement('div');lbl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dhi)';lbl.textContent=sk.label||sk.id;
       const ddesc=document.createElement('div');ddesc.style.cssText='font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';ddesc.textContent=sk.desc||'No description';
@@ -1885,14 +1911,14 @@ async function importPipelineFile(){
   if(window.showOpenFilePicker){
     try{
       const [handle]=await window.showOpenFilePicker({
-        types:[{description:'Pipeline JSON',accept:{'application/json':['.json','.pipeline.json']}}],
+        types:[{description:'GUIness Pipeline',accept:{'application/json':['.ppln','.json','.pipeline.json']}}],
         multiple:false
       });
       const file=await handle.getFile();
       const text=await file.text();
       const data=JSON.parse(text);
       if(!data.stack||!Array.isArray(data.stack))throw new Error('Invalid pipeline file');
-      const p={id:uid('pl'),name:data.name||file.name.replace(/\.pipeline\.json$|\.json$/,''),
+      const p={id:uid('pl'),name:data.name||file.name.replace(/\.ppln$|\.pipeline\.json$|\.json$/,''),
                stack:data.stack,saved:true,fileHandle:handle,fileBacked:true};
       pipelines.push(p);
       await _checkAndImportBundledSkills(data,()=>{switchPipeline(p.id);savePipelines();});
@@ -1903,7 +1929,7 @@ async function importPipelineFile(){
     }
   }
   // Fallback: classic <input type=file>
-  const inp=document.createElement('input');inp.type='file';inp.accept='.json,.pipeline.json';
+  const inp=document.createElement('input');inp.type='file';inp.accept='.ppln,.json,.pipeline.json';
   inp.addEventListener('change',e=>{
     const f=e.target.files[0];if(!f)return;
     const r=new FileReader();
@@ -1911,7 +1937,7 @@ async function importPipelineFile(){
       try{
         const data=JSON.parse(ev.target.result);
         if(!data.stack||!Array.isArray(data.stack))throw new Error('Invalid pipeline JSON');
-        const p={id:uid('pl'),name:data.name||f.name.replace(/\.pipeline\.json$|\.json$/,''),
+        const p={id:uid('pl'),name:data.name||f.name.replace(/\.ppln$|\.pipeline\.json$|\.json$/,''),
                  stack:data.stack,saved:true};
         hideEmptyState();pipelines.push(p);
         await _checkAndImportBundledSkills(data,()=>{switchPipeline(p.id);savePipelines();});
@@ -2299,7 +2325,7 @@ function buildOpenPanel(){
 
   const openFileBtn=document.createElement('button');
   openFileBtn.className='opp-new-btn';
-  openFileBtn.title='Open a .pipeline.json file from disk';
+  openFileBtn.title='Open a .ppln pipeline file from disk';
   openFileBtn.textContent='📂 Open File';
   openFileBtn.style.cssText='border-color:var(--cyn);color:var(--cyn)';
   openFileBtn.addEventListener('click',()=>{
@@ -2626,6 +2652,22 @@ function renderEdges(newEdgeId=null){
   if(altDown&&selNode&&selNodes.size<=1)highlightDownstream(selNode);
 }
 
+// Lightweight edge update — recalculates path geometry without tearing down SVG.
+// Use during drag/resize for smooth 60fps; renderEdges() handles structural changes.
+function updateEdgePaths(){
+  svg.querySelectorAll('.e').forEach(g=>{
+    const fn=getNodes().find(n=>n.id===g.dataset.from);
+    const tn=getNodes().find(n=>n.id===g.dataset.to);
+    if(!fn||!tn)return;
+    const edge=getEdges().find(e=>e.id===g.dataset.eid);
+    if(!edge)return;
+    const f=portPos(fn,'out',edge.fromPort),t=portPos(tn,'in',edge.toPort);
+    const m=(f.x+t.x)/2;
+    const d=`M${f.x},${f.y} C${m},${f.y} ${m},${t.y} ${t.x},${t.y}`;
+    g.querySelectorAll('path').forEach(p=>p.setAttribute('d',d));
+  });
+}
+
 // ═══════════════════════════════════════════════════════════
 // NODES
 // ═══════════════════════════════════════════════════════════
@@ -2640,7 +2682,7 @@ function buildNode(node){
   const el=document.createElement('div');
   const isBoundary=(sk.id==='graph-input'||sk.id==='graph-output');
   el.className='node'+(node.isStart?' start-node':'')+(isBoundary?' boundary-node':'');el.id='nd-'+node.id;
-  el.style.left=node.x+'px';el.style.top=node.y+'px';
+  el.style.transform='translate('+node.x+'px,'+node.y+'px)';
   // border/bg moved to .node-card
 
   const head=document.createElement('div');head.className='node-head';
@@ -2705,13 +2747,14 @@ function buildNode(node){
         }else{
           const w=Math.max(CONFIG.MIN_NODE_WIDTH,startW-dx);
           el.style.width=w+'px';node._w=w;
-          node.x=startLeft+dx;el.style.left=node.x+'px';
+          node.x=startLeft+dx;el.style.transform='translate('+node.x+'px,'+node.y+'px)';
         }
-        renderEdges();
+        updateEdgePaths();
       };
       const onUp=()=>{
         window.removeEventListener('pointermove',onMove);
         window.removeEventListener('pointerup',onUp);
+        renderEdges(); // full rebuild on release to sync flow animations
         markPipelineDirty(activePipelineId);
       };
       window.addEventListener('pointermove',onMove);
@@ -2731,8 +2774,7 @@ function buildNode(node){
   node.inputs.forEach(port=>{
     const row=document.createElement('div');row.className='port-row in-row';
     const dot=mkNamedPort('in',node,color,port);
-    // Color input sockets with node color (stroke only — via CSS .port-in)
-    dot.style.borderColor=color;
+    // Input ports start uncolored; renderEdges() colors connected ones
     const lbl=document.createElement('span');lbl.className='port-lbl';lbl.textContent=port.name||'in';
     row.appendChild(dot);row.appendChild(lbl);inCol.appendChild(row);
   });
@@ -2837,11 +2879,12 @@ function buildNode(node){
         if(rdEl)rdEl.style.maxHeight=dh+'px';
         if(edEl)edEl.style.height=dh+'px';
         node._drawerH=dh;
-        renderEdges();
+        updateEdgePaths();
       };
       const onUp=()=>{
         window.removeEventListener('pointermove',onMove);
         window.removeEventListener('pointerup',onUp);
+        renderEdges(); // full rebuild on release
         markPipelineDirty(activePipelineId);
       };
       window.addEventListener('pointermove',onMove);
@@ -2938,9 +2981,9 @@ function buildNode(node){
       if(!n||!o)return;
       n.x=snap(o.ox+sdx);n.y=snap(o.oy+sdy);
       const nel=document.getElementById('nd-'+nid);
-      if(nel){nel.style.left=n.x+'px';nel.style.top=n.y+'px';}
+      if(nel){nel.style.transform='translate('+n.x+'px,'+n.y+'px)';}
     });
-    renderEdges();
+    updateEdgePaths();
   });
   el.addEventListener('pointerenter',()=>{
     if(altDown){highlightDownstream(node.id);el.style.cursor='cell';}
@@ -2954,7 +2997,7 @@ function buildNode(node){
     }
   });
   el.addEventListener('pointerup',e=>{
-    if(dragging){dragging=false;el.style.cursor=altDown?'cell':'grab';el.releasePointerCapture(e.pointerId);}
+    if(dragging){dragging=false;el.style.cursor=altDown?'cell':'grab';el.releasePointerCapture(e.pointerId);if(didDrag)renderEdges();}
   });
   // click handler retained only to stop propagation (selection is in pointerdown)
   el.addEventListener('click',e=>{
@@ -3001,7 +3044,15 @@ function mkNamedPort(side,node,color,portObj){
   });
   p.addEventListener('pointerleave',()=>{
     p.classList.remove('ready');
-    if(!p.classList.contains('hot'))p.style.borderColor='';
+    if(!p.classList.contains('hot')){
+      // Preserve color if this input port is connected
+      if(side==='in'&&getEdges().find(e=>e.to===node.id&&e.toPort===portObj.id)){
+        const sk=nodeSk(node);
+        p.style.borderColor=cx(node.color||(sk&&sk.color)||'dimHi');
+      }else{
+        p.style.borderColor='';
+      }
+    }
   });
   function completeNamedConn(e){
     if(side==='in'){
@@ -3331,6 +3382,8 @@ const DEFAULT_BINDINGS=[
   // ── History ──────────────────────────────────────────────────
   {id:'undo',     section:'History',  desc:'Undo',                     chord:{ctrl:true,key:'z'},            noInput:true, noContentEditable:true, action:()=>undoHistory()},
   {id:'redo',     section:'History',  desc:'Redo',                     chord:{ctrl:true,shift:true,key:'z'}, noInput:true, noContentEditable:true, action:()=>redoHistory()},
+  {id:'fit',      section:'View',     desc:'Zoom to fit',              chord:{key:'Home'},                   noInput:true, noContentEditable:true, action:()=>zoomToFit()},
+  {id:'search',   section:'View',     desc:'Focus library search',     chord:{key:'/'},                      noInput:true, noContentEditable:true, action:()=>{const s=document.getElementById('lib-search');if(s){s.focus();s.select();}}},
   // ── Pipeline ─────────────────────────────────────────────────
   {id:'save',     section:'Pipeline', desc:'Quick save (or Save As…)',  chord:{ctrl:true,key:'s'},            action:()=>{const p=activePipeline();if(p?.fileHandle)savePipeline(activePipelineId);else savePipelineAs(activePipelineId);}},
   {id:'save-as',  section:'Pipeline', desc:'Save pipeline as…',        chord:{ctrl:true,shift:true,key:'s'}, action:()=>savePipelineAs(activePipelineId)},
@@ -3597,8 +3650,32 @@ wrap.addEventListener('pointerup',e=>{
   if(panning){panning=false;wrap.releasePointerCapture(e.pointerId);return;}
   if(lasso){commitLasso();wrap.releasePointerCapture(e.pointerId);}
   // If a connection drag was in progress and the pointer was released over
-  // empty canvas (not a port), cancel it.
-  if(conn&&!e.target.closest('.port'))clearConn();
+  // empty canvas (not a port), try magnetic snap to nearest ready port
+  if(conn&&!e.target.closest('.port')){
+    const SNAP_RADIUS=24;
+    const t=frame().tx;
+    let best=null,bestDist=SNAP_RADIUS+1;
+    scene.querySelectorAll('.port-in.ready').forEach(p=>{
+      const pr=p.getBoundingClientRect();
+      const px=pr.left+pr.width/2,py=pr.top+pr.height/2;
+      const dist=Math.hypot(e.clientX-px,e.clientY-py);
+      if(dist<bestDist){bestDist=dist;best=p;}
+    });
+    if(best){
+      // Simulate connection to this port
+      const toNid=best.dataset.nid,toPid=best.dataset.pid;
+      const fromId=conn.fromId;
+      if(fromId!==toNid&&!getEdges().find(ed=>ed.from===fromId&&ed.to===toNid&&ed.fromPort===conn.fromPort&&ed.toPort===toPid)){
+        if(!wouldCycle(frame().nodes,frame().edges,fromId,toNid)){
+          const eid=uid('e');
+          pushHistory();frame().edges.push({id:eid,from:fromId,to:toNid,fromPort:conn.fromPort,toPort:toPid});markPipelineDirty(activePipelineId);
+          clearConn();renderEdges(eid);
+          return;
+        }
+      }
+    }
+    clearConn();
+  }
 });
 wrap.addEventListener('wheel',e=>{
   e.preventDefault();
@@ -3633,26 +3710,63 @@ function deleteSelNode(){
   if(!selNodes.size)return;
   pushHistory();
   const toDelete=new Set(selNodes);
+  // Animate out
   toDelete.forEach(id=>{
-    const node=getNodes().find(n=>n.id===id);
-    // Sync dep removal if inside internal graph
-    if(node&&frame().skillId&&node.skillId&&node.skillId!==frame().skillId){
-      const parentSk=getSk(frame().skillId);
-      if(parentSk){
-        const otherUses=getNodes().filter(n=>n.id!==id&&(n.type||n.skillId)===node.skillId);
-        if(!otherUses.length)parentSk.deps=(parentSk.deps||[]).filter(d=>d!==node.skillId);
-      }
+    const el=document.getElementById('nd-'+id);
+    if(el){
+      const n=getNodes().find(x=>x.id===id);
+      if(n)el.style.transform='translate('+n.x+'px,'+n.y+'px) scale(0.85)';
+      el.classList.add('deleting');
     }
-    frame().nodes=getNodes().filter(n=>n.id!==id);
-    frame().edges=getEdges().filter(e=>e.from!==id&&e.to!==id);
-    document.getElementById('nd-'+id)?.remove();
   });
-  renderEdges();selNode=null;selSkillId=null;selNodes.clear();
-  applySelStyle(null);markPipelineDirty(activePipelineId);updateTopbar();renderInspector();
+  // Remove edges immediately so they don't dangle
+  toDelete.forEach(id=>{
+    frame().edges=getEdges().filter(e=>e.from!==id&&e.to!==id);
+  });
+  renderEdges();
+  // Remove nodes after animation
+  setTimeout(()=>{
+    toDelete.forEach(id=>{
+      const node=getNodes().find(n=>n.id===id);
+      if(node&&frame().skillId&&node.skillId&&node.skillId!==frame().skillId){
+        const parentSk=getSk(frame().skillId);
+        if(parentSk){
+          const otherUses=getNodes().filter(n=>n.id!==id&&(n.type||n.skillId)===node.skillId);
+          if(!otherUses.length)parentSk.deps=(parentSk.deps||[]).filter(d=>d!==node.skillId);
+        }
+      }
+      frame().nodes=getNodes().filter(n=>n.id!==id);
+      document.getElementById('nd-'+id)?.remove();
+    });
+    selNode=null;selSkillId=null;selNodes.clear();
+    applySelStyle(null);markPipelineDirty(activePipelineId);updateTopbar();renderInspector();
+  },150);
 }
 
 document.getElementById('btn-del').addEventListener('click',deleteSelNode);
 document.getElementById('btn-reset').addEventListener('click',()=>{frame().tx={x:0,y:0,s:1};applyTx();});
+
+// Zoom-to-fit: calculate bounding box of all nodes, set transform to frame them
+function zoomToFit(){
+  const nodes=getNodes();if(!nodes.length)return;
+  const PAD=60;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  nodes.forEach(n=>{
+    const el=document.getElementById('nd-'+n.id);
+    const w=el?el.offsetWidth:220;const h=el?el.offsetHeight:80;
+    minX=Math.min(minX,n.x);minY=Math.min(minY,n.y);
+    maxX=Math.max(maxX,n.x+w);maxY=Math.max(maxY,n.y+h);
+  });
+  const bw=maxX-minX+PAD*2,bh=maxY-minY+PAD*2;
+  const wr=wrap.getBoundingClientRect();
+  const s=Math.min(1.2,Math.min(wr.width/bw,wr.height/bh));
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+  frame().tx={x:wr.width/2-cx*s,y:wr.height/2-cy*s,s};
+  applyTx();renderEdges();
+}
+document.getElementById('btn-fit').addEventListener('click',zoomToFit);
+document.getElementById('btn-undo').addEventListener('click',()=>undoHistory());
+document.getElementById('btn-redo').addEventListener('click',()=>redoHistory());
 document.getElementById('btn-clear').addEventListener('click',()=>{
   frame().nodes=[];frame().edges=[];selNode=null;selSkillId=null;
   scene.querySelectorAll('.node').forEach(n=>n.remove());renderEdges();clearSel();updateTopbar();
@@ -5103,10 +5217,13 @@ document.getElementById('confirm-yes').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════════════════
 function mkResizer(rzId,tgtId,dir,minW,maxW){
   const rz=document.getElementById(rzId),tgt=document.getElementById(tgtId);
+  const storeKey='pb_panel_w_'+tgtId;
   let active=false,startX,startW;
+  // Restore saved width
+  try{const saved=localStorage.getItem(storeKey);if(saved){const w=parseInt(saved,10);if(w>=minW&&w<=maxW)tgt.style.width=w+'px';}}catch(e){}
   rz.addEventListener('pointerdown',e=>{active=true;startX=e.clientX;startW=tgt.offsetWidth;rz.setPointerCapture(e.pointerId);rz.classList.add('dragging');});
   rz.addEventListener('pointermove',e=>{if(!active)return;const nw=Math.max(minW,Math.min(maxW,startW+(dir==='left'?1:-1)*(e.clientX-startX)));tgt.style.width=nw+'px';});
-  rz.addEventListener('pointerup',e=>{active=false;rz.releasePointerCapture(e.pointerId);rz.classList.remove('dragging');});
+  rz.addEventListener('pointerup',e=>{active=false;rz.releasePointerCapture(e.pointerId);rz.classList.remove('dragging');try{localStorage.setItem(storeKey,tgt.offsetWidth);}catch(e){}});
 }
 mkResizer('rz-l','left','left',120,840);
 mkResizer('rz-r','right','right',120,840);
@@ -6922,8 +7039,8 @@ async function saveLibraryJSON(silent=false){
     try{
       if(!_libFileHandle){
         _libFileHandle=await window.showSaveFilePicker({
-          suggestedName:'pipeline-skills.json',
-          types:[{description:'Skills Library',accept:{'application/json':['.json']}}]
+          suggestedName:'pipeline-skills.sklb',
+          types:[{description:'GUIness Skill Library',accept:{'application/json':['.sklb','.json']}}]
         });
       }
       const w=await _libFileHandle.createWritable();await w.write(blob);await w.close();
@@ -6932,10 +7049,10 @@ async function saveLibraryJSON(silent=false){
     }catch(e){
       if(e.name==='AbortError')return;
       _libFileHandle=null;
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pipeline-skills.json';a.click();URL.revokeObjectURL(a.href);
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pipeline-skills.sklb';a.click();URL.revokeObjectURL(a.href);
     }
   }else{
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pipeline-skills.json';a.click();URL.revokeObjectURL(a.href);
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pipeline-skills.sklb';a.click();URL.revokeObjectURL(a.href);
     if(!silent){btn.textContent='↓ Downloaded';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent='Save Library';btn.style.color='';},2500);}
   }
 }
@@ -6945,11 +7062,11 @@ async function loadLibraryJSON(){
   try{
     let text;
     if(window.showOpenFilePicker){
-      const [fh]=await window.showOpenFilePicker({types:[{description:'Skills Library',accept:{'application/json':['.json']}}]});
+      const [fh]=await window.showOpenFilePicker({types:[{description:'GUIness Skill Library',accept:{'application/json':['.sklb','.json']}}]});
       _libFileHandle=fh;text=await(await fh.getFile()).text();
     }else{
       text=await new Promise((res,rej)=>{
-        const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+        const inp=document.createElement('input');inp.type='file';inp.accept='.sklb,.json';
         inp.addEventListener('change',async()=>{if(!inp.files[0])return rej(new Error('no file'));res(await inp.files[0].text());});
         inp.click();
       });
@@ -7064,11 +7181,29 @@ function saveNodeAsSkill(nodeId){
 // ── Import a .skill/.md/.json file as a node placed on canvas ──────────────
 function importSkillFileAsNode(){
   const inp=document.createElement('input');
-  inp.type='file';inp.accept='.md,.skill,.json,.txt,.zip';inp.multiple=true;inp.style.display='none';
+  inp.type='file';inp.accept='.md,.skill,.json,.txt,.zip,.ppln,.sklb';inp.multiple=true;inp.style.display='none';
   document.body.appendChild(inp);
   inp.addEventListener('change',async e=>{
     const files=Array.from(e.target.files);
     if(!files.length){inp.remove();return;}
+
+    // Route .ppln and .sklb files through the unified drop handler
+    const routeFiles=[];
+    const skillFiles=[];
+    for(const f of files){
+      const n=f.name.toLowerCase();
+      if(n.endsWith('.ppln')||n.endsWith('.sklb'))routeFiles.push(f);
+      else skillFiles.push(f);
+    }
+    // Handle .ppln/.sklb via unified handler (canvas target, center of viewport)
+    if(routeFiles.length){
+      const t=frame().tx;
+      const cx=scene.offsetWidth/2;const cy=scene.offsetHeight/2;
+      const rect=wrap.getBoundingClientRect();
+      await _handleFileDrop(routeFiles,'canvas',rect.left+cx,rect.top+cy);
+    }
+    if(!skillFiles.length){inp.remove();return;}
+
     pushHistory();
     let totalImported=0;
     const OFFSET=CONFIG.IMPORT_NODE_OFFSET;
@@ -7076,8 +7211,8 @@ function importSkillFileAsNode(){
     const baseCx=snap((scene.offsetWidth/2-t.x)/t.s);
     const baseCy=snap((scene.offsetHeight/2-t.y)/t.s);
 
-    for(let idx=0;idx<files.length;idx++){
-      const f=files[idx];
+    for(let idx=0;idx<skillFiles.length;idx++){
+      const f=skillFiles[idx];
       const isZip=f.name.endsWith('.zip')||f.name.endsWith('.skill');
 
       if(isZip){
@@ -7097,10 +7232,19 @@ function importSkillFileAsNode(){
           }catch(e2){console.warn('Import failed:',f.name,err);}
         }
       }else{
-        // ── Plain text import ──
+        // ── Plain text or .json that might be a pipeline/library ──
         const text=await f.text();
-        _importTextAsSkill(text,f.name,baseCx+idx*OFFSET,baseCy+idx*OFFSET);
-        totalImported++;
+        const ftype=_detectFileType(f.name,text);
+        if(ftype==='pipeline'||ftype==='library'){
+          // Re-wrap as File and route through unified handler
+          const blob=new Blob([text],{type:'application/json'});
+          const fakeFile=new File([blob],f.name,{type:'application/json'});
+          const rect=wrap.getBoundingClientRect();
+          await _handleFileDrop([fakeFile],'canvas',rect.left+scene.offsetWidth/2,rect.top+scene.offsetHeight/2);
+        }else{
+          _importTextAsSkill(text,f.name,baseCx+idx*OFFSET,baseCy+idx*OFFSET);
+          totalImported++;
+        }
       }
     }
 
@@ -7136,6 +7280,283 @@ function _importTextAsSkill(raw,filename,cx,cy){
     outputs:JSON.parse(JSON.stringify(newSk.defaultOutputs))};
   frame().nodes.push(node);
   const el=buildNode(node);if(el)scene.appendChild(el);
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE DROP — Unified drag-and-drop handler for canvas & library
+// ═══════════════════════════════════════════════════════════
+
+// Detect file type from extension, with content-sniffing fallback for .json
+function _detectFileType(name,text){
+  const n=name.toLowerCase();
+  if(n.endsWith('.ppln')||n.endsWith('.pipeline.json'))return 'pipeline';
+  if(n.endsWith('.sklb'))return 'library';
+  if(n.endsWith('.md')||n.endsWith('.txt'))return 'skill';
+  if(n.endsWith('.zip')||n.endsWith('.skill'))return 'zip';
+  if(n.endsWith('.json')&&text){
+    try{const d=JSON.parse(text);if(d&&d.stack&&Array.isArray(d.stack))return 'pipeline';if(Array.isArray(d))return 'library';}catch(e){}
+    return 'skill'; // single skill object or unknown JSON
+  }
+  return 'skill';
+}
+
+// Show a transient banner on a container
+function _showDropBanner(container,text,typeClass){
+  let banner=container.querySelector('.drop-banner');
+  if(!banner){banner=document.createElement('div');banner.className='drop-banner';container.appendChild(banner);}
+  banner.className='drop-banner visible '+typeClass;
+  banner.textContent=text;
+  clearTimeout(banner._ht);
+  banner._ht=setTimeout(()=>{banner.classList.remove('visible');},2400);
+}
+
+// Pipeline choice modal: "Open as New Tab" vs "Add to Current Pipeline"
+function _showPipelineChoiceModal(data,filename,dropX,dropY){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center';
+    const box=document.createElement('div');
+    box.style.cssText='background:var(--panel);border:1px solid var(--brd);border-radius:10px;padding:24px;width:380px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.4)';
+    const title=document.createElement('div');
+    title.style.cssText='font-family:var(--mono);font-size:11px;font-weight:700;color:var(--cyn);letter-spacing:.08em';
+    title.textContent='IMPORT PIPELINE';
+    const desc=document.createElement('div');
+    desc.style.cssText='font-size:12px;color:var(--dhi);line-height:1.5';
+    desc.textContent='"'+(data.name||filename)+'" — how would you like to import this pipeline?';
+    const btnRow=document.createElement('div');
+    btnRow.style.cssText='display:flex;flex-direction:column;gap:8px';
+    const btnTab=document.createElement('button');btnTab.className='mbtn';
+    btnTab.style.cssText='font-size:10px;padding:10px 14px;text-align:left';
+    btnTab.innerHTML='<span style="color:var(--cyn);font-weight:700">⬒ Open as New Tab</span><br><span style="font-size:9px;color:var(--dim)">Opens the pipeline in its own tab for editing</span>';
+    const btnNode=document.createElement('button');btnNode.className='mbtn';
+    btnNode.style.cssText='font-size:10px;padding:10px 14px;text-align:left';
+    btnNode.innerHTML='<span style="color:var(--grn);font-weight:700">◈ Add to Current Pipeline</span><br><span style="font-size:9px;color:var(--dim)">Embeds the pipeline as a single node with internal graph</span>';
+    const btnCancel=document.createElement('button');btnCancel.className='mbtn';
+    btnCancel.style.cssText='font-size:10px;align-self:flex-end;margin-top:4px';
+    btnCancel.textContent='Cancel';
+    btnTab.addEventListener('click',()=>{overlay.remove();resolve('tab');});
+    btnNode.addEventListener('click',()=>{overlay.remove();resolve('node');});
+    btnCancel.addEventListener('click',()=>{overlay.remove();resolve(null);});
+    btnRow.appendChild(btnTab);btnRow.appendChild(btnNode);
+    box.appendChild(title);box.appendChild(desc);box.appendChild(btnRow);box.appendChild(btnCancel);
+    overlay.appendChild(box);document.body.appendChild(overlay);
+    overlay.addEventListener('pointerdown',e=>{if(e.target===overlay){overlay.remove();resolve(null);}});
+  });
+}
+
+// Create a skill from pipeline data and place as a node (pipeline-as-node)
+async function _addPipelineAsNode(data,filename,sceneX,sceneY){
+  const pName=data.name||filename.replace(/\.ppln$|\.pipeline\.json$|\.json$/,'');
+  // Build internal graph from the pipeline's root stack frame
+  const rootFrame=data.stack[0]||{nodes:[],edges:[]};
+  const igNodes=JSON.parse(JSON.stringify(rootFrame.nodes||[]));
+  const igEdges=JSON.parse(JSON.stringify(rootFrame.edges||[]));
+
+  // Detect boundary ports: inputs are ports with no incoming edge, outputs have no outgoing edge
+  const allInputPorts=new Set();
+  const allOutputPorts=new Set();
+  const connectedInputs=new Set();
+  const connectedOutputs=new Set();
+  igNodes.forEach(n=>{
+    (n.inputs||[]).forEach(p=>allInputPorts.add(p.id));
+    (n.outputs||[]).forEach(p=>allOutputPorts.add(p.id));
+  });
+  igEdges.forEach(e=>{
+    connectedInputs.add(e.toPort);
+    connectedOutputs.add(e.fromPort);
+  });
+  // Unconnected input ports on nodes → become the skill's inputs
+  const skillInputs=[];
+  const skillOutputs=[];
+  igNodes.forEach(n=>{
+    (n.inputs||[]).forEach(p=>{if(!connectedInputs.has(p.id))skillInputs.push({id:uid('p'),name:p.name||'In',type:p.type||'Any'});});
+    (n.outputs||[]).forEach(p=>{if(!connectedOutputs.has(p.id))skillOutputs.push({id:uid('p'),name:p.name||'Out',type:p.type||'Any'});});
+  });
+
+  const newSk={
+    id:uid('sk'),label:pName.toUpperCase(),color:'cyan',glyph:'⬒',shape:'default',
+    category:'Pipelines',desc:'Imported pipeline: '+pName,tags:['pipeline'],
+    isBuiltin:false,rawContent:'',deps:[],_ts:Date.now(),
+    internalGraph:{nodes:igNodes,edges:igEdges},
+    hasIn:skillInputs.length>0,hasOut:skillOutputs.length>0,fields:[],
+    defaultInputs:skillInputs,defaultOutputs:skillOutputs,
+  };
+
+  // Check for missing skills before adding
+  const bundled=data.skills;
+  if(Array.isArray(bundled)&&bundled.length){
+    const missing=bundled.filter(bs=>!skills.find(s=>s.id===bs.id));
+    if(missing.length){
+      await _showSkillPickerModal(missing,'This pipeline references '+missing.length+' skill'+(missing.length!==1?'s':'')+' not in your library.');
+    }
+  }
+
+  skills.push(newSk);
+  persistSkills();renderLib();
+  placeNodeAt(newSk.id,sceneX,sceneY);
+}
+
+// Skill picker modal — shows skills with checkboxes, imports selected ones
+function _showSkillPickerModal(skillList,message){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center';
+    const box=document.createElement('div');
+    box.style.cssText='background:var(--panel);border:1px solid var(--brd);border-radius:10px;padding:24px;width:460px;max-width:calc(100vw - 32px);max-height:80vh;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.4)';
+    const title=document.createElement('div');
+    title.style.cssText='font-family:var(--mono);font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.08em';
+    title.textContent='IMPORT SKILLS';
+    const desc=document.createElement('div');
+    desc.style.cssText='font-size:12px;color:var(--dhi);line-height:1.5';
+    desc.textContent=message||'Select skills to import:';
+    const list=document.createElement('div');
+    list.style.cssText='display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:280px;padding-right:4px';
+    const checks=[];
+    skillList.forEach(sk=>{
+      const row=document.createElement('label');
+      row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;cursor:pointer';
+      const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;cb.style.cssText='margin-top:2px;accent-color:var(--acc);flex-shrink:0;width:14px;height:14px';
+      const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';
+      const lbl=document.createElement('div');lbl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dhi)';lbl.textContent=sk.label||sk.id;
+      const ddesc=document.createElement('div');ddesc.style.cssText='font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';ddesc.textContent=sk.desc||'No description';
+      info.appendChild(lbl);info.appendChild(ddesc);
+      row.appendChild(cb);row.appendChild(info);
+      list.appendChild(row);
+      checks.push({cb,sk});
+    });
+    const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--brd);padding-top:12px';
+    const selAllBtn=document.createElement('button');selAllBtn.className='mbtn';selAllBtn.textContent='Select All';selAllBtn.style.cssText='font-size:10px';
+    const skipBtn=document.createElement('button');skipBtn.className='mbtn';skipBtn.textContent='Skip All';skipBtn.style.cssText='font-size:10px';
+    const importBtn=document.createElement('button');importBtn.className='mbtn pri';importBtn.textContent='Import Selected';importBtn.style.cssText='font-size:10px';
+    selAllBtn.addEventListener('click',()=>{
+      const allChecked=checks.every(c=>c.cb.checked);
+      checks.forEach(c=>c.cb.checked=!allChecked);
+      selAllBtn.textContent=allChecked?'Select All':'Deselect All';
+    });
+    skipBtn.addEventListener('click',()=>{overlay.remove();resolve([]);});
+    importBtn.addEventListener('click',()=>{
+      const toImport=checks.filter(c=>c.cb.checked).map(c=>c.sk);
+      toImport.forEach(sk=>{
+        sk.isBuiltin=false;
+        const idx=skills.findIndex(s=>s.id===sk.id);
+        if(idx>=0)skills[idx]=sk;else skills.push(sk);
+      });
+      if(toImport.length){persistSkills();renderLib();}
+      overlay.remove();resolve(toImport);
+    });
+    btnRow.appendChild(selAllBtn);btnRow.appendChild(skipBtn);btnRow.appendChild(importBtn);
+    box.appendChild(title);box.appendChild(desc);box.appendChild(list);box.appendChild(btnRow);
+    overlay.appendChild(box);document.body.appendChild(overlay);
+    overlay.addEventListener('pointerdown',e=>{if(e.target===overlay){overlay.remove();resolve([]);}});
+  });
+}
+
+// ── Unified file drop routing ──
+async function _handleFileDrop(files,target,dropClientX,dropClientY){
+  if(!files||!files.length)return;
+  const isCanvas=target==='canvas';
+  const isLibrary=target==='library';
+  if(!isCanvas&&!isLibrary)return;
+  const leftPanel=document.getElementById('left');
+
+  const t=frame().tx;
+  const rect=wrap.getBoundingClientRect();
+  const sceneX=isCanvas?snap((dropClientX-rect.left-t.x)/t.s):snap((scene.offsetWidth/2-t.x)/t.s);
+  const sceneY=isCanvas?snap((dropClientY-rect.top-t.y)/t.s):snap((scene.offsetHeight/2-t.y)/t.s);
+
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    const text=await f.text().catch(()=>null);
+    const ftype=_detectFileType(f.name,text);
+
+    if(ftype==='pipeline'){
+      try{
+        const data=JSON.parse(text);
+        if(!data.stack||!Array.isArray(data.stack))throw new Error('Invalid pipeline');
+        _showDropBanner(wrap,'Pipeline: '+(data.name||f.name),'type-pipeline');
+        const choice=await _showPipelineChoiceModal(data,f.name,sceneX,sceneY);
+        if(choice==='tab'){
+          const p={id:uid('pl'),name:data.name||f.name.replace(/\.ppln$|\.pipeline\.json$|\.json$/,''),
+                   stack:data.stack,saved:true};
+          hideEmptyState();pipelines.push(p);
+          await _checkAndImportBundledSkills(data,()=>{switchPipeline(p.id);savePipelines();});
+        }else if(choice==='node'){
+          pushHistory();
+          await _addPipelineAsNode(data,f.name,sceneX+i*CONFIG.IMPORT_NODE_OFFSET,sceneY+i*CONFIG.IMPORT_NODE_OFFSET);
+          markPipelineDirty(activePipelineId);
+        }
+      }catch(e){console.warn('Pipeline import failed:',f.name,e);}
+
+    }else if(ftype==='library'){
+      try{
+        const arr=JSON.parse(text);
+        if(!Array.isArray(arr))throw new Error('Expected array');
+        const missing=arr.filter(sk=>sk.id&&sk.label&&!skills.find(s=>s.id===sk.id));
+        _showDropBanner(isCanvas?wrap:leftPanel,missing.length+' new skill'+(missing.length!==1?'s':''),'type-library');
+        if(missing.length){
+          await _showSkillPickerModal(missing,'This library contains '+missing.length+' skill'+(missing.length!==1?'s':'')+' not yet in your library.');
+        }else{
+          // All skills already present — update existing ones silently
+          let updated=0;
+          arr.forEach(sk=>{
+            if(!sk.id||!sk.label)return;
+            sk.isBuiltin=false;
+            const idx=skills.findIndex(s=>s.id===sk.id);
+            if(idx>=0){skills[idx]=sk;updated++;}
+          });
+          if(updated){persistSkills();renderLib();}
+          _showDropBanner(isCanvas?wrap:leftPanel,'Library up to date ('+updated+' updated)','type-library');
+        }
+      }catch(e){console.warn('Library import failed:',f.name,e);}
+
+    }else if(ftype==='zip'){
+      try{
+        const arrayBuf=await f.arrayBuffer();
+        const zipEntries=await _parseZip(arrayBuf);
+        if(zipEntries.length){
+          if(isCanvas){
+            pushHistory();
+            await _importZipAsGraph(zipEntries,f.name,sceneX+i*CONFIG.IMPORT_NODE_OFFSET*4,sceneY);
+            _showDropBanner(wrap,'Skill archive imported','type-skill');
+          }else{
+            // Library drop: import the skill but don't place a node — read first entry as text
+            const firstText=zipEntries.find(e=>!e.name.endsWith('/'));
+            if(firstText){
+              const dec=new TextDecoder();
+              _importTextAsSkill(dec.decode(firstText.data),f.name,sceneX,sceneY);
+              // Remove the node that was just placed on canvas (library-only import)
+              const lastNode=frame().nodes[frame().nodes.length-1];
+              if(lastNode){frame().nodes.pop();const el=document.getElementById('nd-'+lastNode.id);if(el)el.remove();}
+            }
+            _showDropBanner(leftPanel,'Skill added to library','type-skill');
+          }
+        }
+      }catch(e){
+        // Fallback: try as text
+        if(text){
+          if(isCanvas){pushHistory();_importTextAsSkill(text,f.name,sceneX+i*CONFIG.IMPORT_NODE_OFFSET,sceneY+i*CONFIG.IMPORT_NODE_OFFSET);}
+          else{_importTextAsSkill(text,f.name,sceneX,sceneY);const lastNode=frame().nodes[frame().nodes.length-1];if(lastNode){frame().nodes.pop();const el=document.getElementById('nd-'+lastNode.id);if(el)el.remove();}}
+        }
+      }
+
+    }else{
+      // skill — .md, .txt, single-skill .json
+      if(!text)continue;
+      _showDropBanner(isCanvas?wrap:leftPanel,'Skill: '+f.name,'type-skill');
+      if(isCanvas){
+        pushHistory();
+        _importTextAsSkill(text,f.name,sceneX+i*CONFIG.IMPORT_NODE_OFFSET,sceneY+i*CONFIG.IMPORT_NODE_OFFSET);
+      }else{
+        // Library only: add skill, don't place node on canvas
+        _importTextAsSkill(text,f.name,sceneX,sceneY);
+        const lastNode=frame().nodes[frame().nodes.length-1];
+        if(lastNode){frame().nodes.pop();const el=document.getElementById('nd-'+lastNode.id);if(el)el.remove();}
+      }
+    }
+  }
+
+  persistSkills();renderLib();renderEdges();
+  if(isCanvas)markPipelineDirty(activePipelineId);
 }
 
 // ── Minimal ZIP parser (no dependencies) ──
@@ -9014,6 +9435,39 @@ window.addEventListener('beforeunload',()=>{
 
 renderLib();updateTopbar();renderInspector();applyTx();renderBreadcrumb();renderPipelineTabs();
 checkEmptyState();
+
+// ── Native file drag-and-drop on canvas and library panel ──
+(function(){
+  const leftPanel=document.getElementById('left');
+  // Canvas drop
+  wrap.addEventListener('dragover',e=>{
+    if(!e.dataTransfer.types.includes('Files'))return;
+    e.preventDefault();e.dataTransfer.dropEffect='copy';
+    wrap.classList.add('drop-file-over');
+  });
+  wrap.addEventListener('dragleave',e=>{
+    if(!wrap.contains(e.relatedTarget))wrap.classList.remove('drop-file-over');
+  });
+  wrap.addEventListener('drop',e=>{
+    e.preventDefault();wrap.classList.remove('drop-file-over');
+    if(!e.dataTransfer.files.length)return;
+    _handleFileDrop(Array.from(e.dataTransfer.files),'canvas',e.clientX,e.clientY);
+  });
+  // Library panel drop
+  leftPanel.addEventListener('dragover',e=>{
+    if(!e.dataTransfer.types.includes('Files'))return;
+    e.preventDefault();e.dataTransfer.dropEffect='copy';
+    leftPanel.classList.add('drop-file-over');
+  });
+  leftPanel.addEventListener('dragleave',e=>{
+    if(!leftPanel.contains(e.relatedTarget))leftPanel.classList.remove('drop-file-over');
+  });
+  leftPanel.addEventListener('drop',e=>{
+    e.preventDefault();leftPanel.classList.remove('drop-file-over');
+    if(!e.dataTransfer.files.length)return;
+    _handleFileDrop(Array.from(e.dataTransfer.files),'library',e.clientX,e.clientY);
+  });
+})();
 document.getElementById('nps-new').addEventListener('click',()=>newPipeline());
 document.getElementById('nps-open').addEventListener('click',()=>{
   toggleOpenPanel(document.querySelector('.ptab-open')||document.getElementById('pipeline-tabbar'));
