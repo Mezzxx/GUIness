@@ -811,7 +811,7 @@ visible
 
   <!-- Hotspot: Top toolbar -->
   <div class="hotspot" style="left:0;top:0;width:100%;height:3.5%">
-    <span class="tip"><strong>Top Toolbar</strong> — Pipeline name, quick actions (Delete Node, Reset View, Clear), save/load buttons, Vault access, key count, snap toggle, and the Export → LLM drawer.</span>
+    <span class="tip"><strong>Top Toolbar</strong> — Pipeline name, quick actions (Delete Node, Reset View, Fit, Undo, Redo, Clear), save/load buttons, Vault access, key count, snap toggle, and the Export → LLM drawer.</span>
   </div>
 
   <!-- Hotspot: Tab bar -->
@@ -826,7 +826,7 @@ visible
 
   <!-- Hotspot: Canvas -->
   <div class="hotspot" style="left:18%;top:6.5%;width:56%;height:93.5%">
-    <span class="tip"><strong>Pipeline Canvas</strong> — The main workspace. Drop nodes here, connect them with edges, drag to move, scroll to zoom. Pan with middle-click or spacebar+drag. The minimap in the bottom-right shows an overview. The dot grid helps with alignment.</span>
+    <span class="tip"><strong>Pipeline Canvas</strong> — The main workspace. Drop nodes here, connect them with edges, drag to move, scroll to zoom. Pan with middle-click or spacebar+drag. Double-click empty space for quick-add search. Alignment guides appear automatically during drag. The minimap in the bottom-right shows an overview.</span>
   </div>
 
   <!-- Hotspot: Right panel - Inspector -->
@@ -901,6 +901,7 @@ visible
   <li>Click and drag toward an input port on another node</li>
   <li>Release on the target port to complete the connection</li>
 </ol>
+<p><strong>Magnetic snap</strong> — if you release the connection drag within 24px of an eligible input port, it automatically snaps and connects. You don't need to land exactly on the port.</p>
 <p>Connections flow left-to-right by convention. The system prevents cycles — you can't create a loop that would cause infinite execution (except through Router nodes with explicit loop control).</p>
 
 <h3>Data Flow</h3>
@@ -917,11 +918,17 @@ visible
 <p>Click the <code>+</code> button in the tab bar to create a new empty pipeline. Each pipeline has its own canvas, nodes, edges, and undo/redo history.</p>
 
 <h3>Adding Nodes</h3>
-<p>Click the <code>+</code> button next to any skill in the Node Library to place it on the canvas. You can also use <strong>Import File</strong> to import <code>.md</code>, <code>.json</code>, <code>.txt</code>, or <code>.skill/.zip</code> files as nodes.</p>
+<p>Several ways to add nodes to the canvas:</p>
+<ul>
+  <li><strong>Library</strong> — Click the <code>+</code> button next to any skill, or drag a skill from the Node Library onto the canvas</li>
+  <li><strong>Quick Add</strong> — Double-click on empty canvas to open a search popup and place a node at that position</li>
+  <li><strong>Import</strong> — Use <strong>⬆ Import File</strong> or drag-and-drop <code>.ppln</code>, <code>.sklb</code>, <code>.md</code>, <code>.txt</code>, <code>.zip</code>, or <code>.json</code> files onto the canvas</li>
+  <li><strong>Keyboard</strong> — Press <code>/</code> to focus the library search, then click <code>+</code> to place</li>
+</ul>
 
 <h3>Organizing</h3>
 <ul>
-  <li><strong>Drag nodes</strong> to position them</li>
+  <li><strong>Drag nodes</strong> to position them — alignment guides appear automatically when edges align with neighboring nodes</li>
   <li><strong>Resize width</strong> by dragging the left or right edge of a node</li>
   <li><strong>Multi-select</strong> with Shift+click or lasso (click and drag on empty canvas)</li>
   <li><strong>Snap to grid</strong> toggle in the top toolbar for precise alignment</li>
@@ -933,6 +940,8 @@ visible
   <li><strong>Content drawer</strong> — click the <code>▸ CONTENT</code> toggle to expand/collapse a preview of the node's skill content. Includes View/Edit modes.</li>
   <li><strong>Bottom drag bar</strong> on the content drawer — resize the drawer height</li>
   <li><strong>Double-click the node body</strong> to open its internal graph (for custom skills)</li>
+  <li><strong>Node count badge</strong> — pipeline-type nodes with internal graphs show a small badge (e.g. <code>5n</code>) indicating how many internal nodes they contain</li>
+  <li><strong>Delete animation</strong> — deleted nodes fade out with a brief scale-down animation for visual confirmation</li>
 </ul>
 
 <h3>Saving</h3>
@@ -996,7 +1005,7 @@ visible
 <!-- ═══════════════════════════════════════════ -->
 <div id="inspector" class="section">
 <h1>Inspector Panel</h1>
-<p>The right panel shows details for the currently selected node. It adapts based on whether you selected a node from the library or from the canvas.</p>
+<p>The right panel shows details for the currently selected node. The <code>▸</code> collapse button and "INSPECTOR" header are always visible at the top, regardless of whether a node is selected. The panel adapts its content based on whether you selected a node from the library or from the canvas.</p>
 
 <h3>Top Section — Metadata</h3>
 <ul>
@@ -1042,7 +1051,11 @@ visible
   <li><strong>Pan</strong> — Middle-click drag, or hold Spacebar + left-click drag</li>
   <li><strong>Zoom</strong> — Scroll wheel. The zoom percentage is shown in the bottom-right.</li>
   <li><strong>Reset View</strong> — Click the Reset View button in the toolbar</li>
+  <li><strong>Zoom to Fit</strong> — Click <code>⊞ Fit</code> or press <code>Home</code> to frame all nodes in view</li>
 </ul>
+
+<h3>Quick Add</h3>
+<p><strong>Double-click</strong> on empty canvas space to open a quick-add search popup. Type to filter skills by name or category, use arrow keys to navigate, and press <code>Enter</code> to place a node at that position. Press <code>Escape</code> to dismiss.</p>
 
 <h3>Selection</h3>
 <ul>
@@ -1052,11 +1065,14 @@ visible
   <li><strong>Alt+Click</strong> a node to select it and all downstream connected nodes</li>
 </ul>
 
+<h3>Alignment Guides</h3>
+<p>When dragging nodes, alignment guide lines appear automatically when a node's edge (left, right, top, bottom, or center) aligns within 4px of another node's edge. The dragged node snaps to the aligned position for precise layout.</p>
+
 <h3>Minimap</h3>
 <p>A collapsible birds-eye view in the bottom-right corner. Shows all nodes as colored rectangles with edges. Click to navigate, drag to pan. Selected nodes are highlighted with a thicker border.</p>
 
 <h3>Collapsible Panels</h3>
-<p>Both the left (Library) and right (Inspector) panels can be collapsed to give the canvas more room. Click the <code>◂</code> / <code>▸</code> button, or click the vertical label strip to expand.</p>
+<p>Both the left (Library) and right (Inspector) panels can be collapsed to give the canvas more room. Click the <code>◂</code> / <code>▸</code> button, or click the vertical label strip to expand. Panel widths are persisted across sessions.</p>
 </div>
 
 <!-- ═══════════════════════════════════════════ -->
@@ -1160,7 +1176,7 @@ visible
 <h1>Autosave & Backup</h1>
 
 <h3>localStorage</h3>
-<p>Both skills and pipelines are saved to localStorage at the configured interval (default: 1 minute). The timestamp of the last save is shown in the toolbar.</p>
+<p>Both skills and pipelines are saved to localStorage. Writes are debounced (500ms idle) to avoid micro-stutters during rapid operations like dragging or batch edits. The configured autosave interval (default: 1 minute) triggers a full save. A safety-net flush fires immediately on page close.</p>
 
 <h3>File System Backup</h3>
 <p>Click the <strong>📁</strong> button in the toolbar to select a backup directory. Three files are written on each autosave:</p>
@@ -1205,32 +1221,44 @@ visible
 <div id="import-export" class="section">
 <h1>Import & Export</h1>
 
-<h3>Skill Import</h3>
-<p>The <strong>⬆ Import File</strong> button accepts multiple files. Supported formats:</p>
+<h3>File Formats</h3>
 <ul>
-  <li><strong>.md / .txt / .json</strong> — Imported as a single skill node with the file content as rawContent</li>
-  <li><strong>.skill / .zip</strong> — Unpacked and reconstructed as a connected graph of primitives:
-    <ul>
-      <li>Python/JS/Bash files → Code nodes</li>
-      <li>JSON/YAML/config files → Context nodes</li>
-      <li>SKILL.md → Main Compute skill</li>
-      <li>Other .md files → Compute nodes</li>
-      <li>Connections inferred from import statements, numbered file prefixes, and folder structure</li>
-    </ul>
-  </li>
+  <li><strong>.ppln</strong> — Pipeline file. Contains the pipeline name, node stack, and all referenced skill definitions bundled for portability.</li>
+  <li><strong>.sklb</strong> — Skill library file. A JSON array of skill objects.</li>
+  <li><strong>.md / .txt</strong> — Imported as a single skill node (frontmatter parsed for name/description).</li>
+  <li><strong>.skill / .zip</strong> — Multi-file skill archive, unpacked and reconstructed as a connected graph.</li>
+  <li><strong>.json</strong> — Legacy format, accepted on import. Content is sniffed: if it has a <code>stack</code> property it's treated as a pipeline; if it's an array, a skill library; otherwise a single skill.</li>
+</ul>
+
+<h3>Drag &amp; Drop</h3>
+<p>Files can be dragged and dropped directly onto the app:</p>
+<ul>
+  <li><strong>Canvas drop</strong> — Pipelines show a choice modal ("Open as New Tab" or "Add to Current Pipeline" as an embedded node). Libraries show a skill picker with checkboxes. Skill files place a node at the drop position.</li>
+  <li><strong>Library panel drop</strong> — Same routing, but skill files add to the library only without placing a node on the canvas.</li>
+  <li><strong>Inspector drop</strong> — Ignored.</li>
+</ul>
+
+<h3>Skill Import</h3>
+<p>The <strong>⬆ Import File</strong> button accepts multiple files of any supported format. For <code>.skill / .zip</code> archives:</p>
+<ul>
+  <li>Python/JS/Bash files → Code nodes</li>
+  <li>JSON/YAML/config files → Context nodes</li>
+  <li>SKILL.md → Main Compute skill</li>
+  <li>Other .md files → Compute nodes</li>
+  <li>Connections inferred from import statements, numbered file prefixes, and folder structure</li>
 </ul>
 
 <h3>Pipeline Save/Load</h3>
 <ul>
-  <li><strong>💾 Save Pipeline</strong> — Saves to localStorage</li>
-  <li><strong>◎ Save as Node</strong> — Exports as a <code>.pipeline.json</code> file with bundled skills</li>
-  <li><strong>Open</strong> — Click the 📂 Open button in the tab bar to load a saved pipeline. Missing skills are detected and you're prompted to import them.</li>
+  <li><strong>💾 Save Pipeline</strong> — Saves as a <code>.ppln</code> file with all referenced skills bundled</li>
+  <li><strong>⬡ Save as Node</strong> — Saves the active pipeline as a reusable node in the Pipelines library tab</li>
+  <li><strong>Open</strong> — Click the 📂 Open button in the tab bar to load a <code>.ppln</code> or legacy <code>.json</code> file. Missing skills are detected and you're prompted to import them.</li>
 </ul>
 
 <h3>Library Save/Load</h3>
 <ul>
-  <li><strong>↑ Save Library</strong> — Exports your entire skill library as a <code>.json</code> file</li>
-  <li><strong>↑ Load Library</strong> — Imports a saved library, merging with existing skills</li>
+  <li><strong>Save Library</strong> — Exports your entire skill library as a <code>.sklb</code> file</li>
+  <li><strong>Load Library</strong> — Imports a <code>.sklb</code> or legacy <code>.json</code> library, merging with existing skills</li>
 </ul>
 </div>
 
@@ -1251,8 +1279,13 @@ visible
   <tr><td><code>Spacebar + Drag</code></td><td>Pan the canvas</td></tr>
   <tr><td><code>Scroll Wheel</code></td><td>Zoom in/out</td></tr>
   <tr><td><code>Ctrl+A</code></td><td>Select all nodes</td></tr>
-  <tr><td><code>Escape</code></td><td>Deselect all</td></tr>
+  <tr><td><code>Escape</code></td><td>Cancel connection / dismiss quick-add / exit graph / deselect</td></tr>
   <tr><td><code>Alt+Click</code></td><td>Select node + all downstream</td></tr>
+  <tr><td><code>Home</code></td><td>Zoom to fit all nodes</td></tr>
+  <tr><td><code>/</code></td><td>Focus library search</td></tr>
+  <tr><td><code>Tab</code></td><td>Enter internal graph of selected node</td></tr>
+  <tr><td><code>Double-click canvas</code></td><td>Open quick-add search popup</td></tr>
+  <tr><td><code>Double-click node</code></td><td>Open internal graph</td></tr>
 </table>
 </div>
 
