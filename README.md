@@ -28,7 +28,7 @@ Everything lives in one HTML file (~460KB, ~7,800 lines of JS). Open it in a bro
 
 ## Getting Started
 
-1. Download `guiness.html` (or clone this repo)
+1. Download `GUIness_v26.html` (or clone this repo)
 2. Open it in any modern browser
 3. That's it
 
@@ -98,4 +98,4 @@ MIT
 
 ## Author
 
-[Zeen Rachidi](https://github.com/Mezzxx) — [Zeen Media](https://zeen-media.com)
+[mezzn](https://github.com/Mezzxx) — [Zeen Media](https://zeen-media.com)
