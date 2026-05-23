@@ -125,7 +125,7 @@ Drag-and-drop is supported on the canvas and library panel.
 <!DOCTYPE html>
 <!--
   ╔═══════════════════════════════════════════════════════════════╗
-  ║  GUIness — Visual AI Workflow Pipeline Builder                ║
+  ║  GUIness v27 — Visual AI Workflow Pipeline Builder             ║
   ║  A self-contained, single-file HTML application               ║
   ║  https://github.com/discoposse/GUIness                        ║
   ╚═══════════════════════════════════════════════════════════════╝
@@ -271,7 +271,7 @@ select option{background:var(--panel)}
 .tbtn.danger{color:var(--red);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.07)}
 .tbtn.primary{background:var(--acc);border-color:var(--acc);color:#0b0d11;font-weight:700}
 
-/* PIPELINE TABS */
+/* ── PIPELINE TABS & NO-PIPELINE SCREEN ── */
 #no-pipeline-screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);z-index:200}
 #no-pipeline-screen.visible{display:flex}
 #no-pipeline-screen h2{font-family:var(--mono);font-size:13px;color:var(--dhi);letter-spacing:.12em;margin:0}
@@ -283,7 +283,6 @@ select option{background:var(--panel)}
 #no-pipeline-screen .nps-btn:hover.pri{background:rgba(232,160,32,.18)}
 #no-pipeline-screen .nps-btn:hover.sec{border-color:var(--dhi)}
 
-/* ── PIPELINE TABS ── */
 #pipeline-tabbar{height:34px;background:var(--panel);border-bottom:1px solid var(--brd);display:flex;align-items:stretch;flex-shrink:0;overflow-x:auto;overflow-y:hidden;z-index:90}
 #pipeline-tabbar::-webkit-scrollbar{height:3px}
 #pipeline-tabbar::-webkit-scrollbar-thumb{background:var(--brd)}
@@ -363,7 +362,7 @@ select option{background:var(--panel)}
 #tag-section-count{font-family:var(--mono);font-size:7px;color:var(--dim)}
 #tag-section-chev{font-size:8px;color:var(--dim);transition:transform .18s var(--ease);line-height:1}
 #tag-section-chev.open{transform:rotate(180deg)}
-#tag-section-body{display:none;padding:6px 8px 8px;display:flex;flex-direction:column;gap:6px}
+#tag-section-body{padding:6px 8px 8px;display:flex;flex-direction:column;gap:6px}
 #tag-section-body.closed{display:none}
 #lib-filter-tags{display:flex;gap:4px;flex-wrap:wrap;min-height:0}
 .ftag{font-family:var(--mono);font-size:8px;border:1px solid var(--brd);border-radius:10px;padding:1px 6px 1px 8px;color:var(--dim);cursor:pointer;display:inline-flex;align-items:center;gap:3px}
@@ -461,8 +460,6 @@ select option{background:var(--panel)}
 #conn-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--alo);border:1px solid var(--acc);border-radius:5px;padding:3px 12px;font-family:var(--mono);font-size:9px;color:var(--acc);pointer-events:none;z-index:50}
 #zoom-lbl{position:absolute;bottom:16px;right:200px;font-family:var(--mono);font-size:8px;color:var(--dim);background:var(--surf);border:1px solid var(--brd);border-radius:4px;padding:2px 7px;pointer-events:none}
 
-/* NODES */
-
 /* ── NODES ── */
 .node{position:absolute;width:'+CONFIG.DEFAULT_NODE_WIDTH+'px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible}
 .node-card{background:var(--card);border:1.5px solid var(--brd);border-radius:9px;position:relative;z-index:2}
@@ -477,7 +474,8 @@ select option{background:var(--panel)}
 .node-head{border-radius:7px 7px 0 0;padding:7px 9px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--brd);cursor:grab}
 .node-head:active{cursor:grabbing}
 .node-glyph{font-size:11px;line-height:1}
-.node-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;border-bottom:1px solid transparent;transition:border-color .15s}
+.node-label:hover{border-color:var(--brd)}
 .node-tag{font-family:var(--mono);font-size:6px;color:var(--dim);background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:1px 4px;flex-shrink:0}
 .node-body{padding:6px 9px}
 .nfrow{display:flex;gap:4px;margin-bottom:2px;overflow:hidden}
@@ -893,7 +891,7 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v27</span>
+    <span class="t-badge">v26</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
@@ -1266,19 +1264,12 @@ select option{background:var(--panel)}
           <div>3. Enable CORS: <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">OLLAMA_ORIGINS=* ollama serve</code></div>
           <div>4. Hit <strong style="color:var(--dhi)">Detect</strong> above to auto-populate models</div>
           <div style="height:4px"></div>
-          <div style="color:var(--acc);letter-spacing:.06em">OPENCLAW</div>
-          <div>1. Run: <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">ollama launch openclaw</code></div>
-          <div>2. Follow the setup wizard — it configures Ollama at <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">127.0.0.1:11434</code></div>
-          <div>3. Leave the URL as default and hit <strong style="color:var(--dhi)">Detect</strong> to find your model</div>
-          <div style="height:4px"></div>
-          <div style="height:4px"></div>
-          <div style="color:var(--acc);letter-spacing:.06em">OPENCLAW</div>
-          <div>1. Enable the chat completions endpoint in <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">~/.openclaw/openclaw.json</code>:</div>
-          <div style="padding:4px 0"><code style="background:var(--code-bg);color:var(--code-txt);padding:2px 6px;border-radius:3px;font-size:8px;display:block;white-space:pre">{"gateway":{"http":{"endpoints":{"chatCompletions":{"enabled":true}}}}}</code></div>
-          <div>2. Restart: <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">openclaw gateway restart</code></div>
-          <div>3. Set URL to <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">http://localhost:18789</code></div>
-          <div>4. Add your gateway token to the Vault as <strong style="color:var(--dhi)">OpenClaw Token</strong></div>
-          <div>5. Hit <strong style="color:var(--dhi)">Detect</strong> — agents appear as models (e.g. <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">openclaw:main</code>)</div>
+          <div style="color:var(--acc);letter-spacing:.06em">FRIDAY AI AGENT</div>
+          <div>1. Start the Friday backend: <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">cd friday && npm run dev</code></div>
+          <div>2. Friday runs Express+WS on <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">http://localhost:3777</code> with Ollama as its default provider</div>
+          <div>3. Set URL to <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">http://localhost:3777</code></div>
+          <div>4. If Friday requires auth, add your token to the Vault as <strong style="color:var(--dhi)">Friday Token</strong></div>
+          <div>5. Hit <strong style="color:var(--dhi)">Detect</strong> — Friday exposes its configured models via OpenAI-compat <code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px">/v1/models</code></div>
           <div style="height:4px"></div>
           <div style="color:var(--acc);letter-spacing:.06em">OTHER OPENAI-COMPATIBLE SERVERS</div>
           <div>LM Studio, llama.cpp, Jan — set their server URL above and hit Detect</div>
@@ -1875,59 +1866,11 @@ function exportPipeline(id){
 // ── Skill import prompt after pipeline open ──────────────
 async function _checkAndImportBundledSkills(data,onComplete){
   const bundled=data.skills;
-  if(!Array.isArray(bundled)||!bundled.length){onComplete();return;}
+  if(!Array.isArray(bundled)||!bundled.length){onComplete();return Promise.resolve();}
   const missing=bundled.filter(bs=>!skills.find(s=>s.id===bs.id));
-  if(!missing.length){onComplete();return;}
-  return new Promise(resolve=>{
-    const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center';
-    const box=document.createElement('div');
-    box.style.cssText='background:var(--panel);border:1px solid var(--brd);border-radius:10px;padding:24px;width:460px;max-width:calc(100vw - 32px);max-height:80vh;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,.4)';
-    const title=document.createElement('div');
-    title.style.cssText='font-family:var(--mono);font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.08em';
-    title.textContent='MISSING SKILLS';
-    const desc=document.createElement('div');
-    desc.style.cssText='font-size:12px;color:var(--dhi);line-height:1.5';
-    desc.textContent='This pipeline references '+missing.length+' skill'+(missing.length!==1?'s':'')+' not in your library. Select which to import:';
-    const list=document.createElement('div');
-    list.style.cssText='display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:280px;padding-right:4px';
-    const checks=[];
-    missing.forEach(sk=>{
-      const row=document.createElement('label');
-      row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;cursor:pointer';
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;cb.style.cssText='margin-top:2px;accent-color:var(--acc);flex-shrink:0;width:14px;height:14px';
-      const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0';
-      const lbl=document.createElement('div');lbl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dhi)';lbl.textContent=sk.label||sk.id;
-      const ddesc=document.createElement('div');ddesc.style.cssText='font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';ddesc.textContent=sk.desc||'No description';
-      info.appendChild(lbl);info.appendChild(ddesc);
-      row.appendChild(cb);row.appendChild(info);
-      list.appendChild(row);
-      checks.push({cb,sk});
-    });
-    const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--brd);padding-top:12px';
-    const skipBtn=document.createElement('button');skipBtn.className='mbtn';skipBtn.textContent='Skip All';skipBtn.style.cssText='font-size:10px';
-    const importBtn=document.createElement('button');importBtn.className='mbtn pri';importBtn.textContent='Import Selected';importBtn.style.cssText='font-size:10px';
-    const selAllBtn=document.createElement('button');selAllBtn.className='mbtn';selAllBtn.textContent='Select All';selAllBtn.style.cssText='font-size:10px';
-    selAllBtn.addEventListener('click',()=>{
-      const allChecked=checks.every(c=>c.cb.checked);
-      checks.forEach(c=>c.cb.checked=!allChecked);
-      selAllBtn.textContent=allChecked?'Select All':'Deselect All';
-    });
-    skipBtn.addEventListener('click',()=>{overlay.remove();onComplete();resolve();});
-    importBtn.addEventListener('click',()=>{
-      const toImport=checks.filter(c=>c.cb.checked).map(c=>c.sk);
-      toImport.forEach(sk=>{
-        const idx=skills.findIndex(s=>s.id===sk.id);
-        if(idx>=0)skills[idx]=sk;
-        else skills.push(sk);
-      });
-      if(toImport.length){persistSkills();renderLib();}
-      overlay.remove();onComplete();resolve();
-    });
-    btnRow.appendChild(selAllBtn);btnRow.appendChild(skipBtn);btnRow.appendChild(importBtn);
-    box.appendChild(title);box.appendChild(desc);box.appendChild(list);box.appendChild(btnRow);
-    overlay.appendChild(box);document.body.appendChild(overlay);
-  });
+  if(!missing.length){onComplete();return Promise.resolve();}
+  await _showSkillPickerModal(missing,'This pipeline references '+missing.length+' skill'+(missing.length!==1?'s':'')+' not in your library. Select which to import:');
+  onComplete();
 }
 
 // ── Open pipeline from file ───────────────────────────────
@@ -1967,7 +1910,7 @@ async function importPipelineFile(){
                  stack:data.stack,saved:true};
         hideEmptyState();pipelines.push(p);
         await _checkAndImportBundledSkills(data,()=>{switchPipeline(p.id);savePipelines();});
-      }catch(err){alert('Could not import: '+err.message);}
+      }catch(err){showToast('Could not import: '+err.message,'err');}
     };
     r.readAsText(f);
   });
@@ -1981,6 +1924,18 @@ function flashBtn(id,msg,reset){
   btn.textContent=msg;btn.style.color='var(--grn)';btn.style.borderColor='var(--grn)';
   clearTimeout(btn._ft);
   btn._ft=setTimeout(()=>{btn.textContent=reset||orig;btn.style.color='';btn.style.borderColor='';},2000);
+}
+
+function showToast(msg,type){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;font-family:var(--mono);font-size:11px;padding:10px 18px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;transition:opacity .3s;max-width:480px;word-break:break-word';
+  t.style.background=type==='err'?'oklch(0.35 0.12 25)':'var(--panel)';
+  t.style.border='1px solid '+(type==='err'?'oklch(0.55 0.18 25)':'var(--brd)');
+  t.style.color=type==='err'?'oklch(0.85 0.1 25)':'var(--dhi)';
+  t.textContent=msg;
+  t.addEventListener('click',()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);});
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},4000);
 }
 
 // ── Tab bar: drag-to-reorder, click-to-switch, +, Open ────
@@ -2179,11 +2134,11 @@ function showPipelineMenu(id,x,y){
     !hasFSAPI?{t:'Download JSON',fn:()=>exportPipeline(id)}:null,
     {t:'──────',fn:null},
     {t:'Rename',fn:()=>{
-      const n=prompt('Rename pipeline:',p.name);
-      if(n!==null)renamePipeline(id,n.trim()||p.name);
+      const tab=document.querySelector('.ptab[data-pid="'+id+'"] .ptab-name');
+      if(tab){tab.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));}
     }},
     {t:'Duplicate',fn:()=>{
-      const copy={id:uid('pl'),name:p.name+' (copy)',stack:JSON.parse(JSON.stringify(p.stack)),saved:false};
+      const copy={id:uid('pl'),name:p.name+' (copy)',stack:structuredClone(p.stack),saved:false};
       pipelines.push(copy);switchPipeline(copy.id);savePipelines();
     }},
     {t:'──────',fn:null},
@@ -2435,6 +2390,9 @@ const scene=document.getElementById('scene');
 const svg=document.getElementById('svg');
 const wrap=document.getElementById('canvas-wrap');
 
+// Post-render hook array — plugins (e.g. minimap) push callbacks here
+const _postRenderHooks=[];
+
 // Applies the current pan/zoom transform to the canvas scene element
 function applyTx(){
   const t=frame().tx;
@@ -2445,6 +2403,7 @@ function applyTx(){
   const half=gs/2;
   wrap.style.backgroundPosition=`${(t.x%gs+half)%gs}px ${(t.y%gs+half)%gs}px`;
   document.getElementById('zoom-lbl').textContent=Math.round(t.s*100)+'%';
+  _postRenderHooks.forEach(fn=>fn());
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2502,7 +2461,7 @@ function saveCurrentFrameToSkill(){
   const f=frame();
   if(f.skillId){
     const sk=getSk(f.skillId);
-    if(sk) sk.internalGraph={nodes:JSON.parse(JSON.stringify(f.nodes)),edges:JSON.parse(JSON.stringify(f.edges))};
+    if(sk) sk.internalGraph={nodes:structuredClone(f.nodes),edges:structuredClone(f.edges)};
   }
 }
 
@@ -2533,8 +2492,8 @@ function pushGraph(skId){
     bn[side]=portsToExpose.map(p=>({id:uid('p'),name:p.name,type:p.type||'Any'}));
   }
 
-  const clonedNodes=JSON.parse(JSON.stringify(ig.nodes));
-  const clonedEdges=JSON.parse(JSON.stringify(ig.edges));
+  const clonedNodes=structuredClone(ig.nodes);
+  const clonedEdges=structuredClone(ig.edges);
   syncBoundaryNode(clonedNodes,'graph-input', parentInputs, 'outputs');
   syncBoundaryNode(clonedNodes,'graph-output',parentOutputs,'inputs');
 
@@ -2603,7 +2562,9 @@ function clearPending(){if(pendingPath){pendingPath.remove();pendingPath=null;}}
 function renderEdges(newEdgeId=null){
   svg.querySelectorAll('.e').forEach(e=>e.remove());
   const nodeMap=new Map();getNodes().forEach(n=>nodeMap.set(n.id,n));
-  getEdges().forEach(edge=>{
+  const allEdges=getEdges();
+  const animateFlows=allEdges.length<=60;
+  allEdges.forEach(edge=>{
     const fn=nodeMap.get(edge.from),tn=nodeMap.get(edge.to);
     if(!fn||!tn)return;
     const f=portPos(fn,'out',edge.fromPort),t=portPos(tn,'in',edge.toPort);
@@ -2633,8 +2594,10 @@ function renderEdges(newEdgeId=null){
     flow.style.strokeOpacity='0.85';
     const dur=Math.max(0.8,(pathLen/90)).toFixed(2);
     // Inline keyframe via Web Animations API — no CSS var() needed
-    flow.animate([{strokeDashoffset:'0'},{strokeDashoffset:`${-(pathLen).toFixed(0)}`}],
-      {duration:dur*1000,iterations:Infinity,easing:'linear'});
+    if(animateFlows){
+      flow.animate([{strokeDashoffset:'0'},{strokeDashoffset:`${-(pathLen).toFixed(0)}`}],
+        {duration:dur*1000,iterations:Infinity,easing:'linear'});
+    }
 
     // New-connection pulse overlay
     const pulse=document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -2677,6 +2640,7 @@ function renderEdges(newEdgeId=null){
 
   // Re-apply downstream preview only in alt mode with single selection
   if(altDown&&selNode&&selNodes.size<=1)highlightDownstream(selNode);
+  _postRenderHooks.forEach(fn=>fn());
 }
 
 // Lightweight edge update — recalculates path geometry without tearing down SVG.
@@ -2787,11 +2751,21 @@ function buildNode(node){
           el.style.width=w+'px';node._w=w;
           node.x=startLeft+dx;el.style.transform='translate('+node.x+'px,'+node.y+'px)';
         }
+        const snapDx=computeResizeAlignSnap(node.id,side);
+        if(snapDx){
+          if(side==='right'){
+            const w2=node._w+snapDx;el.style.width=w2+'px';node._w=w2;
+          }else{
+            const w2=node._w-snapDx;el.style.width=w2+'px';node._w=w2;
+            node.x+=snapDx;el.style.transform='translate('+node.x+'px,'+node.y+'px)';
+          }
+        }
         updateEdgePaths();
       };
       const onUp=()=>{
         window.removeEventListener('pointermove',onMove);
         window.removeEventListener('pointerup',onUp);
+        clearAlignGuides();
         renderEdges(); // full rebuild on release to sync flow animations
         markPipelineDirty(activePipelineId);
       };
@@ -2917,11 +2891,21 @@ function buildNode(node){
         if(rdEl)rdEl.style.maxHeight=dh+'px';
         if(edEl)edEl.style.height=dh+'px';
         node._drawerH=dh;
+        const snapDy=computeResizeAlignSnap(node.id,'bottom');
+        if(snapDy){
+          const adjH=dh+snapDy;
+          if(adjH>=CONFIG.MIN_DRAWER_HEIGHT){
+            if(rdEl)rdEl.style.maxHeight=adjH+'px';
+            if(edEl)edEl.style.height=adjH+'px';
+            node._drawerH=adjH;
+          }
+        }
         updateEdgePaths();
       };
       const onUp=()=>{
         window.removeEventListener('pointermove',onMove);
         window.removeEventListener('pointerup',onUp);
+        clearAlignGuides();
         renderEdges(); // full rebuild on release
         markPipelineDirty(activePipelineId);
       };
@@ -3001,8 +2985,9 @@ function buildNode(node){
     }
     // Capture start positions for all currently-selected nodes
     origins={};
+    const _originMap=new Map(getNodes().map(n=>[n.id,n]));
     selNodes.forEach(nid=>{
-      const n=getNodes().find(x=>x.id===nid);
+      const n=_originMap.get(nid);
       if(n)origins[nid]={ox:n.x,oy:n.y};
     });
   });
@@ -3013,9 +2998,10 @@ function buildNode(node){
     didDrag=true;
     const t=frame().tx;
     const sdx=dx/t.s,sdy=dy/t.s;
+    const nodeMap=new Map(getNodes().map(n=>[n.id,n]));
     // First pass: set raw snapped positions
     selNodes.forEach(nid=>{
-      const n=getNodes().find(x=>x.id===nid);
+      const n=nodeMap.get(nid);
       const o=origins[nid];
       if(!n||!o)return;
       n.x=snap(o.ox+sdx);n.y=snap(o.oy+sdy);
@@ -3026,7 +3012,7 @@ function buildNode(node){
     const align=computeAlignSnap(node.id,getNodes());
     if(align.dx||align.dy){
       selNodes.forEach(nid=>{
-        const n=getNodes().find(x=>x.id===nid);if(!n)return;
+        const n=nodeMap.get(nid);if(!n)return;
         n.x+=align.dx;n.y+=align.dy;
         const nel=document.getElementById('nd-'+nid);
         if(nel){nel.style.transform='translate('+n.x+'px,'+n.y+'px)';}
@@ -3206,7 +3192,7 @@ function duplicateSelNodes() {
     if (!orig) return;
     const newId = uid();
     idMap[oldId] = newId;
-    const copy = JSON.parse(JSON.stringify(orig));
+    const copy = structuredClone(orig);
     copy.id = newId;
     copy.x = snap(orig.x + OFFSET);
     copy.y = snap(orig.y + OFFSET);
@@ -3399,11 +3385,9 @@ function selectLib(skId){trackRecent(skId);
 function clearSel(){
   selNode=null;selSkillId=null;selNodes.clear();applySelStyle(null);
   document.querySelectorAll('.lib-row').forEach(r=>r.classList.remove('sel'));
-  if(typeof selLibIds!=='undefined'){
-    selLibIds.clear();
-    document.querySelectorAll('.lib-row.lib-multi-sel').forEach(r=>r.classList.remove('lib-multi-sel'));
-    if(typeof updateLibMultiBar==='function')updateLibMultiBar();
-  }
+  selLibIds.clear();
+  document.querySelectorAll('.lib-row.lib-multi-sel').forEach(r=>r.classList.remove('lib-multi-sel'));
+  updateLibMultiBar();
   updateTopbar();renderInspector();
 }
 
@@ -3439,6 +3423,7 @@ const DEFAULT_BINDINGS=[
   // ── UI ───────────────────────────────────────────────────────
   {id:'ai',       section:'UI',       desc:'Open AI Generate',         chord:{ctrl:true,key:'g'}, action:()=>openAIOverlay()},
   {id:'keys',     section:'UI',       desc:'Open keybindings',         chord:{ctrl:true,key:'/'}, action:()=>openKBOverlay()},
+  {id:'quickadd', section:'Canvas',   desc:'Quick Add node',           chord:{key:'q'},           noInput:true, noContentEditable:true, action:()=>{const r=wrap.getBoundingClientRect();openQuickAdd(r.left+r.width/2,r.top+r.height/2);}},
 ];
 
 // Load user customisations from localStorage
@@ -3461,10 +3446,13 @@ function resetBindings(){
     {id:'paste',    chord:{ctrl:true,key:'v'}},
     {id:'undo',     chord:{ctrl:true,key:'z'}},
     {id:'redo',     chord:{ctrl:true,shift:true,key:'z'}},
+    {id:'fit',      chord:{key:'Home'}},
+    {id:'search',   chord:{key:'/'}},
     {id:'save',     chord:{ctrl:true,key:'s'}},
     {id:'save-as',  chord:{ctrl:true,shift:true,key:'s'}},
     {id:'ai',       chord:{ctrl:true,key:'g'}},
     {id:'keys',     chord:{ctrl:true,key:'/'}},
+    {id:'quickadd', chord:{key:'q'}},
   ];
   orig.forEach(o=>{const b=DEFAULT_BINDINGS.find(x=>x.id===o.id);if(b)b.chord=o.chord;});
   try{localStorage.removeItem(KB_STORE);}catch(e){}
@@ -3859,6 +3847,58 @@ function computeAlignSnap(primaryId,nodes){
   return{dx,dy};
 }
 
+// Alignment guides during node resize — snaps the active edge(s) to other nodes
+// edge: 'left','right','bottom' — which edge is being resized
+function computeResizeAlignSnap(nodeId,edge){
+  clearAlignGuides();
+  const nodes=getNodes();
+  const p=nodes.find(n=>n.id===nodeId);if(!p)return 0;
+  const pel=document.getElementById('nd-'+nodeId);
+  const pw=pel?pel.offsetWidth:(p._w||214),ph=pel?pel.offsetHeight:80;
+  const pEdges={l:p.x,r:p.x+pw,t:p.y,b:p.y+ph};
+
+  let best=null,bestDist=ALIGN_THRESH+1;
+  const guides=[];
+  const others=nodes.filter(n=>n.id!==nodeId);
+
+  others.forEach(n=>{
+    const nel=document.getElementById('nd-'+n.id);
+    const w=nel?nel.offsetWidth:(n._w||214),h=nel?nel.offsetHeight:80;
+    const e={l:n.x,r:n.x+w,t:n.y,b:n.y+h};
+
+    if(edge==='left'||edge==='right'){
+      const pv=edge==='left'?pEdges.l:pEdges.r;
+      [e.l,e.r].forEach(ev=>{
+        const d=Math.abs(pv-ev);
+        if(d<bestDist){bestDist=d;best=ev-pv;guides.length=0;
+          guides.push({axis:'x',x:ev,minY:Math.min(pEdges.t,e.t)-20,maxY:Math.max(pEdges.b,e.b)+20});
+        }else if(d===bestDist&&d<=ALIGN_THRESH){
+          guides.push({axis:'x',x:ev,minY:Math.min(pEdges.t,e.t)-20,maxY:Math.max(pEdges.b,e.b)+20});
+        }
+      });
+    }else if(edge==='bottom'){
+      const pv=pEdges.b;
+      [e.t,e.b].forEach(ev=>{
+        const d=Math.abs(pv-ev);
+        if(d<bestDist){bestDist=d;best=ev-pv;guides.length=0;
+          guides.push({axis:'y',y:ev,minX:Math.min(pEdges.l,e.l)-20,maxX:Math.max(pEdges.r,e.r)+20});
+        }else if(d===bestDist&&d<=ALIGN_THRESH){
+          guides.push({axis:'y',y:ev,minX:Math.min(pEdges.l,e.l)-20,maxX:Math.max(pEdges.r,e.r)+20});
+        }
+      });
+    }
+  });
+
+  const snap=(bestDist<=ALIGN_THRESH)?best:0;
+  if(bestDist<=ALIGN_THRESH){
+    guides.forEach(g=>{
+      if(g.axis==='x')drawAlignGuide(g.x,g.minY,g.x,g.maxY);
+      if(g.axis==='y')drawAlignGuide(g.minX,g.y,g.maxX,g.y);
+    });
+  }
+  return snap;
+}
+
 // ═══════════════════════════════════════════════════════════
 // TOPBAR
 // ═══════════════════════════════════════════════════════════
@@ -3932,7 +3972,7 @@ function zoomToFit(){
   });
   const bw=maxX-minX+PAD*2,bh=maxY-minY+PAD*2;
   const wr=wrap.getBoundingClientRect();
-  const s=Math.min(1.2,Math.min(wr.width/bw,wr.height/bh));
+  const s=Math.max(CONFIG.ZOOM_MIN,Math.min(1.2,Math.min(wr.width/bw,wr.height/bh)));
   const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
   frame().tx={x:wr.width/2-cx*s,y:wr.height/2-cy*s,s};
   applyTx();renderEdges();
@@ -3941,6 +3981,7 @@ document.getElementById('btn-fit').addEventListener('click',zoomToFit);
 document.getElementById('btn-undo').addEventListener('click',()=>undoHistory());
 document.getElementById('btn-redo').addEventListener('click',()=>redoHistory());
 document.getElementById('btn-clear').addEventListener('click',()=>{
+  if(frame().nodes.length>5&&!confirm('Clear all '+frame().nodes.length+' nodes from canvas?'))return;
   frame().nodes=[];frame().edges=[];selNode=null;selSkillId=null;
   scene.querySelectorAll('.node').forEach(n=>n.remove());renderEdges();clearSel();updateTopbar();
 });
@@ -3987,7 +4028,7 @@ function showTabRegion(show){
 // ── Editable color palette ────────────────────────────────
 const _CUSTOM_COLORS_KEY='pb_custom_colors';
 function _loadCustomColors(){try{const s=localStorage.getItem(_CUSTOM_COLORS_KEY);if(s){const o=JSON.parse(s);Object.assign(COLORS,o);}}catch(e){}}
-const _DEFAULT_COLORS={blue:'oklch(0.7 0.14 250)',purple:'oklch(0.68 0.16 300)',green:'oklch(0.72 0.17 165)',grn:'oklch(0.72 0.17 165)',accent:'oklch(0.75 0.16 70)',acc:'oklch(0.75 0.16 70)',cyan:'oklch(0.76 0.12 200)',cyn:'oklch(0.76 0.12 200)',orange:'oklch(0.72 0.17 55)',org:'oklch(0.72 0.17 55)',red:'oklch(0.65 0.2 25)',dimHi:'oklch(0.66 0.014 250)'};
+const _DEFAULT_COLORS=Object.freeze({...COLORS});
 function _saveCustomColors(){
   const custom={};
   for(const[k,v]of Object.entries(COLORS)){if(v!==_DEFAULT_COLORS[k])custom[k]=v;}
@@ -4010,7 +4051,11 @@ function renderColorDots(){
         sk.color=id;updateLibRow(sk.id);
         getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.color)rebuildNode(n);});
       }
-      renderInspector();
+      // Update inspector dot highlight and name color without full rebuild
+      document.querySelectorAll('.cdot').forEach(dd=>dd.classList.toggle('sel',dd.dataset.cid===id));
+      const nc=cx(id);
+      document.getElementById('if-glyph').style.color=nc;
+      document.getElementById('if-name').style.color=nc;
     });
     // Dblclick: edit color via native picker
     d.addEventListener('dblclick',e=>{
@@ -4522,7 +4567,7 @@ function _downloadSkillAsMd(sk){
 }
 
 function _downloadSkillAsJson(sk){
-  const clean=JSON.parse(JSON.stringify(sk));
+  const clean=structuredClone(sk);
   delete clean.isBuiltin;
   const blob=new Blob([JSON.stringify(clean,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -4813,6 +4858,7 @@ function renderLib(){
     }
   }
   document.getElementById('skill-count').textContent=skills.length+' skills';
+  _libDirty=false;
 }
 
 function getTabPool(){
@@ -4837,7 +4883,7 @@ function getAllKnownPipelines(){
 // Convert a pipeline snapshot into a skill node and add to MY SKILLS
 function pipelineToSkill(p){
   // Deep-clone the root frame as internalGraph
-  const rootFrame=p.stack&&p.stack[0]?JSON.parse(JSON.stringify(p.stack[0])):{nodes:[],edges:[]};
+  const rootFrame=p.stack&&p.stack[0]?structuredClone(p.stack[0]):{nodes:[],edges:[]};
   const nodeCount=rootFrame.nodes?.length||0;
   const existing=skills.find(s=>s._pipelineId===p.id);
   if(existing){
@@ -4951,7 +4997,7 @@ function mkLibRow(sk){
    {t:'Duplicate',fn:e=>{
      e.stopPropagation();
      const src=getSk(sk.id);if(!src)return;
-     const copy=JSON.parse(JSON.stringify(src));
+     const copy=structuredClone(src);
      copy.id=uid('sk');copy.label=src.label+' Copy';copy.isBuiltin=false;
      copy._ts=Date.now();skills.push(copy);persistSkills();renderLib();selectLib(copy.id);
    }},
@@ -4974,7 +5020,39 @@ function mkLibRow(sk){
   return row;
 }
 
-document.getElementById('lib-search').addEventListener('input',debouncedRenderLib);
+// Fast-path search filter: toggles display:none on existing rows/headers
+// instead of rebuilding the entire DOM. Falls back to full renderLib on first keystroke
+// after a structural change (tab switch, skill add/delete, sort change).
+let _libDirty=true; // starts dirty so first render is full
+function _fastFilterLib(){
+  const f=document.getElementById('lib-search').value.toLowerCase();
+  if(_libDirty){_libDirty=false;renderLib();return;}
+  const list=document.getElementById('lib-list');
+  const rows=list.querySelectorAll('.lib-row');
+  const headers=list.querySelectorAll('.sec-hdr');
+  // Filter rows by matching skill label/category/desc
+  rows.forEach(row=>{
+    const sid=row.dataset.sid;
+    const sk=skills.find(s=>s.id===sid);
+    if(!sk){row.style.display='none';return;}
+    const match=!f||sk.label.toLowerCase().includes(f)||(sk.category||'').toLowerCase().includes(f)||(sk.desc||'').toLowerCase().includes(f)||(sk.tags||[]).some(t=>t.toLowerCase().includes(f));
+    row.style.display=match?'':'none';
+  });
+  // Hide category headers that have no visible children
+  headers.forEach(h=>{
+    let next=h.nextElementSibling;let hasVisible=false;
+    while(next&&!next.classList.contains('sec-hdr')){
+      if(next.classList.contains('lib-row')&&next.style.display!=='none')hasVisible=true;
+      next=next.nextElementSibling;
+    }
+    h.style.display=hasVisible||!f?'':'none';
+  });
+  // Update count
+  const visible=list.querySelectorAll('.lib-row:not([style*="display: none"])').length;
+  document.getElementById('skill-count').textContent=f?visible+'/'+skills.length+' skills':skills.length+' skills';
+}
+
+document.getElementById('lib-search').addEventListener('input',()=>{clearTimeout(_rlTimer);_rlTimer=setTimeout(_fastFilterLib,80);});
 document.getElementById('lib-sort').addEventListener('change',e=>{
   _libSortMode=e.target.value;
   try{localStorage.setItem(_SORT_KEY,_libSortMode);}catch(ex){}
@@ -5096,7 +5174,7 @@ function openPipelineEdit(p){
           if(!editNodes.find(x=>x.id===nid))n.remove();
         });
         renderEdges();
-        if(selNode&&!editNodes.find(n=>n.id===selNode.id))clearSel();
+        if(selNode&&!editNodes.find(n=>n.id===selNode))clearSel();
       } else {
         liveP.stack[0].nodes=editNodes;
         liveP.stack[0].edges=editEdges;
@@ -5136,24 +5214,8 @@ function deletePipelineRow(p){
 
 let selPipelineId=null;
 
-// Ensure a pipeline has a matching skill entry (for drag) without touching the DOM
-function ensurePipelineSkill(p){
-  const rootFrame=p.stack&&p.stack[0]?JSON.parse(JSON.stringify(p.stack[0])):{nodes:[],edges:[]};
-  const nodeCount=rootFrame.nodes?.length||0;
-  const existing=skills.find(s=>s._pipelineId===p.id);
-  if(existing){
-    existing.internalGraph={nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]};
-    existing.label=p.name.toUpperCase();
-    return existing;
-  }
-  const sk={id:uid('gpt'),label:p.name.toUpperCase(),color:'purple',glyph:'⬡',shape:'default',
-    category:'Pipelines',desc:nodeCount+' node'+(nodeCount!==1?'s':'')+' · saved from pipeline',
-    tags:['pipeline'],isBuiltin:false,rawContent:'',deps:[],
-    internalGraph:{nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]},
-    hasOut:true,hasIn:true,fields:[],defaultInputs:[],defaultOutputs:[],_pipelineId:p.id};
-  skills.push(sk);
-  return sk;
-}
+// Alias: ensurePipelineSkill was identical to pipelineToSkill — consolidated
+const ensurePipelineSkill=pipelineToSkill;
 
 function mkPipelineRow(p){
   const isOpen=pipelines.some(op=>op.id===p.id);
@@ -5468,9 +5530,9 @@ function openWiz(editId){
   const ed=editId?getSk(editId):null;
   const defOut=[{id:uid('p'),name:'output',type:'Any'}];
   wiz={step:ed?'edit':'method',method:null,raw:ed?.rawContent||'',name:ed?.label||'',desc:ed?.desc||'',color:ed?.color||'blue',shape:ed?.shape||'default',glyph:ed?.glyph||'◆',tags:[...(ed?.tags||[])],category:ed?.category||'Skills',editId,
-    inputs:JSON.parse(JSON.stringify(ed?.defaultInputs||[])),
-    outputs:JSON.parse(JSON.stringify(ed?.defaultOutputs?.length?ed.defaultOutputs:defOut)),
-    fields:JSON.parse(JSON.stringify(ed?.fields||[])),
+    inputs:structuredClone(ed?.defaultInputs||[]),
+    outputs:structuredClone(ed?.defaultOutputs?.length?ed.defaultOutputs:defOut),
+    fields:structuredClone(ed?.fields||[]),
     isBuiltin:ed?.isBuiltin||false};
   document.getElementById('wiz-title').textContent=ed?'EDIT SKILL':'ADD SKILL';
   document.getElementById('wiz-overlay').classList.add('open');drawWiz();
@@ -5514,73 +5576,80 @@ function drawUrl(b){
 // AI GENERATE OVERLAY — Skill generator
 // ═══════════════════════════════════════════════════════════
 
+// Helper: get Friday AI agent auth token from vault (used for local LLM auth)
+const _getFridayToken=()=>(CryptoManager.creds||[]).find(c=>c.type==='friday-token')?.value||'';
+function _localHeaders(){const t=_getFridayToken();const h={'Content-Type':'application/json'};if(t)h.Authorization='Bearer '+t;return h;}
+
 // Shared: call the active AI provider and return generated text
 // Sends a single prompt to an LLM provider and returns the full response
-async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
+// ── LLM endpoint resolution ─────────────────────────────
+// Shared logic for all three call patterns (single, streaming, history)
+function _resolveLLMRequest(provider, apiKey, model, messages, opts={}){
+  const stream=opts.stream||false;
+  const system=opts.system||'';
   if(provider==='openai'){
-    const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
+    const body={model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,messages:system?[{role:'system',content:system},...messages]:messages};
+    if(stream)body.stream=true;
+    return{url:'https://api.openai.com/v1/chat/completions',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
-      body:JSON.stringify({model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,
-        messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    const d=await resp.json();return d.choices?.[0]?.message?.content||'';
+      body,extract:d=>d.choices?.[0]?.message?.content||'',
+      streamExtract:j=>j.choices?.[0]?.delta?.content||''};
   } else if(provider==='gemini'){
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(model||'gemini-2.0-flash-lite')+':generateContent?key='+apiKey,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({systemInstruction:{parts:[{text:systemPrompt}]},
-        contents:[{role:'user',parts:[{text:userPrompt}]}],generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    const d=await resp.json();return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const gemModel=model||'gemini-2.0-flash-lite';
+    const endpoint=stream?'streamGenerateContent?alt=sse':'generateContent';
+    const contents=system?messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
+      :messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+    const body={contents,generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}};
+    if(system)body.systemInstruction={parts:[{text:system}]};
+    return{url:'https://generativelanguage.googleapis.com/v1beta/models/'+gemModel+':'+endpoint+'&key='+apiKey,
+      headers:{'Content-Type':'application/json'},
+      body,extract:d=>d.candidates?.[0]?.content?.parts?.[0]?.text||'',
+      streamExtract:j=>j.candidates?.[0]?.content?.parts?.[0]?.text||''};
   } else if(provider==='local'){
     const baseUrl=(apiKey||'http://localhost:11434').replace(/\/+$/,'');
-    // Try Ollama native /api/chat first (better CORS + compatibility), fall back to OpenAI-compat
-    let result='';
-    try{
-      const _ocN1=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-      const _h1={'Content-Type':'application/json'};if(_ocN1)_h1.Authorization='Bearer '+_ocN1;
-      const resp=await fetch(baseUrl+'/api/chat',{
-        method:'POST',headers:_h1,
-        body:JSON.stringify({model:model||'llama3',stream:false,
-          messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
-      });
-      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
-      const d=await resp.json();
-      result=d.message?.content||d.response||'';
-    }catch(ollamaErr){
-      // Fallback to OpenAI-compatible endpoint
-      try{
-        const _ocF1=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-        const _hf1={'Content-Type':'application/json'};if(_ocF1)_hf1.Authorization='Bearer '+_ocF1;
-        const resp=await fetch(baseUrl+'/v1/chat/completions',{
-          method:'POST',headers:_hf1,
-          body:JSON.stringify({model:model||'llama3',
-            messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
-        });
-        if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-        const d=await resp.json();
-        result=d.choices?.[0]?.message?.content||'';
-      }catch(compatErr){
-        throw new Error('Could not reach local LLM. Ensure Ollama is running and CORS is enabled:\n  OLLAMA_ORIGINS=* ollama serve\n\nOllama error: '+ollamaErr.message+'\nOpenAI-compat error: '+compatErr.message);
-      }
-    }
-    return result;
+    const body={model:model||'llama3',stream,messages:system?[{role:'system',content:system},...messages]:messages};
+    return{url:baseUrl,headers:_localHeaders(),body,isLocal:true,
+      extract:d=>d.message?.content||d.response||'',
+      streamExtract:j=>j.message?.content||'',
+      openaiExtract:d=>d.choices?.[0]?.message?.content||'',
+      openaiStreamExtract:j=>j.choices?.[0]?.delta?.content||''};
   } else {
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
+    // anthropic
+    const body={model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,messages};
+    if(stream)body.stream=true;
+    if(system)body.system=system;
+    return{url:'https://api.anthropic.com/v1/messages',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,system:systemPrompt,
-        messages:[{role:'user',content:userPrompt}]})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    const d=await resp.json();return d.content?.[0]?.text||'';
+      body,extract:d=>d.content?.[0]?.text||'',
+      streamExtract:j=>j.type==='content_block_delta'?j.delta?.text||'':''};
   }
 }
 
+async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
+  const msgs=[{role:'user',content:userPrompt}];
+  const req=_resolveLLMRequest(provider,apiKey,model,msgs,{system:systemPrompt});
+  if(req.isLocal){
+    // Ollama native first, fallback to OpenAI-compat
+    try{
+      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
+      return req.extract(await resp.json());
+    }catch(ollamaErr){
+      try{
+        const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+        if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
+        return req.openaiExtract(await resp.json());
+      }catch(compatErr){
+        throw new Error('Could not reach local LLM. Ensure Ollama or Friday is running and CORS is enabled:\n  OLLAMA_ORIGINS=* ollama serve\n\nOllama error: '+ollamaErr.message+'\nOpenAI-compat error: '+compatErr.message);
+      }
+    }
+  }
+  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
+  return req.extract(await resp.json());
+}
+
 // ── Streaming callAI — calls onChunk(text) progressively ──
-// Sends a prompt to an LLM with streaming — calls onChunk() progressively
 async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model, onChunk){
   async function readSSE(resp, extract){
     const reader=resp.body.getReader();
@@ -5596,84 +5665,11 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
         if(!line.startsWith('data: '))continue;
         const data=line.slice(6).trim();
         if(data==='[DONE]')return;
-        try{
-          const j=JSON.parse(data);
-          const t=extract(j);
-          if(t)onChunk(t);
-        }catch(e){}
+        try{const j=JSON.parse(data);const t=extract(j);if(t)onChunk(t);}catch(e){}
       }
     }
   }
-
-  if(provider==='openai'){
-    const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
-      body:JSON.stringify({model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,stream:true,
-        messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    await readSSE(resp,j=>j.choices?.[0]?.delta?.content||'');
-
-  } else if(provider==='gemini'){
-    // Gemini uses streamGenerateContent with alt=sse
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(model||'gemini-2.0-flash-lite')+':streamGenerateContent?alt=sse&key='+apiKey,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({systemInstruction:{parts:[{text:systemPrompt}]},
-        contents:[{role:'user',parts:[{text:userPrompt}]}],generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    await readSSE(resp,j=>j.candidates?.[0]?.content?.parts?.[0]?.text||'');
-
-  } else if(provider==='local'){
-    const baseUrl=(apiKey||'http://localhost:11434').replace(/\/+$/,'');
-    try{
-      const _ocS1=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-      const _hs1={'Content-Type':'application/json'};if(_ocS1)_hs1.Authorization='Bearer '+_ocS1;
-      const resp=await fetch(baseUrl+'/api/chat',{
-        method:'POST',headers:_hs1,
-        body:JSON.stringify({model:model||'llama3',stream:true,
-          messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
-      });
-      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
-      // Ollama streams newline-delimited JSON (not SSE)
-      const reader=resp.body.getReader();
-      const decoder=new TextDecoder();
-      let buf='';
-      while(true){
-        const {done,value}=await reader.read();
-        if(done)break;
-        buf+=decoder.decode(value,{stream:true});
-        const lines=buf.split('\n');
-        buf=lines.pop()||'';
-        for(const line of lines){
-          if(!line.trim())continue;
-          try{const j=JSON.parse(line);const t=j.message?.content||'';if(t)onChunk(t);}catch(e){}
-        }
-      }
-    }catch(ollamaErr){
-      // Fallback to OpenAI-compat streaming
-      const _ocTk3=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-      const _lfh3={'Content-Type':'application/json'};if(_ocTk3)_lfh3.Authorization='Bearer '+_ocTk3;
-      const resp=await fetch(baseUrl+'/v1/chat/completions',{
-        method:'POST',headers:_lfh3,
-        body:JSON.stringify({model:model||'llama3',stream:true,
-          messages:[{role:'system',content:systemPrompt},{role:'user',content:userPrompt}]})
-      });
-      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-      await readSSE(resp,j=>j.choices?.[0]?.delta?.content||'');
-    }
-
-  } else {
-    // Anthropic
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,stream:true,system:systemPrompt,
-        messages:[{role:'user',content:userPrompt}]})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    // Anthropic SSE uses event: prefix lines
+  async function readNDJSON(resp, extract){
     const reader=resp.body.getReader();
     const decoder=new TextDecoder();
     let buf='';
@@ -5684,66 +5680,52 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
       const lines=buf.split('\n');
       buf=lines.pop()||'';
       for(const line of lines){
-        if(!line.startsWith('data: '))continue;
-        const data=line.slice(6).trim();
-        try{
-          const j=JSON.parse(data);
-          if(j.type==='content_block_delta'&&j.delta?.text)onChunk(j.delta.text);
-        }catch(e){}
+        if(!line.trim())continue;
+        try{const j=JSON.parse(line);const t=extract(j);if(t)onChunk(t);}catch(e){}
       }
     }
+  }
+  const msgs=[{role:'user',content:userPrompt}];
+  const req=_resolveLLMRequest(provider,apiKey,model,msgs,{system:systemPrompt,stream:true});
+  if(req.isLocal){
+    try{
+      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
+      await readNDJSON(resp,req.streamExtract);
+    }catch(ollamaErr){
+      const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
+      await readSSE(resp,req.openaiStreamExtract);
+    }
+    return;
+  }
+  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
+  if(provider==='anthropic'){
+    // Anthropic SSE uses event: prefix lines with content_block_delta
+    await readSSE(resp,req.streamExtract);
+  } else {
+    await readSSE(resp,req.streamExtract);
   }
 }
 
 // callAI with full conversation history (for follow-ups)
-// history: [{role:'user'|'assistant', content:'...'}]
-// The pipeline prompt is already baked into history[0] as the first user turn
-// Sends a full conversation history to an LLM (for follow-up messages)
 async function callAIWithHistory(history, provider, apiKey, model){
-  if(provider==='openai'){
-    const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},
-      body:JSON.stringify({model:model||'gpt-4o',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,messages:history})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    const d=await resp.json();return d.choices?.[0]?.message?.content||'';
-  } else if(provider==='gemini'){
-    const contents=history.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
-    const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+(model||'gemini-2.0-flash-lite')+':generateContent?key='+apiKey,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents,generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    const d=await resp.json();return d.candidates?.[0]?.content?.parts?.[0]?.text||'';
-  } else if(provider==='local'){
-    const baseUrl=(apiKey||'http://localhost:11434').replace(/\/+$/,'');
+  const req=_resolveLLMRequest(provider,apiKey,model,history,{});
+  if(req.isLocal){
     try{
-      const _ocH1=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-      const _hh1={'Content-Type':'application/json'};if(_ocH1)_hh1.Authorization='Bearer '+_ocH1;
-      const resp=await fetch(baseUrl+'/api/chat',{method:'POST',headers:_hh1,
-        body:JSON.stringify({model:model||'llama3',stream:false,messages:history})});
+      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
       if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
-      const d=await resp.json();return d.message?.content||d.response||'';
+      return req.extract(await resp.json());
     }catch(ollamaErr){
-      const _ocTk2=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-      const _lfh2={'Content-Type':'application/json'};if(_ocTk2)_lfh2.Authorization='Bearer '+_ocTk2;
-      const resp=await fetch(baseUrl+'/v1/chat/completions',{method:'POST',headers:_lfh2,
-        body:JSON.stringify({model:model||'llama3',messages:history})});
+      const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
       if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-      const d=await resp.json();return d.choices?.[0]?.message?.content||'';
+      return req.openaiExtract(await resp.json());
     }
-  } else {
-    // anthropic — send full history (system context is baked into history[0])
-    const msgs=history.map(m=>({role:m.role,content:m.content}));
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:model||'claude-sonnet-4-6',max_tokens:CONFIG.MAX_OUTPUT_TOKENS,messages:msgs})
-    });
-    if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-    const d=await resp.json();return d.content?.[0]?.text||'';
   }
+  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+  if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
+  return req.extract(await resp.json());
 }
 
 function openAIOverlay(){
@@ -5817,16 +5799,9 @@ function drawAIOverlay(){
   }
   rebuildAIKeySel();
 
-  // Model selector
-  const AI_MODELS={
-    anthropic:[['claude-sonnet-4-6','Claude Sonnet 4.6'],['claude-opus-4-6','Claude Opus 4.6'],['claude-haiku-4-5-20251001','Claude Haiku 4.5']],
-    openai:[['gpt-4o','GPT-4o'],['gpt-4o-mini','GPT-4o mini'],['o1-mini','o1-mini']],
-    gemini:[['gemini-2.5-flash','Gemini 2.5 Flash'],['gemini-2.0-flash-lite','2.0 Flash Lite'],['gemini-1.5-pro','1.5 Pro']],
-  };
+  // Model selector — uses module-level AI_MODELS
   let aiModel=AI_MODELS.anthropic[0][0];
   const modelCont=document.createElement('div');b.appendChild(modelCont);
-  const fetchGeminiModels=fetchGeminiModelsList; // use shared function
-  const detectLocalModels=()=>detectLocalModelsList(localUrl); // use shared function
   async function rebuildAIModelSel(){
     modelCont.innerHTML='';
     const lbl=document.createElement('div');lbl.className='mlbl';lbl.textContent='MODEL';modelCont.appendChild(lbl);
@@ -5838,7 +5813,7 @@ function drawAIOverlay(){
       const detectBtn=document.createElement('button');detectBtn.textContent='Detect';detectBtn.className='mbtn';detectBtn.style.cssText='font-size:8px;white-space:nowrap';
       detectBtn.addEventListener('click',async()=>{
         detectBtn.disabled=true;detectBtn.textContent='…';
-        const models=await detectLocalModels();
+        const models=await detectLocalModelsList(localUrl);
         if(models.length){
           // replace inp with a select
           const sel=document.createElement('select');
@@ -5856,7 +5831,7 @@ function drawAIOverlay(){
     if(aiProvider==='gemini'&&apiKey){
       const loadOpt=document.createElement('option');loadOpt.textContent='Loading models…';loadOpt.disabled=true;sel.appendChild(loadOpt);
       modelCont.appendChild(sel);
-      const live=await fetchGeminiModels(apiKey);
+      const live=await fetchGeminiModelsList(apiKey);
       sel.innerHTML='';
       const list=live&&live.length?live:AI_MODELS.gemini;
       list.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o);});
@@ -6492,7 +6467,12 @@ document.getElementById('out-close').addEventListener('click',()=>document.getEl
 document.getElementById('out-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('out-overlay').classList.remove('open');});
 
 // ── Run Pipeline via LLM (drawer) ──────────────────────
-const AI_MODELS_RUN={anthropic:[['claude-sonnet-4-6','Sonnet 4.6'],['claude-opus-4-6','Opus 4.6'],['claude-haiku-4-5-20251001','Haiku 4.5']],openai:[['gpt-4o','GPT-4o'],['gpt-4o-mini','GPT-4o mini']],gemini:[['gemini-2.5-flash','2.5 Flash'],['gemini-2.0-flash-lite','2.0 Flash Lite'],['gemini-1.5-pro','1.5 Pro']],local:[]};
+const AI_MODELS={
+  anthropic:[['claude-sonnet-4-6','Sonnet 4.6'],['claude-opus-4-6','Opus 4.6'],['claude-haiku-4-5-20251001','Haiku 4.5']],
+  openai:[['gpt-4o','GPT-4o'],['gpt-4o-mini','GPT-4o mini'],['o1-mini','o1-mini']],
+  gemini:[['gemini-2.5-flash','2.5 Flash'],['gemini-2.0-flash-lite','2.0 Flash Lite'],['gemini-1.5-pro','1.5 Pro']],
+  local:[]
+};
 let _runProvider='anthropic',_runKey='',_runModel='';
 const _localUrl=()=>(document.getElementById('out-run-url')?.value||'http://localhost:11434').replace(/\/+$/,'');
 
@@ -6535,12 +6515,12 @@ async function fetchGeminiModelsList(key){
 // ── Shared: detect local LLM models ─────────────────────
 async function detectLocalModelsList(baseUrl){
   const base=(baseUrl||'http://localhost:11434').replace(/\/+$/,'');
-  // Try to find an OpenClaw token in the vault for authenticated requests
-  const ocToken=(CryptoManager.creds||[]).find(c=>c.type==='openclaw-token')?.value||'';
-  const authHeaders=ocToken?{Authorization:'Bearer '+ocToken}:{};
+  // Try to find a Friday token in the vault for authenticated requests
+  const fridayToken=_getFridayToken();
+  const authHeaders=fridayToken?{Authorization:'Bearer '+fridayToken}:{};
   // 1. Try Ollama native API (no auth needed)
   try{const r=await fetch(base+'/api/tags');if(r.ok){const d=await r.json();const m=(d.models||[]).map(x=>x.name).filter(Boolean);if(m.length)return m;}}catch(e){}
-  // 2. Try OpenAI-compatible /v1/models (with auth if available — needed for OpenClaw)
+  // 2. Try OpenAI-compatible /v1/models (with auth if available — needed for Friday)
   try{const r=await fetch(base+'/v1/models',{headers:authHeaders});if(r.ok){const d=await r.json();return(d.data||d.models||[]).map(x=>x.id||x.name).filter(Boolean);}}catch(e){}
   return [];
 }
@@ -6551,10 +6531,10 @@ async function refreshRunModels(){
     const lo=document.createElement('option');lo.textContent='Loading models…';lo.disabled=true;s.appendChild(lo);
     const live=await fetchGeminiModelsList(_runKey);
     s.innerHTML='';
-    const list=live&&live.length?live:AI_MODELS_RUN.gemini;
+    const list=live&&live.length?live:AI_MODELS.gemini;
     list.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
   }else{
-    (AI_MODELS_RUN[_runProvider]||AI_MODELS_RUN.anthropic).forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
+    (AI_MODELS[_runProvider]||AI_MODELS.anthropic).forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
   }
   _runModel=s.value;s.onchange=()=>{_runModel=s.value;updateTokenCount();};
 }
@@ -6936,18 +6916,18 @@ async function runChain(provider,apiKey,model,rb,st){
   for(const node of ordered){
     if(executed.has(node.id))continue;
     const sk=nodeSk(node);if(!sk)continue;
-    // Skip nodes that are on the "fail" branch of a router — they'll be called by the router itself
-    const incomingFromRouter=edges.some(e=>{
+    // Skip nodes where ALL incoming edges come from a Router — they'll be called by the router itself
+    const incomingEdges=edges.filter(e=>e.to===node.id);
+    const allFromRouter=incomingEdges.length>0&&incomingEdges.every(e=>{
       const srcNode=nodes.find(n=>n.id===e.from);
-      return srcNode&&nodeSk(srcNode)?.id==='router'&&e.to===node.id;
+      return srcNode&&nodeSk(srcNode)?.id==='router';
     });
-    if(incomingFromRouter&&!executed.has(node.id)){
+    if(allFromRouter){
       // Will be called by the router when it evaluates
       continue;
     }
     executed.add(node.id);
     await executeNode(node);
-    executed.add(node.id);
   }
 
   return fullLog;
@@ -7358,8 +7338,8 @@ function saveNodeAsSkill(nodeId){
     tags:[...(existingSk?.tags||[])],
     category:existingSk?.category||'Skills',
     editId:null,
-    inputs:JSON.parse(JSON.stringify(node.inputs||[])),
-    outputs:JSON.parse(JSON.stringify(node.outputs?.length?node.outputs:[{id:uid('p'),name:'output',type:'Any'}])),
+    inputs:structuredClone(node.inputs||[]),
+    outputs:structuredClone(node.outputs?.length?node.outputs:[{id:uid('p'),name:'output',type:'Any'}]),
   };
   document.getElementById('wiz-title').textContent='SAVE NODE AS SKILL';
   document.getElementById('wiz-overlay').classList.add('open');
@@ -7464,8 +7444,8 @@ function _importTextAsSkill(raw,filename,cx,cy){
   };
   skills.push(newSk);
   const node={id:uid(),type:null,skillId:newSk.id,x:cx,y:cy,values:{},title:name,
-    inputs:JSON.parse(JSON.stringify(newSk.defaultInputs)),
-    outputs:JSON.parse(JSON.stringify(newSk.defaultOutputs))};
+    inputs:structuredClone(newSk.defaultInputs),
+    outputs:structuredClone(newSk.defaultOutputs)};
   frame().nodes.push(node);
   const el=buildNode(node);if(el)scene.appendChild(el);
 }
@@ -7537,8 +7517,8 @@ async function _addPipelineAsNode(data,filename,sceneX,sceneY){
   const pName=data.name||filename.replace(/\.ppln$|\.pipeline\.json$|\.json$/,'');
   // Build internal graph from the pipeline's root stack frame
   const rootFrame=data.stack[0]||{nodes:[],edges:[]};
-  const igNodes=JSON.parse(JSON.stringify(rootFrame.nodes||[]));
-  const igEdges=JSON.parse(JSON.stringify(rootFrame.edges||[]));
+  const igNodes=structuredClone(rootFrame.nodes||[]);
+  const igEdges=structuredClone(rootFrame.edges||[]);
 
   // Detect boundary ports: inputs are ports with no incoming edge, outputs have no outgoing edge
   const allInputPorts=new Set();
@@ -7892,8 +7872,8 @@ async function _importZipAsGraph(entries,zipName,startX,startY){
         skills.push(sk);
         const x=startX+col*COL_W,y=startY+row*ROW_H;
         const node={id:uid(),type:null,skillId:sk.id,x,y,values:{},title:baseName||shortName,
-          inputs:JSON.parse(JSON.stringify(sk.defaultInputs)),
-          outputs:JSON.parse(JSON.stringify(sk.defaultOutputs))};
+          inputs:structuredClone(sk.defaultInputs),
+          outputs:structuredClone(sk.defaultOutputs)};
         frame().nodes.push(node);
         const el=buildNode(node);if(el)scene.appendChild(el);
         fileNodes.push({entry,node,type:'main',sortIdx:i});
@@ -7912,8 +7892,8 @@ async function _importZipAsGraph(entries,zipName,startX,startY){
     const x=startX+col*COL_W,y=startY+row*ROW_H;
     const sk=getSk(skillId);
     const node={id:uid(),type:null,skillId,x,y,values:nodeValues,title:shortName,
-      inputs:sk?JSON.parse(JSON.stringify(sk.defaultInputs||[])):[],
-      outputs:sk?JSON.parse(JSON.stringify(sk.defaultOutputs||[])):[]};
+      inputs:sk?structuredClone(sk.defaultInputs||[]):[],
+      outputs:sk?structuredClone(sk.defaultOutputs||[]):[]};
     frame().nodes.push(node);
     const el=buildNode(node);if(el)scene.appendChild(el);
     fileNodes.push({entry,node,type,sortIdx:i});
@@ -8002,7 +7982,7 @@ function copySelNodes(){
   if(!ids.size)return;
   const nodes=getNodes().filter(n=>ids.has(n.id));
   const edges=getEdges().filter(e=>ids.has(e.from)&&ids.has(e.to));
-  nodeClipboard=JSON.parse(JSON.stringify({nodes,edges}));
+  nodeClipboard=structuredClone({nodes,edges});
   flashBtn('btn-save-pipeline', '⎘ Copied '+nodes.length+' node'+(nodes.length!==1?'s':''), '💾 Save Pipeline');
 }
 
@@ -8016,7 +7996,7 @@ function pasteNodes(){
   nodeClipboard.nodes.forEach(orig=>{
     const newId=uid();
     idMap[orig.id]=newId;
-    const copy=JSON.parse(JSON.stringify(orig));
+    const copy=structuredClone(orig);
     copy.id=newId;
     copy.x=snap(orig.x+OFFSET);
     copy.y=snap(orig.y+OFFSET);
@@ -8180,11 +8160,7 @@ const CryptoManager = (() => {
   };
 })();
 
-// Legacy aliases — existing call sites use these directly
-const VAULT_KEY = CryptoManager.STORAGE_KEY;
-const b64   = CryptoManager.b64;
-const unb64 = CryptoManager.unb64;
-// vaultKey / vaultCreds are now proxied via CryptoManager; access via helpers below
+// ── Vault UI ────────────────────────────────────────────────
 
 const CRED_TYPES = {
   'github-token': { label: 'GitHub Token',      icon: '⎇', ph: 'ghp_xxxxxxxxxxxx' },
@@ -8193,19 +8169,13 @@ const CRED_TYPES = {
   'anthropic-key':{ label: 'Anthropic API Key',  icon: '✦', ph: 'sk-ant-api03-...' },
   'openai-key':   { label: 'OpenAI API Key',     icon: '⬡', ph: 'sk-proj-...' },
   'gemini-key':   { label: 'Gemini API Key',     icon: '✧', ph: 'AIza...' },
-  'openclaw-token':{ label: 'OpenClaw Token',     icon: '🦞', ph: 'gateway token (from openclaw.json)' },
+  'friday-token':{ label: 'Friday Token',        icon: '🤖', ph: 'Friday AI agent auth token' },
   'bluesky-cred': { label: 'Bluesky Credentials',icon: '🦋', ph: 'handle:app-password' },
   'linkedin-token':{ label: 'LinkedIn Token',    icon: '💼', ph: 'AQV...' },
   'twitter-token':{ label: 'Twitter/X Token',    icon: '𝕏', ph: 'Bearer token' },
   'meta-token':   { label: 'Meta/IG Token',      icon: '📷', ph: 'EAA...' },
   'custom':       { label: 'Custom',             icon: '◆', ph: 'value' },
 };
-
-async function saveVault()   { await CryptoManager.save(); }
-function  vaultExists()      { return CryptoManager.exists(); }
-function  lockVault()        { CryptoManager.lock(); }
-async function deriveKey(p,s){ return CryptoManager.deriveKey(p,s); }
-async function decryptVault(k,p){ return CryptoManager.decrypt(k,p); }
 
 // ── Vault UI ────────────────────────────────────────────────
 document.getElementById('btn-vault').addEventListener('click', openVault);
@@ -8229,7 +8199,7 @@ function renderVault() {
 
   if (!CryptoManager.key) {
     // Show unlock or setup screen
-    if (vaultExists()) {
+    if (CryptoManager.exists()) {
       renderUnlockScreen(body);
     } else {
       renderSetupScreen(body);
@@ -8260,11 +8230,11 @@ function renderSetupScreen(body) {
     if (!p1) return showStatus(status, 'err', 'Enter a password.');
     if (p1 !== p2) return showStatus(status, 'err', 'Passwords don\'t match.');
     const salt = crypto.getRandomValues(new Uint8Array(16));
-    CryptoManager.key = await deriveKey(p1, salt);
+    CryptoManager.key = await CryptoManager.deriveKey(p1, salt);
     CryptoManager.creds = [];
-    const stored = { salt: b64(salt) };
-    localStorage.setItem(VAULT_KEY, JSON.stringify(stored));
-    await saveVault();
+    const stored = { salt: CryptoManager.b64(salt) };
+    localStorage.setItem(CryptoManager.STORAGE_KEY, JSON.stringify(stored));
+    await CryptoManager.save();
     showStatus(status, 'ok', 'Vault created!');
     setTimeout(renderVault, 700);
   });
@@ -8286,10 +8256,10 @@ function renderUnlockScreen(body) {
   const tryUnlock = async () => {
     if (!pwIn.value) return;
     try {
-      const stored = JSON.parse(localStorage.getItem(VAULT_KEY));
-      const salt   = unb64(stored.salt);
-      const key    = await deriveKey(pwIn.value, salt);
-      CryptoManager.creds = await decryptVault(key, stored);
+      const stored = JSON.parse(localStorage.getItem(CryptoManager.STORAGE_KEY));
+      const salt   = CryptoManager.unb64(stored.salt);
+      const key    = await CryptoManager.deriveKey(pwIn.value, salt);
+      CryptoManager.creds = await CryptoManager.decrypt(key, stored);
       CryptoManager.key   = key;
       renderVault();
       // Refresh run drawer keys/models immediately after unlock
@@ -8303,8 +8273,8 @@ function renderUnlockScreen(body) {
   pwIn.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
   resetBtn.addEventListener('click', () => {
     if (!confirm('This deletes all stored credentials. Continue?')) return;
-    localStorage.removeItem(VAULT_KEY);
-    lockVault(); renderVault();
+    localStorage.removeItem(CryptoManager.STORAGE_KEY);
+    CryptoManager.lock(); renderVault();
   });
 }
 
@@ -8341,13 +8311,13 @@ function renderCredsScreen(body) {
   const lockBtn = vBtn('🔒 Lock Vault', 'ghost');
   const addBtn  = vBtn('Add Credential', 'pri');
   addRow.appendChild(lockBtn); addRow.appendChild(addBtn);
-  lockBtn.addEventListener('click', () => { lockVault(); renderVault(); updateGhBtnState(); });
+  lockBtn.addEventListener('click', () => { CryptoManager.lock(); renderVault(); updateGhBtnState(); });
   addBtn.addEventListener('click', async () => {
     const name = nameIn.value.trim(), val = valIn.value.trim();
     if (!name) return showStatus(addStatus, 'err', 'Enter a name.');
     if (!val)  return showStatus(addStatus, 'err', 'Enter a value.');
     CryptoManager.creds.push({ id: uid('vc'), name, type: typeSel.value, value: val });
-    await saveVault();
+    await CryptoManager.save();
     nameIn.value = ''; valIn.value = '';
     showStatus(addStatus, 'ok', 'Credential saved.');
     setTimeout(renderVault, 600);
@@ -8390,7 +8360,7 @@ function renderCredItem(cred) {
     const newVal  = valIn.dataset.revealed === '1' ? valIn.value.trim() : cred.value;
     if (!newName) return showStatus(saveStatus, 'err', 'Name required.');
     cred.name = newName; if (newVal) cred.value = newVal;
-    await saveVault();
+    await CryptoManager.save();
     showStatus(saveStatus, 'ok', 'Saved.'); setTimeout(renderVault, 600);
   });
   wrap.appendChild(body);
@@ -8404,7 +8374,7 @@ function renderCredItem(cred) {
     e.stopPropagation();
     if (!confirm(`Delete "${cred.name}"?`)) return;
     CryptoManager.creds = CryptoManager.creds.filter(c => c.id !== cred.id);
-    await saveVault(); renderVault();
+    await CryptoManager.save(); renderVault();
   });
   return wrap;
 }
@@ -8525,7 +8495,7 @@ function renderGitHub() {
       const v = tokenIn.value.trim(); if (!v) return;
       const name = prompt('Name for this credential:', 'GitHub Token') || 'GitHub Token';
       CryptoManager.creds.push({ id: uid('vc'), name, type: 'github-token', value: v });
-      await saveVault(); renderGitHub();
+      await CryptoManager.save(); renderGitHub();
     });
     tokenSec.appendChild(saveLink);
   }
@@ -8559,7 +8529,7 @@ function renderGitHub() {
       const v = gistIn.value.trim(); if (!v) return;
       const name = prompt('Name for this Gist:', 'GUIness Skills') || 'GUIness Skills';
       CryptoManager.creds.push({ id: uid('vc'), name, type: 'gist-id', value: v });
-      await saveVault(); renderGitHub();
+      await CryptoManager.save(); renderGitHub();
     });
     gistSec.appendChild(saveGistLink);
   }
@@ -8902,16 +8872,7 @@ function renderGitHub() {
   });
 
   // Re-render minimap when canvas changes
-  const _origRenderEdges=renderEdges;
-  renderEdges=function(newEdgeId){
-    _origRenderEdges(newEdgeId);
-    requestAnimationFrame(renderMinimap);
-  };
-  const _origApplyTx=applyTx;
-  applyTx=function(){
-    _origApplyTx();
-    requestAnimationFrame(renderMinimap);
-  };
+  _postRenderHooks.push(()=>requestAnimationFrame(renderMinimap));
 
   // Initial render
   requestAnimationFrame(renderMinimap);
@@ -8926,8 +8887,33 @@ document.getElementById('run-section-toggle').addEventListener('click',()=>{
 });
 
 // ═══════════════════════════════════════════════════════════
-// SOCIAL POSTING
+// SOCIAL POSTING (lazy-loaded on first toggle)
 // ═══════════════════════════════════════════════════════════
+let _socialLoaded=false;
+let _socialOpen=false;
+document.getElementById('social-toggle').addEventListener('click',()=>{
+  _socialOpen=!_socialOpen;
+  const panel=document.getElementById('social-panel');
+  const toggle=document.getElementById('social-toggle');
+  const runBody=document.getElementById('run-section-body');
+  const runToggle=document.getElementById('run-section-toggle');
+  if(_socialOpen){
+    if(!_socialLoaded){_socialLoaded=true;_initSocialPosting();}
+    panel.classList.add('open');
+    toggle.innerHTML='\u25be POST TO SOCIAL';
+    runBody.classList.add('collapsed');
+    runToggle.innerHTML='\u25b8 LLM CONFIGURATION & RESPONSE';
+    if(typeof _buildSocialUI==='function')_buildSocialUI();
+    const raw=document.getElementById('out-resp-body')?.dataset?.rawResponse||'';
+    if(raw){const editor=document.getElementById('social-editor');if(editor)editor.innerHTML=renderMdResponse(raw);}
+  }else{
+    panel.classList.remove('open');
+    toggle.innerHTML='\u25b8 POST TO SOCIAL';
+    runBody.classList.remove('collapsed');
+    runToggle.innerHTML='\u25be LLM CONFIGURATION & RESPONSE';
+  }
+});
+function _initSocialPosting(){
 (function(){
   const PLATFORMS={
     bluesky:{name:'Bluesky',icon:'🦋',charLimit:300,images:4,credType:'bluesky-cred',
@@ -9028,39 +9014,12 @@ document.getElementById('run-section-toggle').addEventListener('click',()=>{
     },
   };
 
-  let _socialOpen=false;
   let _selectedPlatforms=new Set();
   let _socialImages=[]; // [{name,type,data:ArrayBuffer,preview:string}]
   let _postPending=false;
 
-  // Toggle panel
-  document.getElementById('social-toggle').addEventListener('click',()=>{
-    _socialOpen=!_socialOpen;
-    const panel=document.getElementById('social-panel');
-    const toggle=document.getElementById('social-toggle');
-    const runBody=document.getElementById('run-section-body');
-    const runToggle=document.getElementById('run-section-toggle');
-    if(_socialOpen){
-      panel.classList.add('open');
-      toggle.innerHTML='\u25be POST TO SOCIAL';
-      // Collapse run section to give social maximum space
-      runBody.classList.add('collapsed');
-      runToggle.innerHTML='\u25b8 LLM CONFIGURATION & RESPONSE';
-      buildSocialUI();
-      // Load response content into editor
-      const raw=document.getElementById('out-resp-body')?.dataset?.rawResponse||'';
-      if(raw){
-        const editor=document.getElementById('social-editor');
-        editor.innerHTML=renderMdResponse(raw);
-      }
-    }else{
-      panel.classList.remove('open');
-      toggle.innerHTML='\u25b8 POST TO SOCIAL';
-      // Expand run section back
-      runBody.classList.remove('collapsed');
-      runToggle.innerHTML='\u25be LLM CONFIGURATION & RESPONSE';
-    }
-  });
+  // Expose buildSocialUI for the eager toggle handler
+  _buildSocialUI=buildSocialUI;
 
   function buildSocialUI(){
     buildToolbar();
@@ -9310,7 +9269,7 @@ document.getElementById('run-section-toggle').addEventListener('click',()=>{
     // Show results
     const summary=results.map(r=>r.ok?'\u2713 '+r.platform:'\u274c '+r.platform+': '+r.err).join('\n');
     setStatus(results.every(r=>r.ok)?'\u2713 All posted!':'Partial — see details');
-    alert('Post Results:\n\n'+summary);
+    showToast('Post Results: '+summary);
 
     _postPending=false;
     if(postBtn){postBtn.disabled=false;postBtn.textContent='📤 Post';}
@@ -9321,6 +9280,7 @@ document.getElementById('run-section-toggle').addEventListener('click',()=>{
     if(el)el.textContent=msg;
   }
 })();
+} // end _initSocialPosting
 
 // ═══════════════════════════════════════════════════════════
 // THEME TOGGLE + TEXT SIZE
@@ -9529,7 +9489,7 @@ function _runAutoSave(){
   // 6. Auto-sync to Gist if enabled
   if(_gistAutoSync)_autoGistSync();
 
-  // 6. Update timestamp
+  // 7. Update timestamp
   _lastAutoSave=new Date();
   const t=_lastAutoSave.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   _updateAutoSaveStatus('saved '+t);
@@ -9551,7 +9511,7 @@ function setAutoSave(minutes){
 // Folder picker for autosave destination
 document.getElementById('autosave-folder-btn').addEventListener('click',async()=>{
   if(!window.showDirectoryPicker){
-    alert('Your browser does not support the File System Access API.\nAutosave will continue to use localStorage only.');
+    showToast('Your browser does not support the File System Access API. Autosave will continue to use localStorage only.','err');
     return;
   }
   try{
