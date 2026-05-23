@@ -231,6 +231,15 @@ body.light .node-card{background:var(--card)}
 
 body.light .port-in{background:transparent}
 body.light .port-out{background:var(--dhi)}
+/* ── SCROLLBARS ── */
+/* Firefox */
+*{scrollbar-width:thin;scrollbar-color:var(--brd) transparent}
+/* Webkit / Blink */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--brdhi)}
+::-webkit-scrollbar-corner{background:transparent}
 /* SIZE SLIDER in topbar */
 #size-slider{width:75px;height:3px;accent-color:var(--acc);cursor:pointer;border:none;background:var(--brd);border-radius:2px;padding:0;vertical-align:middle;flex-shrink:0}
 #autosave-input{width:32px;background:transparent;border:1px solid var(--brd);border-radius:4px;color:var(--dhi);font-family:var(--mono);font-size:9px;padding:2px 4px;text-align:center}
@@ -285,7 +294,8 @@ select option{background:var(--panel)}
 
 #pipeline-tabbar{height:34px;background:var(--panel);border-bottom:1px solid var(--brd);display:flex;align-items:stretch;flex-shrink:0;overflow-x:auto;overflow-y:hidden;z-index:90}
 #pipeline-tabbar::-webkit-scrollbar{height:3px}
-#pipeline-tabbar::-webkit-scrollbar-thumb{background:var(--brd)}
+#pipeline-tabbar::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
+#pipeline-tabbar::-webkit-scrollbar-thumb:hover{background:var(--brdhi)}
 .ptab{display:flex;align-items:center;gap:6px;padding:0 12px;border-right:1px solid var(--brd);cursor:pointer;font-family:var(--mono);font-size:9px;color:var(--dim);white-space:nowrap;min-width:90px;max-width:160px;position:relative;flex-shrink:0;user-select:none}
 .ptab:hover{background:rgba(255,255,255,.03);color:var(--dhi)}
 .ptab.active{background:var(--surf);color:var(--txt);border-bottom:2px solid var(--acc)}
