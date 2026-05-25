@@ -650,9 +650,23 @@ select option{background:var(--panel)}
 .tag-input:focus{border-bottom-color:var(--acc);outline:none}
 .meta-row2{display:flex;gap:6px;margin-top:6px;align-items:center}
 .meta-row2>*{flex:1;min-width:0}
-.color-dots{display:flex;gap:4px}
-.cdot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent}
-.cdot.sel{border-color:#fff}
+.color-sel-wrap{position:relative;flex:0 0 auto !important}
+.color-swatch{width:16px;height:16px;border-radius:50%;border:2px solid var(--brd);cursor:pointer;flex-shrink:0}
+.color-swatch:hover{border-color:#fff}
+.color-popup{position:absolute;top:100%;left:0;margin-top:4px;background:var(--panel);border:1px solid var(--brd);border-radius:6px;padding:4px;display:flex;flex-wrap:wrap;gap:3px;z-index:999;max-width:140px}
+.color-popup .cp-dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;flex-shrink:0}
+.color-popup .cp-dot:hover{border-color:#fff}
+.color-popup .cp-dot.sel{border-color:#fff}
+.color-popup .cp-add{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px dashed var(--brd);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim);flex-shrink:0}
+.color-popup .cp-add:hover{border-color:var(--dim)}
+.cp-picker{position:absolute;top:100%;left:0;margin-top:4px;background:var(--panel);border:1px solid var(--brd);border-radius:6px;padding:8px;z-index:1000;width:160px}
+.cp-picker canvas{border-radius:4px;cursor:crosshair;display:block}
+.cp-hue-row{display:flex;gap:4px;margin-top:6px;align-items:center}
+.cp-hue-row input[type=range]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);border-radius:3px;outline:none}
+.cp-hue-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#fff;border:1px solid #666;cursor:pointer}
+.cp-hex-row{display:flex;gap:4px;margin-top:4px;align-items:center}
+.cp-hex-row input{flex:1;font-family:var(--mono);font-size:9px;background:var(--bg);border:1px solid var(--brd);border-radius:4px;padding:2px 4px;color:var(--dhi);width:0}
+.cp-hex-row .cp-preview{width:16px;height:16px;border-radius:50%;border:1px solid var(--brd)}
 .shape-sel{font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:5px;padding:2px 6px;color:var(--dhi);cursor:pointer}
 .cat-sel{font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:5px;padding:2px 6px;color:var(--dhi);cursor:pointer}
 .builtin-badge{font-family:var(--mono);font-size:7px;background:rgba(232,160,32,.12);border:1px solid rgba(232,160,32,.3);border-radius:3px;padding:1px 6px;color:var(--acc);flex-shrink:0}
@@ -891,7 +905,6 @@ select option{background:var(--panel)}
 .empty-state{padding:16px;text-align:center;font-size:11px;color:var(--dim)}
 .section-label{font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:6px;letter-spacing:.08em}
 .group-label{font-family:var(--mono);font-size:10px;color:var(--dhi);letter-spacing:.08em}
-.hidden-picker{position:absolute;opacity:0;pointer-events:none}
 .field-select{width:100%;font-size:10px;padding:4px 6px;background:var(--panel);border:1px solid var(--brd);border-radius:5px;color:var(--dhi);font-family:var(--mono)}
 
 </style>
@@ -1055,7 +1068,9 @@ select option{background:var(--panel)}
               <input class="tag-input" id="tag-input" placeholder="+ tag" type="text"/>
             </div>
             <div class="meta-row2">
-              <div class="color-dots" id="color-dots"></div>
+              <div class="color-sel-wrap" id="color-sel-wrap">
+                <div class="color-swatch" id="color-swatch" title="Click to pick · Double-click to edit"></div>
+              </div>
               <select class="shape-sel" id="shape-sel">
                 <option value="default">Standard</option>
                 <option value="dashed">Dashed</option>
@@ -1449,7 +1464,7 @@ function applyThemePreset(name){
 // ═══════════════════════════════════════════════════════════
 const COLORS={blue:'oklch(0.7 0.14 250)',purple:'oklch(0.68 0.16 300)',green:'oklch(0.72 0.17 165)',grn:'oklch(0.72 0.17 165)',accent:'oklch(0.75 0.16 70)',acc:'oklch(0.75 0.16 70)',cyan:'oklch(0.76 0.12 200)',cyn:'oklch(0.76 0.12 200)',orange:'oklch(0.72 0.17 55)',org:'oklch(0.72 0.17 55)',red:'oklch(0.65 0.2 25)',dimHi:'oklch(0.66 0.014 250)'};
 const CIDS=Object.keys(COLORS);
-const cx=id=>COLORS[id]||'oklch(0.66 0.014 250)';
+const cx=id=>{const v=COLORS[id];if(!v)return'oklch(0.66 0.014 250)';if(v.startsWith('oklch('))return v;if(/^#[0-9a-fA-F]{6}$/.test(v))return v;return'oklch(0.66 0.014 250)';};
 // Apply alpha to any color string (OKLCH or hex)
 function cxa(color,alpha){
   if(!color)return color;
@@ -4037,7 +4052,7 @@ function showTabRegion(show){
 // ═══════════════════════════════════════════════════════════
 // ── Editable color palette ────────────────────────────────
 const _CUSTOM_COLORS_KEY='pb_custom_colors';
-function _loadCustomColors(){try{const s=localStorage.getItem(_CUSTOM_COLORS_KEY);if(s){const o=JSON.parse(s);Object.assign(COLORS,o);}}catch(e){}}
+function _loadCustomColors(){try{const s=localStorage.getItem(_CUSTOM_COLORS_KEY);if(s){const o=JSON.parse(s);for(const[k,v]of Object.entries(o)){if(typeof v==='string'&&(v.startsWith('oklch(')||/^#[0-9a-fA-F]{6}$/.test(v)))COLORS[k]=v;}}}catch(e){}}
 const _DEFAULT_COLORS=Object.freeze({...COLORS});
 function _saveCustomColors(){
   const custom={};
@@ -4046,64 +4061,205 @@ function _saveCustomColors(){
 }
 _loadCustomColors();
 
-function renderColorDots(){
-  const cont=document.getElementById('color-dots');cont.innerHTML='';
-  Object.entries(COLORS).forEach(([id,hex])=>{
-    const d=document.createElement('div');d.className='cdot';d.dataset.cid=id;
-    d.style.background=hex;d.title=id+' ('+hex+') — dblclick to edit';
-    // Click: assign color
-    d.addEventListener('click',()=>{
-      const sk=getSk(inspCurrentId);if(!sk)return;
-      const canvasNode=selNode?getNodes().find(n=>n.id===selNode):null;
-      if(canvasNode){
-        canvasNode.color=id;rebuildNode(canvasNode);markPipelineDirty(activePipelineId);
-      }else{
-        sk.color=id;updateLibRow(sk.id);
-        getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.color)rebuildNode(n);});
-      }
-      // Update inspector dot highlight and name color without full rebuild
-      document.querySelectorAll('.cdot').forEach(dd=>dd.classList.toggle('sel',dd.dataset.cid===id));
-      const nc=cx(id);
-      document.getElementById('if-glyph').style.color=nc;
-      document.getElementById('if-name').style.color=nc;
-    });
-    // Dblclick: edit color via native picker
-    d.addEventListener('dblclick',e=>{
-      e.stopPropagation();
-      const picker=document.createElement('input');picker.type='color';picker.value=hex;
-      picker.className='hidden-picker';
-      document.body.appendChild(picker);
-      picker.addEventListener('input',()=>{
-        COLORS[id]=picker.value;
-        d.style.background=picker.value;d.title=id+' ('+picker.value+') — dblclick to edit';
-        _saveCustomColors();
-        // Update any visible nodes using this color
-        scene.querySelectorAll('.node').forEach(n=>{const nid=n.id.slice(3);const nd=getNodes().find(x=>x.id===nid);if(nd)rebuildNode(nd);});
-        debouncedRenderLib();
-      });
-      picker.addEventListener('change',()=>{picker.remove();});
-      picker.click();
-    });
-    cont.appendChild(d);
-  });
-  // Add a "+" dot to add new custom colors
-  const addDot=document.createElement('div');addDot.className='cdot';
-  addDot.style.cssText='background:transparent;border:2px dashed var(--brd);font-size:9px;display:flex;align-items:center;justify-content:center;color:var(--dim)';
-  addDot.textContent='+';addDot.title='Add custom color';
-  addDot.addEventListener('click',()=>{
-    const picker=document.createElement('input');picker.type='color';picker.value='#ffffff';
-    picker.className='hidden-picker';
-    document.body.appendChild(picker);
-    picker.addEventListener('change',()=>{
-      const newId='c'+Date.now().toString(36);
-      COLORS[newId]=picker.value;
-      _saveCustomColors();renderColorDots();renderInspector();
-      picker.remove();
-    });
-    picker.click();
-  });
-  cont.appendChild(addDot);
+let _colorPopup=null;
+let _currentColorId=null;
+
+function _closeColorPopup(){
+  if(_colorPopup){_colorPopup.remove();_colorPopup=null;}
+  document.removeEventListener('mousedown',_colorPopupOutside);
 }
+function _colorPopupOutside(e){
+  if(_colorPopup&&!_colorPopup.contains(e.target)&&e.target.id!=='color-swatch'){
+    _closeColorPopup();
+  }
+}
+
+function _applyColor(id){
+  _currentColorId=id;
+  const swatch=document.getElementById('color-swatch');
+  swatch.style.background=cx(id);
+  const sk=getSk(inspCurrentId);if(!sk)return;
+  const canvasNode=selNode?getNodes().find(n=>n.id===selNode):null;
+  if(canvasNode){
+    canvasNode.color=id;rebuildNode(canvasNode);markPipelineDirty(activePipelineId);
+  }else{
+    sk.color=id;updateLibRow(sk.id);
+    getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.color)rebuildNode(n);});
+  }
+  const nc=cx(id);
+  document.getElementById('if-glyph').style.color=nc;
+  document.getElementById('if-name').style.color=nc;
+}
+
+function _showColorPopup(){
+  _closeColorPopup();
+  const wrap=document.getElementById('color-sel-wrap');
+  const pop=document.createElement('div');pop.className='color-popup';
+  Object.entries(COLORS).forEach(([id,hex])=>{
+    const d=document.createElement('div');d.className='cp-dot'+(id===_currentColorId?' sel':'');
+    d.style.background=hex;d.title=id;
+    d.addEventListener('click',e=>{
+      e.stopPropagation();
+      _applyColor(id);
+      pop.querySelectorAll('.cp-dot').forEach(dd=>dd.classList.remove('sel'));
+      d.classList.add('sel');
+      _closeColorPopup();
+    });
+    pop.appendChild(d);
+  });
+  // + add dot
+  const addD=document.createElement('div');addD.className='cp-add';addD.textContent='+';addD.title='Add custom color';
+  addD.addEventListener('click',e=>{
+    e.stopPropagation();
+    _openPickerInline((newHex)=>{
+      const newId='c'+Date.now().toString(36);
+      COLORS[newId]=newHex;_saveCustomColors();
+      _applyColor(newId);
+    },'#ffffff');
+  });
+  pop.appendChild(addD);
+  wrap.appendChild(pop);
+  _colorPopup=pop;
+  setTimeout(()=>document.addEventListener('mousedown',_colorPopupOutside),0);
+}
+
+function _openPickerInline(onColor,initialHex,onClose){
+  _closeColorPopup();
+  const wrap=document.getElementById('color-sel-wrap');
+  const panel=document.createElement('div');panel.className='cp-picker';
+
+  // SV canvas
+  const cvs=document.createElement('canvas');cvs.width=144;cvs.height=80;
+  panel.appendChild(cvs);
+  const ctx=cvs.getContext('2d');
+
+  // Hue slider
+  const hueRow=document.createElement('div');hueRow.className='cp-hue-row';
+  const hueSlider=document.createElement('input');hueSlider.type='range';hueSlider.min=0;hueSlider.max=360;hueSlider.value=0;
+  hueRow.appendChild(hueSlider);
+  panel.appendChild(hueRow);
+
+  // Hex input + preview
+  const hexRow=document.createElement('div');hexRow.className='cp-hex-row';
+  const preview=document.createElement('div');preview.className='cp-preview';
+  const hexIn=document.createElement('input');hexIn.maxLength=7;
+  hexRow.appendChild(preview);hexRow.appendChild(hexIn);
+  panel.appendChild(hexRow);
+
+  let hue=0,sat=1,val=1;
+
+  // Parse initial color
+  function hexToHsv(hex){
+    hex=hex.replace('#','');
+    const r=parseInt(hex.substring(0,2),16)/255;
+    const g=parseInt(hex.substring(2,4),16)/255;
+    const b=parseInt(hex.substring(4,6),16)/255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+    let h=0;
+    if(d){if(max===r)h=((g-b)/d+6)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;}
+    return{h,s:max?d/max:0,v:max};
+  }
+  function hsvToHex(h,s,v){
+    const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;
+    let r=0,g=0,b=0;
+    if(h<60){r=c;g=x;}else if(h<120){r=x;g=c;}else if(h<180){g=c;b=x;}
+    else if(h<240){g=x;b=c;}else if(h<300){r=x;b=c;}else{r=c;b=x;}
+    const toH=n=>Math.round((n+m)*255).toString(16).padStart(2,'0');
+    return'#'+toH(r)+toH(g)+toH(b);
+  }
+
+  if(initialHex){
+    // Convert oklch/non-hex colors to hex via computed style
+    if(initialHex&&!initialHex.startsWith('#')){
+      const tmp=document.createElement('div');tmp.style.color=initialHex;document.body.appendChild(tmp);
+      const rgb=getComputedStyle(tmp).color;tmp.remove();
+      const m=rgb.match(/(\d+)/g);
+      if(m&&m.length>=3)initialHex='#'+m.slice(0,3).map(n=>(+n).toString(16).padStart(2,'0')).join('');
+      else initialHex='#ffffff';
+    }
+    const hsv=hexToHsv(initialHex);hue=hsv.h;sat=hsv.s;val=hsv.v;hueSlider.value=hue;
+  }
+
+  function drawSV(){
+    const w=cvs.width,h=cvs.height;
+    for(let x=0;x<w;x++){
+      for(let y=0;y<h;y++){
+        const s=x/w,v=1-y/h;
+        ctx.fillStyle=hsvToHex(hue,s,v);
+        ctx.fillRect(x,y,1,1);
+      }
+    }
+  }
+  function update(){
+    const hex=hsvToHex(hue,sat,val);
+    hexIn.value=hex;preview.style.background=hex;
+    onColor(hex);
+  }
+
+  drawSV();update();
+
+  // Canvas interaction
+  function pickFromCanvas(e){
+    const rect=cvs.getBoundingClientRect();
+    sat=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+    val=Math.max(0,Math.min(1,1-(e.clientY-rect.top)/rect.height));
+    update();
+  }
+  let dragging=false;
+  cvs.addEventListener('mousedown',e=>{e.stopPropagation();dragging=true;pickFromCanvas(e);});
+  document.addEventListener('mousemove',e=>{if(dragging)pickFromCanvas(e);});
+  document.addEventListener('mouseup',()=>{dragging=false;});
+
+  hueSlider.addEventListener('input',()=>{hue=+hueSlider.value;drawSV();update();});
+
+  hexIn.addEventListener('change',()=>{
+    let v=hexIn.value.trim();if(!v.startsWith('#'))v='#'+v;
+    if(/^#[0-9a-fA-F]{6}$/.test(v)){
+      const hsv=hexToHsv(v);hue=hsv.h;sat=hsv.s;val=hsv.v;
+      hueSlider.value=hue;drawSV();update();
+    }
+  });
+
+  wrap.appendChild(panel);
+  _colorPopup=panel;
+
+  function outsideClick(e){
+    if(!panel.contains(e.target)&&e.target.id!=='color-swatch'){
+      panel.remove();_colorPopup=null;
+      document.removeEventListener('mousedown',outsideClick);
+      if(onClose)onClose();
+    }
+  }
+  setTimeout(()=>document.addEventListener('mousedown',outsideClick),0);
+}
+
+function renderColorDots(){/* options rebuilt on popup open */}
+
+// One-time listeners
+(function _initColorSel(){
+  const swatch=document.getElementById('color-swatch');
+  let _dblClickTimer=null;
+
+  swatch.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(_dblClickTimer)return;
+    _dblClickTimer=setTimeout(()=>{_dblClickTimer=null;_showColorPopup();},250);
+  });
+
+  swatch.addEventListener('dblclick',e=>{
+    e.stopPropagation();
+    if(_dblClickTimer){clearTimeout(_dblClickTimer);_dblClickTimer=null;}
+    _closeColorPopup();
+    const id=_currentColorId;if(!id)return;
+    _openPickerInline((newHex)=>{
+      COLORS[id]=newHex;_saveCustomColors();
+      document.getElementById('color-swatch').style.background=newHex;
+      scene.querySelectorAll('.node').forEach(n=>{const nid=n.id.slice(3);const nd=getNodes().find(x=>x.id===nid);if(nd)rebuildNode(nd);});
+      debouncedRenderLib();
+    },COLORS[id]);
+  });
+})();
+
 renderColorDots();
 document.getElementById('shape-sel').addEventListener('change',e=>{
   const sk=getSk(inspCurrentId);if(!sk)return;
@@ -4343,7 +4499,8 @@ function renderInspector(){
   document.getElementById('if-id').textContent=sk.id;
   document.getElementById('if-desc').value=sk.desc||'';
   setTimeout(()=>{const ta=document.getElementById('if-desc');ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';},0);
-  document.querySelectorAll('.cdot').forEach(d=>d.classList.toggle('sel',d.dataset.cid===displayColor));
+  _currentColorId=displayColor||Object.keys(COLORS)[0];
+  document.getElementById('color-swatch').style.background=cx(_currentColorId);
   document.getElementById('shape-sel').value=displayShape;
   const catSel=document.getElementById('cat-sel');
   const cats=[...catSel.options].map(o=>o.value);
