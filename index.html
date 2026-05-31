@@ -738,6 +738,7 @@ visible
   <div class="section-title">Features</div>
   <ul>
     <li><a href="#vault" onclick="showSection('vault')">Vault & Credentials</a></li>
+    <li><a href="#display" onclick="showSection('display')">Themes & Display</a></li>
     <li><a href="#autosave" onclick="showSection('autosave')">Autosave & Backup</a></li>
     <li><a href="#gist-sync" onclick="showSection('gist-sync')">GitHub Gist Sync</a></li>
     <li><a href="#import-export" onclick="showSection('import-export')">Import & Export</a></li>
@@ -775,8 +776,8 @@ visible
 
 <h3>Quick Start</h3>
 <ol>
-  <li><strong>Open the file</strong> — Double-click <code>GUIness_v27.html</code> or serve it from <code>localhost</code> for full File System Access API support.</li>
-  <li><strong>Explore the primitives</strong> — The Node Library on the left contains 6 primitive node types. Click the <code>+</code> button next to any primitive to add it to the canvas.</li>
+  <li><strong>Open the file</strong> — Double-click <code>GUIness.html</code> or serve it from <code>localhost</code> for full File System Access API support.</li>
+  <li><strong>Explore the primitives</strong> — The Node Library on the left contains 8 primitive node types. Click the <code>+</code> button next to any primitive to add it to the canvas.</li>
   <li><strong>Connect nodes</strong> — Drag from an output port (solid circle) to an input port (open circle) to create connections.</li>
   <li><strong>Configure nodes</strong> — Select a node to see its fields in the Inspector panel on the right. Fill in instructions, code, variables, or conditions.</li>
   <li><strong>Run your pipeline</strong> — Click <strong>Export → LLM</strong> in the top right to open the Run drawer. Add your API key to the Vault, select a provider, and hit <strong>▶ Send to LLM</strong>.</li>
@@ -785,7 +786,7 @@ visible
 <h3>Requirements</h3>
 <ul>
   <li>A modern browser (Chrome, Edge, Firefox, Safari)</li>
-  <li>An API key for at least one LLM provider (Anthropic, OpenAI, Gemini, or a local Ollama/OpenClaw instance)</li>
+  <li>An API key for at least one LLM provider (Anthropic, OpenAI, Gemini, or a local Ollama / Friday / OpenAI-compatible instance)</li>
 </ul>
 
 <h3>Local LLM Setup</h3>
@@ -795,8 +796,11 @@ visible
 <pre>OLLAMA_ORIGINS=* ollama serve</pre>
 <p>In the Run drawer, select <strong>⊙ Local</strong>, leave the URL as <code>http://localhost:11434</code>, and hit <strong>Detect</strong> to find your models.</p>
 
-<h3>OpenClaw Integration</h3>
-<p>If you use <a href="https://openclaw.dev" target="_blank">OpenClaw</a>, enable the chat completions endpoint in <code>~/.openclaw/openclaw.json</code>, set the URL to <code>http://localhost:18789</code>, and add your gateway token to the Vault as an <strong>🦞 OpenClaw Token</strong>.</p>
+<h3>Friday AI Agent</h3>
+<p>If you run <a href="https://github.com/Mezzxx" target="_blank">Friday</a> as a local LLM proxy, point the Run drawer's URL field to <code>http://localhost:3777</code>. Friday exposes its configured models via the OpenAI-compatible <code>/v1/models</code> endpoint, so <strong>Detect</strong> works out of the box. If Friday requires auth, add your token to the Vault as <strong>🤖 Friday Token</strong>.</p>
+
+<h3>Other OpenAI-Compatible Servers</h3>
+<p>The Local provider also works with any OpenAI-compatible server — LM Studio, llama.cpp, Jan, etc. Set the server URL in the Run drawer and hit <strong>Detect</strong>.</p>
 </div>
 
 <!-- ═══════════════════════════════════════════ -->
@@ -811,32 +815,32 @@ visible
 
   <!-- Hotspot: Top toolbar -->
   <div class="hotspot" style="left:0;top:0;width:100%;height:3.5%">
-    <span class="tip"><strong>Top Toolbar</strong> — Pipeline name, quick actions (Delete Node, Reset View, Fit, Undo, Redo, Clear), save/load buttons, Vault access, key count, snap toggle, and the Export → LLM drawer.</span>
+    <span class="tip"><strong>Top Toolbar</strong> — ◈ GUIness logo, version badge, live skill count, and a status line of canvas keybindings. Action row: Delete Node, Reset View, Fit, Undo, Redo, Clear, Save Pipeline, Save as Node, Load Library, Save Library, GitHub (Gist sync), Vault (credentials), ⌨ Keys (customizable shortcuts), autosave interval + folder picker, "saved" status indicator, 🌙 light/dark toggle, theme preset selector (Midnight, Ember, Forest, Ocean, Violet), Snap toggle, UI text size slider, and the Export → LLM drawer.</span>
   </div>
 
   <!-- Hotspot: Tab bar -->
   <div class="hotspot" style="left:0;top:3.5%;width:100%;height:3%">
-    <span class="tip"><strong>Pipeline Tabs</strong> — Each open pipeline is a tab. Click to switch, double-click to rename, drag to reorder, × to close. The <code>+</code> button creates a new pipeline.</span>
+    <span class="tip"><strong>Pipeline Tabs</strong> — Each open pipeline is a tab. Click to switch, double-click to rename, drag to reorder, × to close. <strong>▣ Open</strong> recovers recently-closed pipelines. The <code>+</code> button creates a new pipeline.</span>
   </div>
 
   <!-- Hotspot: Left panel - Library -->
-  <div class="hotspot" style="left:-10;top:6.5%;width:18%;height:93.5%">
-    <span class="tip"><strong>Node Library</strong> — Browse, search, and filter your skills. Four tabs: My Skills, Built-In, Recent, Pipelines. Click <code>+</code> next to any skill to add it to the canvas. Use Generate to create skills with AI, Add Skill to create manually, or Import File to load from disk.</span>
+  <div class="hotspot" style="left:0;top:6.5%;width:18%;height:93.5%">
+    <span class="tip"><strong>Node Library</strong> — Browse, search, sort, and filter your skills. Four tabs: My Skills, Built-In, Recent, Pipelines. Skills are grouped into collapsible, renamable categories. Click <code>+</code> next to any skill to add it to the canvas, or drag a skill onto the canvas. Top actions: <strong>Generate</strong> creates a skill with AI, <strong>Add Skill</strong> opens the manual wizard, <strong>Import File</strong> loads .md/.json/.txt/.skill/.zip files.</span>
   </div>
 
   <!-- Hotspot: Canvas -->
   <div class="hotspot" style="left:18%;top:6.5%;width:56%;height:93.5%">
-    <span class="tip"><strong>Pipeline Canvas</strong> — The main workspace. Drop nodes here, connect them with edges, drag to move, scroll to zoom. Pan with middle-click or spacebar+drag. Double-click empty space for quick-add search. Alignment guides appear automatically during drag. The minimap in the bottom-right shows an overview.</span>
+    <span class="tip"><strong>Pipeline Canvas</strong> — The main workspace. Drop nodes here, connect them with edges, drag to move, scroll to zoom. Pan with middle-click or Space+drag. Double-click empty space for quick-add search. Double-click a custom skill node to dive into its internal graph. Alignment guides appear automatically during drag. The minimap in the bottom-right shows an overview with a viewport indicator.</span>
   </div>
 
   <!-- Hotspot: Right panel - Inspector -->
   <div class="hotspot" style="left:74%;top:6.5%;width:26%;height:93.5%">
-    <span class="tip"><strong>Inspector Panel</strong> — Shows details for the selected node. Edit the name, description, tags, color, shape, and category at the top. Below that: node fields (instructions, code, variables), I/O ports, and the Skill Content viewer/editor.</span>
+    <span class="tip"><strong>Inspector Panel</strong> — Details for the selected library skill or canvas node. Top: glyph, name, description, tags, color, shape, category, Built-In toggle. Middle: node-specific fields (Instructions, Code, Variables, etc.), Executor, Start Node toggle, I/O port management. Bottom: Skill Content viewer/editor with View / Edit / Apply / Merge controls. Edits to a library skill auto-save; edits to a canvas node affect only that instance.</span>
   </div>
 
   <!-- Hotspot: Minimap -->
   <div class="hotspot" style="left:55%;top:85%;width:14%;height:13%">
-    <span class="tip"><strong>Minimap</strong> — A birds-eye view of your pipeline. Nodes appear as colored rectangles, edges as lines. Click to navigate, drag to pan. Collapse with the ▾ MAP toggle.</span>
+    <span class="tip"><strong>Minimap</strong> — A birds-eye view of your pipeline. Nodes appear as colored rectangles, edges as lines. The pale rectangle shows your current viewport position. Click to jump, drag to pan. Collapse with the ▾ MAP toggle.</span>
   </div>
 </div>
 </div>
@@ -846,7 +850,7 @@ visible
 <!-- ═══════════════════════════════════════════ -->
 <div id="primitives" class="section">
 <h1>Primitives</h1>
-<p>GUIness has 6 primitive node types. Everything else — custom skills, templates, agents — is composed from these primitives.</p>
+<p>GUIness has 8 primitive node types. Everything else — custom skills, templates, agents — is composed from these primitives.</p>
 
 <div class="prim-grid">
   <div class="prim-card">
@@ -854,8 +858,12 @@ visible
     <div class="prim-desc">Raw text entry point. Type or paste content directly. No LLM call, no inputs — output only. Use as the starting point for static content like prompts, templates, or reference material.</div>
   </div>
   <div class="prim-card">
-    <div class="prim-head"><span class="prim-glyph">⬡</span><span class="prim-name" style="color:#e8a020">INPUTS</span></div>
-    <div class="prim-desc">General-purpose input boundary. Accepts text, files (with upload), URLs, API endpoints, or clipboard data. Has a Source Type selector and supports file upload with automatic content extraction.</div>
+    <div class="prim-head"><span class="prim-glyph">⬡</span><span class="prim-name" style="color:#e8a020">FILE</span></div>
+    <div class="prim-desc">Upload a file to provide its contents to the pipeline as context. Supports drag-and-drop with automatic content extraction. Use for documents, transcripts, code files, or any local data source.</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">⬢</span><span class="prim-name" style="color:#e8a020">FETCH</span></div>
+    <div class="prim-desc">Fetch a URL or API endpoint at edit time. Body content becomes the node's output; response status and headers are exposed as a separate metadata port. Supports custom headers (e.g. <code>Authorization: Bearer …</code>).</div>
   </div>
   <div class="prim-card">
     <div class="prim-head"><span class="prim-glyph">⚙</span><span class="prim-name" style="color:#fb923c">COMPUTE</span></div>
@@ -863,7 +871,7 @@ visible
   </div>
   <div class="prim-card">
     <div class="prim-head"><span class="prim-glyph">⊞</span><span class="prim-name" style="color:#22d3ee">CODE</span></div>
-    <div class="prim-desc">A code block with language selection. Supports Python, JavaScript, TypeScript, Bash, SQL, and more. Use to define scripts, queries, configs, or any executable dependency in your pipeline.</div>
+    <div class="prim-desc">A code block with language selection. Supports Python, JavaScript, TypeScript, Bash, SQL, and more. Includes a Tool Parameters (JSON Schema) field for defining GPT function-call parameter shapes when exported.</div>
   </div>
   <div class="prim-card">
     <div class="prim-head"><span class="prim-glyph">◇</span><span class="prim-name" style="color:#c084fc">ROUTER</span></div>
@@ -872,6 +880,10 @@ visible
   <div class="prim-card">
     <div class="prim-head"><span class="prim-glyph">◎</span><span class="prim-name" style="color:#34d399">CONTEXT</span></div>
     <div class="prim-desc">State aggregation — no LLM call. Merges multiple inputs and variables into a unified context object. Use to combine research, audience data, and constraints before feeding into Compute nodes.</div>
+  </div>
+  <div class="prim-card">
+    <div class="prim-head"><span class="prim-glyph">⨁</span><span class="prim-name" style="color:#c084fc">MAP</span></div>
+    <div class="prim-desc">Iterates the downstream pipeline once per item in a collection input. Split Mode controls parsing (Auto / JSON Array / Newlines / Comma-separated / Custom delimiter). Results are joined with a configurable separator. Max Iterations guards against runaway inputs.</div>
   </div>
 </div>
 
@@ -921,7 +933,7 @@ visible
 <p>Several ways to add nodes to the canvas:</p>
 <ul>
   <li><strong>Library</strong> — Click the <code>+</code> button next to any skill, or drag a skill from the Node Library onto the canvas</li>
-  <li><strong>Quick Add</strong> — Double-click on empty canvas to open a search popup and place a node at that position</li>
+  <li><strong>Quick Add</strong> — Double-click on empty canvas (or press <code>Q</code>) to open a search popup and place a node at that position</li>
   <li><strong>Import</strong> — Use <strong>⬆ Import File</strong> or drag-and-drop <code>.ppln</code>, <code>.sklb</code>, <code>.md</code>, <code>.txt</code>, <code>.zip</code>, or <code>.json</code> files onto the canvas</li>
   <li><strong>Keyboard</strong> — Press <code>/</code> to focus the library search, then click <code>+</code> to place</li>
 </ul>
@@ -941,6 +953,10 @@ visible
   <li><strong>Bottom drag bar</strong> on the content drawer — resize the drawer height</li>
   <li><strong>Double-click the node body</strong> to open its internal graph (for custom skills)</li>
   <li><strong>Node count badge</strong> — pipeline-type nodes with internal graphs show a small badge (e.g. <code>5n</code>) indicating how many internal nodes they contain</li>
+  <li><strong>START badge</strong> — a green pill in the header when this node is marked as the pipeline's explicit start point (toggle via Inspector or right-click → Set as Start Node)</li>
+  <li><strong>Divergence dot</strong> — a small amber dot next to the node title means the node's skill content has been edited here on the canvas and now differs from the library version. Use the content drawer's <strong>Merge</strong> button to push changes back to the library.</li>
+  <li><strong>Warning badge</strong> — Map nodes whose body contains one or more Router nodes display an amber <strong>⚠</strong> in the header, since each Map iteration could trigger nested loops. The Inspector's Fields tab shows the projected upper-bound call count.</li>
+  <li><strong>Right-click context menu</strong> — Set as Start Node, Open Graph, Save as Skill, Merge to Library, Copy, Paste, Duplicate, Delete</li>
   <li><strong>Delete animation</strong> — deleted nodes fade out with a brief scale-down animation for visual confirmation</li>
 </ul>
 
@@ -975,7 +991,7 @@ visible
 <h3>Tabs</h3>
 <div class="feature-list">
   <div class="feature-item"><strong>MY SKILLS</strong><p>User-created skills. Editable, deletable, organized by category.</p></div>
-  <div class="feature-item"><strong>BUILT-IN</strong><p>The 6 primitive nodes plus Graph I/O. Locked — can't be edited or deleted.</p></div>
+  <div class="feature-item"><strong>BUILT-IN</strong><p>The 8 primitive nodes plus Graph I/O. Locked — can't be edited or deleted.</p></div>
   <div class="feature-item"><strong>RECENT</strong><p>Recently used skills for quick access.</p></div>
   <div class="feature-item"><strong>PIPELINES</strong><p>Open and recently closed pipelines.</p></div>
 </div>
@@ -1007,6 +1023,8 @@ visible
 <h1>Inspector Panel</h1>
 <p>The right panel shows details for the currently selected node. The <code>▸</code> collapse button and "INSPECTOR" header are always visible at the top, regardless of whether a node is selected. The panel adapts its content based on whether you selected a node from the library or from the canvas.</p>
 
+<p>Edits to a <strong>library skill</strong> (name, glyph, tags, color, etc.) save automatically to localStorage and propagate to every canvas instance that hasn't diverged. Edits to a <strong>canvas-node selection</strong> affect only that node instance — use <strong>Apply</strong> to commit content changes to the instance, or <strong>Merge</strong> to push them back to the library skill.</p>
+
 <h3>Top Section — Metadata</h3>
 <ul>
   <li><strong>Glyph</strong> — Click to change the node's icon</li>
@@ -1023,18 +1041,29 @@ visible
 <p>When a canvas node is selected, the inspector shows its configurable fields. These vary by primitive:</p>
 <ul>
   <li><strong>Text</strong> — Content (codeeditor)</li>
-  <li><strong>Inputs</strong> — Source Type, Content/Path/URL, Upload File, Headers, Description</li>
+  <li><strong>File</strong> — Upload File, Description, Captured Content</li>
+  <li><strong>Fetch</strong> — URL / Endpoint, Headers, Fetch trigger button, Captured Content, Response Metadata, Description</li>
   <li><strong>Compute</strong> — Instructions, Executor</li>
-  <li><strong>Code</strong> — Language, Code</li>
+  <li><strong>Code</strong> — Language, Code, Tool Parameters (JSON Schema)</li>
   <li><strong>Router</strong> — Condition, Evaluation mode, Max Loops</li>
   <li><strong>Context</strong> — Variables, Merge Mode</li>
+  <li><strong>Map</strong> — Split Mode, Custom Delimiter, Join Separator, Max Iterations</li>
 </ul>
+<p>Below the fields, a <strong>Start Node</strong> checkbox lets you mark this node as the explicit starting point of the pipeline. Marked nodes display a green <strong>START</strong> badge in their header.</p>
 
 <h3>I/O Ports</h3>
 <p>The INPUTS and OUTPUTS sections let you add, remove, rename, and set types for the node's connection ports. Click <code>+ Add</code> to create new ports. Click <code>Edit</code> to modify port names.</p>
 
 <h3>Content Tab</h3>
-<p>Shows the skill's raw content rendered as markdown. Click <strong>Edit</strong> to modify the content directly. <strong>Save</strong> creates a new skill branch with your changes.</p>
+<p>Shows the skill's raw content rendered as markdown. For logic-family nodes (Compute, Router, Map, custom skills), the content drawer uses a <strong>View / Edit / Cancel / Apply / Merge</strong> model:</p>
+<ul>
+  <li><strong>View</strong> — rendered markdown preview</li>
+  <li><strong>Edit</strong> — switch to a raw textarea for changes</li>
+  <li><strong>Apply</strong> — commit changes to this canvas node only. The amber divergence dot appears in the node header to indicate the node now differs from its library skill.</li>
+  <li><strong>Cancel</strong> — discard changes</li>
+  <li><strong>Merge</strong> — push the diverged content back to the library skill, so all instances (including future ones) reflect the change. Ghosted until divergence exists. Opens a chooser with two options: <strong>Update existing skill</strong> overwrites the library version; <strong>Branch into new skill</strong> creates a sibling with a new name, leaving the original intact.</li>
+</ul>
+<p>Input-family nodes (File, Fetch) use a direct inline-edit textarea instead of the toggle model — content changes apply immediately.</p>
 
 <h3>Graph Tab</h3>
 <p>For custom skills, shows an overview and the <strong>Open Graph</strong> button to dive into the internal sub-graph.</p>
@@ -1105,7 +1134,7 @@ visible
 <p>The Run section in the Export drawer lets you send your compiled pipeline directly to an LLM and see results in real time.</p>
 
 <h3>Providers</h3>
-<p>Select from Anthropic, OpenAI, Gemini, or Local (Ollama/OpenClaw). Each provider uses API keys stored in the Vault. Gemini models are fetched live from the API.</p>
+<p>Select from Anthropic, OpenAI, Gemini, or Local. Each provider uses API keys stored in the Vault. Gemini models are fetched live from the API. The Local provider works with Ollama, Friday, or any OpenAI-compatible server (LM Studio, llama.cpp, Jan).</p>
 
 <h3>Execution Modes</h3>
 <div class="feature-list">
@@ -1120,6 +1149,14 @@ visible
   <li><strong>Copy / Save</strong> — Copy as text or download with auto-detected file extension (.md, .html, .py, etc.)</li>
   <li><strong>Follow-up</strong> — Send additional messages with full conversation history preserved</li>
   <li><strong>Clear</strong> — Reset the response and conversation history</li>
+</ul>
+
+<h3>Cost Projection & Safety</h3>
+<p>When the graph contains Map nodes with downstream Routers, the upper-bound LLM call count can grow quickly. GUIness adds three layers of visibility:</p>
+<ul>
+  <li><strong>Canvas badge</strong> — Map nodes whose body contains Routers show an amber <strong>⚠</strong> in the header</li>
+  <li><strong>Inspector projection</strong> — the Map node's Fields tab shows a dim line like <code>⚠ Body contains 2 Routers (max 6 loops). With 10 iterations, up to ~70 LLM calls.</code></li>
+  <li><strong>Pre-run confirm</strong> — before running, if the projected total exceeds <code>HIGH_CALL_THRESHOLD</code> (default: 100), a confirmation dialog appears. Below threshold the dialog never shows.</li>
 </ul>
 </div>
 
@@ -1159,14 +1196,42 @@ visible
   <tr><td>Anthropic API Key</td><td>✦</td><td>Claude models via Run Pipeline</td></tr>
   <tr><td>OpenAI API Key</td><td>⬡</td><td>GPT models via Run Pipeline</td></tr>
   <tr><td>Gemini API Key</td><td>✧</td><td>Gemini models + live model list</td></tr>
-  <tr><td>OpenClaw Token</td><td>🦞</td><td>OpenClaw gateway authentication</td></tr>
+  <tr><td>Friday Token</td><td>🤖</td><td>Friday AI Agent authentication</td></tr>
   <tr><td>GitHub Token</td><td>⎇</td><td>Gist sync (classic token with gist scope)</td></tr>
   <tr><td>Gist ID</td><td>◈</td><td>Target Gist for sync</td></tr>
   <tr><td>Bluesky Credentials</td><td>🦋</td><td>Post to Bluesky (handle:app-password)</td></tr>
   <tr><td>LinkedIn Token</td><td>💼</td><td>Post to LinkedIn</td></tr>
-  <tr><td>Twitter Token</td><td>𝕏</td><td>Post to Twitter</td></tr>
+  <tr><td>Twitter/X Token</td><td>𝕏</td><td>Post to Twitter/X</td></tr>
   <tr><td>Meta/IG Token</td><td>📷</td><td>Post to Instagram</td></tr>
+  <tr><td>API Key</td><td>🔑</td><td>Generic API key for custom integrations</td></tr>
+  <tr><td>Custom</td><td>◆</td><td>Free-form credential for anything else</td></tr>
 </table>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- THEMES & DISPLAY -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="display" class="section">
+<h1>Themes & Display</h1>
+<p>GUIness ships with five built-in color themes plus a light/dark toggle and a global UI text size slider. All three controls live in the top toolbar and persist across sessions via localStorage.</p>
+
+<h3>Theme Presets</h3>
+<p>The theme dropdown in the toolbar offers five OKLCH-based presets:</p>
+<table>
+  <tr><th>Preset</th><th>Hue family</th><th>Use when</th></tr>
+  <tr><td><strong>Midnight</strong></td><td>Cool blue-grey, amber accent</td><td>Default — high contrast, long sessions</td></tr>
+  <tr><td><strong>Ember</strong></td><td>Warm red-orange, hot accent</td><td>Creative work, lower brightness rooms</td></tr>
+  <tr><td><strong>Forest</strong></td><td>Cool green, sage accent</td><td>Calmer surface for long writing sessions</td></tr>
+  <tr><td><strong>Ocean</strong></td><td>Deep blue, cyan accent</td><td>Reduced eye strain at night</td></tr>
+  <tr><td><strong>Violet</strong></td><td>Purple, magenta accent</td><td>High visual differentiation for screenshots</td></tr>
+</table>
+<p>Each preset swaps a fixed set of CSS custom properties on <code>:root</code>. To add your own preset, extend the <code>THEME_PRESETS</code> map in the CONFIG block.</p>
+
+<h3>Light / Dark Toggle</h3>
+<p>The <strong>🌙</strong> / <strong>🌑</strong> button next to the theme dropdown flips between the active preset's dark and light variants. The toggle is independent of the preset selector — you can run any preset in either mode.</p>
+
+<h3>UI Text Size</h3>
+<p>The <strong>A — A</strong> slider on the right side of the toolbar scales the base font size from 10px to 20px in 0.5px steps. The setting applies globally and survives reloads.</p>
 </div>
 
 <!-- ═══════════════════════════════════════════ -->
@@ -1176,7 +1241,7 @@ visible
 <h1>Autosave & Backup</h1>
 
 <h3>localStorage</h3>
-<p>Both skills and pipelines are saved to localStorage. Writes are debounced (500ms idle) to avoid micro-stutters during rapid operations like dragging or batch edits. The configured autosave interval (default: 1 minute) triggers a full save. A safety-net flush fires immediately on page close.</p>
+<p>Both skills and pipelines are saved to localStorage. Every edit — rename, tag, color change, content edit, anything — triggers a debounced save (500ms idle) so rapid operations like dragging or batch edits collapse into a single write. The configured autosave interval (default: 1 minute) triggers a full save regardless of edit state. A safety-net flush fires immediately on page close.</p>
 
 <h3>File System Backup</h3>
 <p>Click the <strong>📁</strong> button in the toolbar to select a backup directory. Three files are written on each autosave:</p>
@@ -1267,6 +1332,7 @@ visible
 <!-- ═══════════════════════════════════════════ -->
 <div id="shortcuts" class="section">
 <h1>Keyboard Shortcuts</h1>
+<p>All shortcuts below are remappable. Click <strong>⌨ Keys</strong> in the toolbar (or press <code>Ctrl+/</code>) to open the keybindings overlay, then click <strong>Edit</strong> next to any binding and press the new key combination. Bindings persist to localStorage. The structural keys — Space, Alt, Escape, Tab — are fixed and can't be remapped.</p>
 
 <table>
   <tr><th>Key</th><th>Action</th></tr>
@@ -1276,6 +1342,11 @@ visible
   <tr><td><code>Ctrl+C</code></td><td>Copy selected node(s)</td></tr>
   <tr><td><code>Ctrl+V</code></td><td>Paste node(s)</td></tr>
   <tr><td><code>Shift+D</code></td><td>Duplicate selected node(s)</td></tr>
+  <tr><td><code>Ctrl+S</code></td><td>Quick-save pipeline to last location (Save As… if no location set)</td></tr>
+  <tr><td><code>Ctrl+Shift+S</code></td><td>Save Pipeline As…</td></tr>
+  <tr><td><code>Ctrl+G</code></td><td>Open AI Generate dialog</td></tr>
+  <tr><td><code>Ctrl+/</code></td><td>Open keybindings overlay</td></tr>
+  <tr><td><code>Q</code></td><td>Quick Add node at canvas center</td></tr>
   <tr><td><code>Spacebar + Drag</code></td><td>Pan the canvas</td></tr>
   <tr><td><code>Scroll Wheel</code></td><td>Zoom in/out</td></tr>
   <tr><td><code>Ctrl+A</code></td><td>Select all nodes</td></tr>
@@ -1286,6 +1357,7 @@ visible
   <tr><td><code>Tab</code></td><td>Enter internal graph of selected node</td></tr>
   <tr><td><code>Double-click canvas</code></td><td>Open quick-add search popup</td></tr>
   <tr><td><code>Double-click node</code></td><td>Open internal graph</td></tr>
+  <tr><td><code>Right-click node</code></td><td>Open context menu (Start Node, Save as Skill, Merge, Copy/Paste, Duplicate, Delete)</td></tr>
 </table>
 </div>
 
