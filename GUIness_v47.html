@@ -116,7 +116,7 @@ Drag-and-drop is supported on the canvas and library panel.
   Space + drag   Pan the canvas
   Scroll         Zoom
   Tab            Enter the internal graph of the selected node
-  Escape         Cancel connection / exit graph / clear selection
+  Escape         Close open overlay / cancel connection / exit graph / clear selection
   Delete/Backspace   Delete selected node(s)
   Shift + click  Add node to multi-selection
 
@@ -125,7 +125,8 @@ Drag-and-drop is supported on the canvas and library panel.
 <!DOCTYPE html>
 <!--
   ╔═══════════════════════════════════════════════════════════════╗
-  ║  GUIness v27 — Visual AI Workflow Pipeline Builder             ║
+  ║  GUIness — The GUI Harness                                    ║
+  ║  Visual AI Workflow Pipeline Builder                          ║
   ║  A self-contained, single-file HTML application               ║
   ║  https://github.com/discoposse/GUIness                        ║
   ╚═══════════════════════════════════════════════════════════════╝
@@ -471,12 +472,19 @@ select option{background:var(--panel)}
 #zoom-lbl{position:absolute;bottom:16px;right:200px;font-family:var(--mono);font-size:8px;color:var(--dim);background:var(--surf);border:1px solid var(--brd);border-radius:4px;padding:2px 7px;pointer-events:none}
 
 /* ── NODES ── */
-.node{position:absolute;width:'+CONFIG.DEFAULT_NODE_WIDTH+'px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible}
-.node-card{background:var(--card);border:1.5px solid var(--brd);border-radius:9px;position:relative;z-index:2}
+.node{position:absolute;width:214px;min-width:140px;border-radius:9px;background:transparent;border:none;cursor:default;user-select:none;transition:border-color .15s var(--ease),box-shadow .15s;overflow:visible}
+.node-card{background:var(--card);border:1.5px solid var(--brd);border-radius:9px;position:relative;z-index:2;display:flex;flex-direction:column}
 /* Side resize zones on the card */
 .node-side-resize{position:absolute;top:0;width:6px;height:100%;cursor:ew-resize;z-index:3}
 .node-side-resize.left{left:-3px}
 .node-side-resize.right{right:-3px}
+.node-top-resize{position:absolute;left:0;top:-3px;width:100%;height:6px;cursor:ns-resize;z-index:3}
+.node-bot-resize{position:absolute;left:0;bottom:-3px;width:100%;height:6px;cursor:ns-resize;z-index:3}
+.node-corner-resize{position:absolute;width:10px;height:10px;z-index:4}
+.node-corner-resize.nw{left:-5px;top:-5px;cursor:nwse-resize}
+.node-corner-resize.ne{right:-5px;top:-5px;cursor:nesw-resize}
+.node-corner-resize.sw{left:-5px;bottom:-5px;cursor:nesw-resize}
+.node-corner-resize.se{right:-5px;bottom:-5px;cursor:nwse-resize}
 /* Drawer bottom drag bar */
 .node-drawer-drag{height:8px;cursor:ns-resize;display:flex;align-items:center;justify-content:center;opacity:.4;transition:opacity .15s var(--ease);flex-shrink:0}
 .node-drawer-drag:hover{opacity:.8}
@@ -487,11 +495,20 @@ select option{background:var(--panel)}
 .node-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;border-bottom:1px solid transparent;transition:border-color .15s}
 .node-label:hover{border-color:var(--brd)}
 .node-tag{font-family:var(--mono);font-size:6px;color:var(--dim);background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:1px 4px;flex-shrink:0}
-.node-body{padding:6px 9px}
+.node-diverge-dot{display:none;width:6px;height:6px;border-radius:50%;background:oklch(0.78 0.16 70);box-shadow:0 0 4px oklch(0.78 0.16 70 / 0.6);flex-shrink:0;align-self:center}
+.node-diverge-dot.show{display:inline-block}
+.node-warn-badge{display:none;font-size:9px;line-height:1;color:oklch(0.78 0.16 70);text-shadow:0 0 4px oklch(0.78 0.16 70 / 0.6);flex-shrink:0;align-self:center;cursor:help}
+.node-warn-badge.show{display:inline-block}
+.node-body{padding:6px 9px;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .nfrow{display:flex;gap:4px;margin-bottom:2px;overflow:hidden}
 .nfk{font-family:var(--mono);font-size:8px;color:var(--dim);flex-shrink:0;white-space:nowrap}
 .nfv{font-family:var(--mono);font-size:8px;color:var(--dhi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ndesc{font-size:9px;color:var(--dim);line-height:1.5}
+.ndesc{font-size:9px;color:var(--dim);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.node-card.has-h .ndesc{-webkit-line-clamp:unset;display:block}
+/* Compute body inline instructions editor (Step 5 — body-prominent for the central logic primitive) */
+.node-instructions-editor{display:block;width:100%;margin-top:6px;background:rgba(255,255,255,.02);border:1px solid var(--brd);border-radius:5px;color:var(--txt);font-family:var(--mono);font-size:9px;line-height:1.5;padding:6px 8px;resize:none;box-sizing:border-box;min-height:60px;overflow-y:auto;flex:1}
+.node-instructions-editor:focus{border-color:var(--acc);outline:none;background:rgba(255,255,255,.03)}
+.node-instructions-editor::placeholder{color:var(--dim);font-style:italic}
 /* Graph indicator on skill nodes */
 .node-graph-hint{font-family:var(--mono);font-size:7px;color:var(--acc);padding:3px 9px 5px;opacity:.7}
 /* PORT ROWS — named ports stacked on sides */
@@ -618,6 +635,7 @@ select option{background:var(--panel)}
 .ctx-item:hover{background:rgba(255,255,255,.05);color:var(--txt)}
 .ctx-item.red{color:var(--red)}
 .ctx-item.red:hover{background:rgba(248,113,113,.08)}
+.ctx-item.disabled{opacity:.35;cursor:default;pointer-events:none}
 .ctx-item .ci{font-size:12px;width:14px;text-align:center}
 .ctx-sep{height:1px;background:var(--brd);margin:2px 0}
 
@@ -631,7 +649,6 @@ select option{background:var(--panel)}
 
 /* ── INSPECTOR SECTIONS ── */
 #insp-meta{padding:4px 12px 10px 12px;border-bottom:1px solid var(--brd);flex-shrink:0;overflow-y:visible}
-#insp-form {display:flex; flex-direction:column; flex:1;}
 #insp-placeholder{font-size:11px;color:var(--dim);line-height:1.7}
 #insp-form{display:none}
 .if-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
@@ -695,6 +712,8 @@ select option{background:var(--panel)}
 .ibar-btn.save-btn{border-color:var(--grn);color:var(--grn)}
 .ibar-btn.save-btn:hover{background:rgba(52,211,153,.08)}
 #insp-rendered{overflow-y:auto;padding:10px 12px;flex:1;font-size:11px}
+.insp-placeholder{opacity:0.45;font-style:italic}
+.insp-placeholder pre,.insp-placeholder code{font-style:normal}
 #insp-rendered h1{font-size:13px;font-weight:600;color:var(--txt);margin:0 0 8px}
 #insp-rendered h2{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--txt);margin:12px 0 5px;padding-bottom:4px;border-bottom:1px solid var(--brd)}
 #insp-rendered h3{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--acc);margin:10px 0 3px;text-transform:uppercase;letter-spacing:.08em}
@@ -735,6 +754,38 @@ select option{background:var(--panel)}
 .dbtn.branch{border-color:var(--grn);color:var(--grn)}
 .dbtn.yes{border-color:var(--red);color:var(--red);background:rgba(248,113,113,.07)}
 
+/* BATCH MERGE DIALOG */
+#batch-merge-overlay,#batch-confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;display:none;align-items:center;justify-content:center}
+#batch-merge-overlay.open,#batch-confirm-overlay.open{display:flex}
+#batch-merge-box{background:var(--panel);border:1px solid var(--brdhi);border-radius:10px;overflow:hidden;width:min(720px,92vw);max-height:88vh;display:flex;flex-direction:column}
+#batch-confirm-box{background:var(--panel);border:1px solid var(--brdhi);border-radius:10px;overflow:hidden;width:min(440px,90vw)}
+#batch-merge-list{padding:8px 18px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.bm-row{background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.bm-row.update{border-left:3px solid var(--acc)}
+.bm-row.branch{border-left:3px solid var(--grn)}
+.bm-row.skip{border-left:3px solid var(--brd);opacity:.55}
+.bm-row-hdr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bm-row-src{font-family:var(--mono);font-size:10px;color:var(--txt);font-weight:600}
+.bm-row-arrow{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.bm-row-target{font-family:var(--mono);font-size:10px;color:var(--dhi)}
+.bm-row-warn{font-size:9px;color:var(--red);background:rgba(248,113,113,.08);padding:1px 6px;border-radius:3px;border:1px solid rgba(248,113,113,.3)}
+.bm-row-actions{display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:9px;flex-wrap:wrap}
+.bm-act{display:flex;align-items:center;gap:4px;cursor:pointer;padding:3px 8px;border-radius:4px;border:1px solid var(--brd);color:var(--dim)}
+.bm-act:hover{background:rgba(255,255,255,.03);color:var(--dhi)}
+.bm-act.active{color:var(--txt);background:rgba(255,255,255,.04);border-color:var(--brdhi)}
+.bm-act input{margin:0;cursor:pointer}
+.bm-act.update.active{color:var(--acc);border-color:var(--acc)}
+.bm-act.branch.active{color:var(--grn);border-color:var(--grn)}
+.bm-row-name{display:none;margin-top:2px}
+.bm-row.branch .bm-row-name{display:flex;gap:6px;align-items:center}
+.bm-row-name label{font-family:var(--mono);font-size:9px;color:var(--dim);min-width:60px}
+.bm-row-name input{flex:1;font-family:var(--mono);font-size:10px;background:var(--panel);border:1px solid var(--brd);border-radius:4px;padding:4px 8px;color:var(--txt)}
+.bm-row-name input:focus{border-color:var(--acc);outline:none}
+.bm-empty{font-size:11px;color:var(--dim);text-align:center;padding:32px 16px;font-style:italic}
+#batch-merge-footer{padding:12px 18px;border-top:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-shrink:0}
+.bm-summary{font-family:var(--mono);font-size:10px;color:var(--dim)}
+.bm-summary .bm-count{color:var(--txt);font-weight:700}
+
 /* WIZARD / OUTPUT MODALS */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center}
 .overlay.open{display:flex}
@@ -753,15 +804,19 @@ select option{background:var(--panel)}
 @keyframes blink{from{opacity:1}to{opacity:.4}}
 #ai-modal{width:min(640px,95vw);max-height:90vh}
 #wiz-modal{width:min(580px,94vw);max-height:88vh}
-#out-modal{width:min(740px,92vw);max-height:82vh}
+#out-modal{width:min(1018px,92vw);height:82vh;min-width:500px;min-height:300px;max-width:100vw;max-height:100vh;resize:both}
+#out-modal .mhd{cursor:move}
+#out-modal .mhd button{cursor:pointer}
 .out-fmt-tab{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.08em;padding:3px 10px;border-radius:4px;border:none;background:transparent;color:var(--dim);cursor:pointer}
 .out-fmt-tab:hover{color:var(--dhi)}
 .out-fmt-tab.on{background:var(--alo);color:var(--acc)}
+.out-variant-tab{font-family:var(--mono);font-size:7px;font-weight:600;letter-spacing:.06em;white-space:nowrap;padding:2px 8px;border-radius:3px;border:none;background:transparent;color:var(--dim);cursor:pointer}
+.out-variant-tab:hover{color:var(--dhi)}
+.out-variant-tab.on{background:var(--alo);color:var(--acc)}
 .mhd{padding:12px 18px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:10px;flex-shrink:0}
 .mtitle{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.1em}
 .mclose{border:1px solid var(--brd);border-radius:5px;padding:3px 9px;color:var(--dim);font-size:10px;margin-left:auto}
 .mbody{padding:18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;flex:1}
-.mlbl{font-family:var(--mono);font-size:8px;color:var(--dhi);letter-spacing:.09em;margin-bottom:3px}
 .meth-btn{background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:11px 15px;text-align:left;display:flex;align-items:center;gap:13px;width:100%}
 .meth-btn:hover{border-color:var(--brdhi)}
 .mn{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--txt);display:block}
@@ -778,7 +833,7 @@ select option{background:var(--panel)}
 .sb .sn{font-family:var(--mono);font-size:8px;font-weight:700;color:var(--dhi);display:block}
 .sb .ss{font-size:8px;color:var(--dim);margin-top:1px;display:block}
 .mrow{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-.mbtn{border:1px solid var(--brd);border-radius:7px;padding:5px 14px;font-size:10px;font-weight:700;color:var(--dim);font-family:var(--mono)}
+.mbtn{border:1px solid var(--brd);border-radius:7px;padding:5px 14px;font-size:10px;font-weight:700;color:var(--dim);font-family:var(--mono);white-space:nowrap}
 .mbtn.pri{background:var(--acc);border-color:var(--acc);color:#0b0d11}
 .mbtn:disabled{opacity:.4;cursor:default}
 .cprev{background:var(--surf);border:1px solid var(--brd);border-radius:5px;padding:6px 9px;max-height:70px;overflow:auto;font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.6;white-space:pre-wrap}
@@ -914,7 +969,7 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v27</span>
+    <span class="t-badge">v47</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
@@ -1111,7 +1166,8 @@ select option{background:var(--panel)}
             <button class="ibar-btn active" id="btn-view">View</button>
             <button class="ibar-btn" id="btn-edit-content">Edit</button>
             <button class="ibar-btn hidden" id="btn-cancel-edit" style="color:var(--dim)">Cancel</button>
-            <button class="ibar-btn save-btn hidden" id="btn-save-content">Save</button>
+            <button class="ibar-btn save-btn hidden" id="btn-apply-content">Apply</button>
+            <button class="ibar-btn" id="btn-merge-content">Merge</button>
           </div>
           <div id="insp-rendered"></div>
           <div id="insp-editor"><textarea id="insp-textarea" spellcheck="false"></textarea></div>
@@ -1142,6 +1198,7 @@ select option{background:var(--panel)}
   <div class="ctx-item" id="ctx-open-graph"><span class="ci">⬡</span> Open Graph</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item" id="ctx-save-as-skill"><span class="ci">◈</span> Save as Skill</div>
+  <div class="ctx-item" id="ctx-merge"><span class="ci">◊</span> Merge to Library…</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item" id="ctx-copy"><span class="ci">⎘</span> Copy</div>
   <div class="ctx-item" id="ctx-paste"><span class="ci">⎗</span> Paste</div>
@@ -1161,6 +1218,35 @@ select option{background:var(--panel)}
         <button class="dbtn" id="branch-cancel">Cancel</button>
         <button class="dbtn upd" id="branch-update">Update Existing</button>
         <button class="dbtn branch" id="branch-new">Branch as New</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH MERGE DIALOG -->
+<div id="batch-merge-overlay">
+  <div id="batch-merge-box">
+    <div class="dlg-hdr acc" id="batch-merge-hdr">MERGE SKILLS TO LIBRARY</div>
+    <div id="batch-merge-list"></div>
+    <div id="batch-merge-footer">
+      <div class="bm-summary" id="batch-merge-summary"></div>
+      <div style="display:flex;gap:8px">
+        <button class="dbtn" id="batch-merge-cancel">Cancel</button>
+        <button class="dbtn upd" id="batch-merge-submit">Merge</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH MERGE CONFIRM -->
+<div id="batch-confirm-overlay">
+  <div id="batch-confirm-box">
+    <div class="dlg-hdr red">CONFIRM OVERWRITE</div>
+    <div class="dlg-body">
+      <p id="batch-confirm-msg">You're about to overwrite library skills. This cannot be undone.</p>
+      <div class="dlg-row">
+        <button class="dbtn" id="batch-confirm-cancel">Cancel</button>
+        <button class="dbtn yes" id="batch-confirm-ok">Confirm Merge</button>
       </div>
     </div>
   </div>
@@ -1242,12 +1328,22 @@ select option{background:var(--panel)}
 <div class="overlay" id="out-overlay">
   <div class="modal" id="out-modal">
     <div class="mhd">
-      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.1em">PIPELINE OUTPUT</span>
+      <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--acc);letter-spacing:.1em;white-space:nowrap;flex-shrink:0">PIPELINE OUTPUT</span>
       <div id="out-fmt-tabs" style="display:flex;gap:2px;margin-left:12px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:2px">
-        <button class="out-fmt-tab on" data-fmt="md">Markdown</button>
-        <button class="out-fmt-tab" data-fmt="gpt">GPT Export</button>
-        <button class="out-fmt-tab" data-fmt="gem">✦ Gem</button>
+        <button class="out-fmt-tab on" data-fmt="claude">Claude</button>
+        <button class="out-fmt-tab" data-fmt="gpt">GPT</button>
+        <button class="out-fmt-tab" data-fmt="gemini">Gemini</button>
       </div>
+      <div id="out-gemini-variants" style="display:none;align-items:center;gap:2px;margin-left:8px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:2px">
+        <button class="out-variant-tab on" data-variant="fit">Gem-fit</button>
+        <button class="out-variant-tab" data-variant="full">Full</button>
+      </div>
+      <button id="out-gemini-skills-btn" class="mbtn" style="display:none;margin-left:8px;font-size:10px;position:relative">Skills: 0/0</button>
+      <div id="out-gpt-variants" style="display:none;align-items:center;gap:2px;margin-left:8px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:2px">
+        <button class="out-variant-tab on" data-variant="text">Text</button>
+        <button class="out-variant-tab" data-variant="json">JSON</button>
+      </div>
+      <span id="out-char-count" style="display:none;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--txt);margin-left:10px"></span>
       <span style="flex:1"></span>
       <button class="mbtn" id="out-copy" style="margin-right:6px">Copy</button>
       <button class="mbtn" id="out-download" style="margin-right:6px">↓ Download</button>
@@ -1364,6 +1460,7 @@ const CONFIG={
   SNAP_SIZE:           26,      // Grid snap increment (px)
   DEFAULT_NODE_WIDTH:  214,     // Default node width (px)
   MIN_NODE_WIDTH:      140,     // Minimum node width (px)
+  MIN_NODE_HEIGHT:     60,      // Minimum node card height (px) — independent of drawer
   MIN_DRAWER_HEIGHT:   60,      // Minimum content drawer height (px)
   MAX_DRAWER_HEIGHT:   250,     // Max code textarea height (px)
   ZOOM_MIN:            0.15,    // Minimum zoom level
@@ -1381,6 +1478,12 @@ const CONFIG={
 
   // ── Router ──────────────────────────────────────────────
   DEFAULT_MAX_LOOPS:    3,      // Default max loop iterations for Router nodes
+
+  // ── Map (warning system) ────────────────────────────────
+  HIGH_CALL_THRESHOLD:  100,    // Above this projected total, show pre-run confirm dialog
+
+  // ── Export ──────────────────────────────────────────────
+  GEMINI_INSTRUCTION_LIMIT: 8000, // Char budget for Gemini Gem Instructions (Fit variant target)
 
   // ── LLM ─────────────────────────────────────────────────
   MAX_OUTPUT_TOKENS:    8192,   // Default max_tokens for LLM calls
@@ -1496,18 +1599,31 @@ let skills=[
     fields:[{key:'content',label:'Content',type:'codeeditor',rows:6,ph:'Enter your text here…'}],
     hasOut:true,hasIn:false},
 
-  {id:'io_input',label:'INPUTS',color:'accent',glyph:'⬡',shape:'default',category:'Primitives',
-    desc:'General-purpose input boundary. Accepts text, files, URLs, or API data as pipeline entry points.',
-    tags:['input','file','url','api','boundary'],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
+  {id:'io_input',label:'FILE',color:'accent',glyph:'⬡',shape:'default',category:'Primitives',
+    desc:'Upload a file to provide its contents to the pipeline as context.',
+    tags:['input','file','upload','boundary'],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
     defaultInputs:[],
-    defaultOutputs:[{id:'io-out-data',name:'data',type:'Any'},{id:'io-out-meta',name:'metadata',type:'JSON'}],
+    defaultOutputs:[{id:'io-out-data',name:'content',type:'Any'}],
     fields:[
-      {key:'source_type',label:'Source Type',type:'select',opts:['Text','File','URL','API Endpoint','Clipboard']},
-      {key:'content',label:'Content / Path / URL',type:'codeeditor',rows:3,ph:'Paste text, file path, or URL here…'},
       {key:'file_upload',label:'Upload File',type:'file_upload'},
-      {key:'headers',label:'Headers (for API)',type:'codeeditor',rows:2,ph:'Authorization: Bearer xxx'},
+      {key:'description',label:'Description',type:'text',ph:'What this input represents'},
+      {key:'content',label:'Captured Content',type:'content_preview'}
+    ],hasOut:true,hasIn:false},
+
+  {id:'fetch',label:'FETCH',color:'accent',glyph:'⬢',shape:'default',category:'Primitives',
+    desc:'Fetch a URL or API endpoint at edit time. Body → content, response status/headers → metadata.',
+    tags:['input','url','api','http','fetch','boundary'],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
+    defaultInputs:[],
+    defaultOutputs:[{id:'io-out-data',name:'content',type:'Any'},{id:'io-out-meta',name:'metadata',type:'JSON'}],
+    fields:[
+      {key:'url',label:'URL / Endpoint',type:'text',ph:'https://api.example.com/data'},
+      {key:'headers',label:'Headers (optional)',type:'codeeditor',rows:2,ph:'Authorization: Bearer xxx'},
+      {key:'fetch_trigger',label:'',type:'fetch_trigger'},
+      {key:'content',label:'Captured Content',type:'content_preview'},
+      {key:'_meta',label:'Response Metadata',type:'meta_preview'},
       {key:'description',label:'Description',type:'text',ph:'What this input represents'}
     ],hasOut:true,hasIn:false},
+
 
   {id:'compute',label:'COMPUTE',color:'orange',glyph:'⚙',shape:'default',category:'Primitives',
     desc:'The unit of work. Runs an LLM inference, tool call, or API request. Connect a Context node upstream to define what the model knows.',
@@ -1534,7 +1650,8 @@ You are a processing node in a pipeline. Execute the task described in your inst
     defaultInputs:[{id:'code-in',name:'input',type:'Any'}],
     defaultOutputs:[{id:'code-out',name:'output',type:'Any'}],
     fields:[{key:'lang',label:'Language',type:'select',opts:['Python','JavaScript','TypeScript','Bash','SQL','JSON','YAML','HTML','CSS','Ruby','Go','Rust']},
-      {key:'code',label:'Code',type:'codeeditor',rows:8,ph:'// your code here'}],
+      {key:'code',label:'Code',type:'codeeditor',rows:8,ph:'// your code here'},
+      {key:'parameters',label:'Tool Parameters',type:'jsonschema',rows:8,ph:'// optional — defines GPT function-call parameter shape\n// leave blank for default { input: string }'}],
     hasOut:true,hasIn:true},
 
   {id:'router',label:'ROUTER',color:'purple',glyph:'◇',shape:'dashed',category:'Primitives',
@@ -1590,6 +1707,46 @@ Use this to:
       {key:'merge_mode',label:'Merge Mode',type:'select',opts:['Concatenate','Structured JSON','Template']}
     ],hasOut:true,hasIn:true},
 
+  {id:'map',label:'MAP',color:'purple',glyph:'\u2A01',shape:'dashed',category:'Primitives',
+    desc:'Iterates downstream pipeline once per item in a collection input. Sequential execution; collects results into a joined output.',
+    tags:['control','iterate','loop','fan-out','collection','map'],isBuiltin:true,
+    rawContent:`## Map Node
+This node does NOT call an LLM. It iterates over a collection input and runs the
+downstream pipeline once per item, then collects the results.
+
+## Behavior
+- Read the incoming context as a collection. The Split Mode field controls parsing:
+  - Auto: try JSON array first; if not valid, split by newlines
+  - JSON Array: parse input as a JSON array, error if invalid
+  - Newlines: split on \\n, trim each line, drop empties
+  - Comma-separated: split on commas, trim each
+  - Custom delimiter: split on the Delimiter field's value
+- For each item, run the downstream pipeline with that item as the input
+- Collect each iteration's output and join them with the Join Separator
+- Halt with a warning if iterations exceed Max Iterations (guardrail against
+  runaway inputs)
+- Empty collections are skipped silently with a log line \u2014 not an error
+
+## When to use
+- Processing a list of items with the same logic (summarize each article,
+  classify each comment, translate each line)
+- Generating N variants of an output (rewrite this 5 ways, brainstorm 10 angles)
+- Per-row transformation of structured data
+
+## When NOT to use
+- Branching based on a condition \u2192 use Router instead
+- Merging multiple inputs into one context \u2192 use Context instead
+- Calling an LLM on a single input \u2192 use Compute directly`,
+    deps:[],internalGraph:{nodes:[],edges:[]},
+    defaultInputs:[{id:'m-in',name:'input',type:'Any'}],
+    defaultOutputs:[{id:'m-out',name:'output',type:'Any'}],
+    fields:[
+      {key:'split_mode',label:'Split Mode',type:'select',opts:['Auto','JSON Array','Newlines','Comma-separated','Custom delimiter']},
+      {key:'delimiter',label:'Custom Delimiter',type:'text',ph:'|||  (only used when Split Mode = Custom delimiter)'},
+      {key:'join_separator',label:'Join Separator',type:'text',ph:'\\n\\n---\\n\\n  (separator between iteration outputs)'},
+      {key:'max_iterations',label:'Max Iterations',type:'text',ph:'10  (guardrail; iterations beyond this halt with a warning)'}
+    ],hasOut:true,hasIn:true},
+
   // ── SYSTEM NODES (sub-graph wiring) ────────────────────
   {id:'graph-input',label:'GRAPH INPUT',color:'grn',glyph:'▶',shape:'default',
     category:'Graph',desc:'Exposes parent-node inputs inside the sub-graph.',
@@ -1611,6 +1768,7 @@ const PB_SKILLS_STORE='pb_user_skills';
 // Saves all user-defined skills to localStorage
 let _persistTimer=null;
 function persistSkills(){
+  _invSkIdx(); // sync invalidate — debounced save runs later, but next getSk() must see fresh refs
   clearTimeout(_persistTimer);
   _persistTimer=setTimeout(()=>{
     const userSkills=skills.filter(s=>!s.isBuiltin);
@@ -1618,6 +1776,7 @@ function persistSkills(){
   },500);
 }
 function persistSkillsSync(){
+  _invSkIdx();
   clearTimeout(_persistTimer);
   const userSkills=skills.filter(s=>!s.isBuiltin);
   safeStore(PB_SKILLS_STORE,userSkills);
@@ -1677,9 +1836,6 @@ function saveClosedPipelines(list){
 
 let pipelines=loadPipelines();
 let activePipelineId=pipelines.length?pipelines[0].id:null;
-
-// Advance _uid past every id already in loaded data so new uid() calls never collide.
-// Scans node ids, edge ids, and port ids across all pipelines and all stack frames.
 
 // Returns the pipeline object matching activePipelineId, or null
 function activePipeline(){return pipelines.find(p=>p.id===activePipelineId)||null;}
@@ -2365,8 +2521,61 @@ let inspEditing=false;
 let inspDraft='';
 let activeTab='content';
 let activeFilterTag=null;
-const getSk=id=>skills.find(s=>s.id===id);
+// O(1) skill lookup. Index is lazily rebuilt on first read after invalidation.
+// To mutate `skills` or any skill's properties, use one of:
+//   addSkill(sk)           — push a new skill
+//   mutateSkill(id, fn)    — edit one skill in place
+//   upsertSkill(sk)        — replace by id, else push
+//   removeSkills(pred)     — delete by predicate (auto-cleans deps refs)
+// Direct mutation outside these wrappers re-opens the persistence bug class.
+// Sole exception: the startup IIFE at loadPersistedSkills() — loads FROM
+// localStorage, so nothing to persist back.
+let _skillIndex=null;
+const _invSkIdx=()=>{_skillIndex=null;};
+const getSk=id=>{
+  if(!_skillIndex)_skillIndex=new Map(skills.map(s=>[s.id,s]));
+  return _skillIndex.get(id);
+};
 const nodeSk=n=>getSk(n.type||n.skillId);
+
+// ─── Skill mutation wrappers ─────────────────────────────────────
+// See getSk's comment above for usage. Each wrapper invalidates the
+// cache and persists to localStorage.
+
+function addSkill(sk){
+  skills.push(sk);
+  persistSkills();
+}
+
+function mutateSkill(id, fn){
+  const sk = getSk(id);
+  if(!sk) return;
+  fn(sk);
+  persistSkills();
+}
+
+// Replace if id exists, else push. Returns true if added (new), false if updated.
+function upsertSkill(sk){
+  const i = skills.findIndex(s => s.id === sk.id);
+  const wasNew = i < 0;
+  if(wasNew) skills.push(sk); else skills[i] = sk;
+  persistSkills();
+  return wasNew;
+}
+
+// Remove all skills matching predicate AND clean dangling deps refs
+// in the remaining skills. Single persist at the end.
+function removeSkills(pred){
+  const removedIds = new Set();
+  for(const s of skills) if(pred(s)) removedIds.add(s.id);
+  if(!removedIds.size) return;
+  for(const s of skills){
+    if(removedIds.has(s.id)) continue;
+    if(s.deps) s.deps = s.deps.filter(d => !removedIds.has(d));
+  }
+  skills = skills.filter(s => !removedIds.has(s.id));
+  persistSkills();
+}
 
 function safeStore(key,val){try{localStorage.setItem(key,typeof val==='string'?val:JSON.stringify(val));}catch(e){}}
 
@@ -2381,12 +2590,14 @@ const snap=v=>snapEnabled?Math.round((v-SNAP_SIZE/2)/SNAP_SIZE)*SNAP_SIZE+SNAP_S
 // Renders markdown text as styled HTML for the inspector content panel
 function renderMD(text){
   if(!text)return'<p style="color:var(--dim);font-style:italic">No content.</p>';
+  // Escape HTML up front so untrusted skill content (imported via Gist, .skill, paste, etc.)
+  // can't inject script tags or onerror handlers. Markdown tags below produce their own HTML.
+  text=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const inl=s=>s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`]+)`/g,'<code>$1</code>');
-  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   let out='',code=false,ul=false,tbl=false,th=true;
   for(const raw of text.split('\n')){
     if(raw.startsWith('```')){if(code){out+='</pre>';code=false;}else{if(ul){out+='</ul>';ul=false;}if(tbl){out+='</table>';tbl=false;}out+='<pre>';code=true;}continue;}
-    if(code){out+=esc(raw)+'\n';continue;}
+    if(code){out+=raw+'\n';continue;}
     if(raw.startsWith('|')){
       const cells=raw.split('|').slice(1,-1);
       if(cells.every(c=>/^[\s:-]+$/.test(c)))continue;
@@ -2485,8 +2696,7 @@ function popGraph(){
 function saveCurrentFrameToSkill(){
   const f=frame();
   if(f.skillId){
-    const sk=getSk(f.skillId);
-    if(sk) sk.internalGraph={nodes:structuredClone(f.nodes),edges:structuredClone(f.edges)};
+    mutateSkill(f.skillId, sk => sk.internalGraph={nodes:structuredClone(f.nodes),edges:structuredClone(f.edges)});
   }
 }
 
@@ -2665,6 +2875,9 @@ function renderEdges(newEdgeId=null){
 
   // Re-apply downstream preview only in alt mode with single selection
   if(altDown&&selNode&&selNodes.size<=1)highlightDownstream(selNode);
+  // Refresh Map warn badges — body composition may have changed with this edge update.
+  // Cheap: only Maps get rebuilt, and only when present in the graph.
+  getNodes().forEach(n=>{if(nodeSk(n)?.id==='map')rebuildNode(n);});
   _postRenderHooks.forEach(fn=>fn());
 }
 
@@ -2749,6 +2962,28 @@ function buildNode(node){
   head.appendChild(glyphEl);head.appendChild(labelEl);if(badgeEl)head.appendChild(badgeEl);
   if(node.isStart){const b=document.createElement('span');b.className='start-badge';b.textContent='START';head.appendChild(b);}
   if(!sk.isBuiltin){const t=document.createElement('span');t.className='node-tag';t.textContent='SKILL';head.appendChild(t);}
+  // Divergence badge: a small amber dot meaning "this node's content is customized here,
+  // not in the library." Toggled live by updateDivergeBadge() after an in-drawer Apply.
+  const divergeDot=document.createElement('span');divergeDot.className='node-diverge-dot';
+  divergeDot.title='Edited here \u2014 differs from the library skill';
+  head.appendChild(divergeDot);
+  function updateDivergeBadge(){divergeDot.classList.toggle('show',isNodeDiverged(node,sk));}
+  updateDivergeBadge();
+  // Nested-Router warning badge: a small amber \u26a0 that shows on Map nodes whose body
+  // contains one or more Router nodes (potential call-count blow-up). Coexists with the
+  // divergence dot \u2014 different meanings, side-by-side.
+  const warnBadge=document.createElement('span');warnBadge.className='node-warn-badge';
+  warnBadge.textContent='\u26a0';
+  head.appendChild(warnBadge);
+  function updateWarnBadge(){
+    if(sk.id!=='map'){warnBadge.classList.remove('show');return;}
+    const routers=routersInMapBody(node.id,getNodes(),getEdges());
+    if(routers.length===0){warnBadge.classList.remove('show');return;}
+    warnBadge.classList.add('show');
+    warnBadge.title='Body contains '+routers.length+' Router'+(routers.length>1?'s':'')+
+      ' \u2014 each Map iteration could trigger nested loops. See Fields tab for projected call count.';
+  }
+  updateWarnBadge();
   // Wrap everything in a card div for visual separation from drawer
   const card=document.createElement('div');card.className='node-card';
   card.style.borderStyle=nodeShape==='dashed'?'dashed':'solid';
@@ -2757,34 +2992,74 @@ function buildNode(node){
   card.appendChild(head);
   el.appendChild(card);
 
-  // Side resize handles (width only, on card edges)
-  function addSideResize(side){
-    const handle=document.createElement('div');handle.className='node-side-resize '+side;
+  // Resize handles — 8 directions: 4 edges (e/w/n/s) + 4 corners (ne/nw/se/sw).
+  // Width persists via el.style.width (shares with drawer); height applies to card only,
+  // leaving the drawer's own drag bar untouched. W/N/NW/NE/SW edges shift node.x/y so the
+  // opposite edge stays put. Corners snap on both axes (last-called axis's guide is shown).
+  const RESIZE_SPECS={
+    e: {xDir:+1,yDir: 0,movesX:false,movesY:false,cls:'node-side-resize right'},
+    w: {xDir:-1,yDir: 0,movesX:true, movesY:false,cls:'node-side-resize left'},
+    s: {xDir: 0,yDir:+1,movesX:false,movesY:false,cls:'node-bot-resize'},
+    n: {xDir: 0,yDir:-1,movesX:false,movesY:true, cls:'node-top-resize'},
+    ne:{xDir:+1,yDir:-1,movesX:false,movesY:true, cls:'node-corner-resize ne'},
+    nw:{xDir:-1,yDir:-1,movesX:true, movesY:true, cls:'node-corner-resize nw'},
+    se:{xDir:+1,yDir:+1,movesX:false,movesY:false,cls:'node-corner-resize se'},
+    sw:{xDir:-1,yDir:+1,movesX:true, movesY:false,cls:'node-corner-resize sw'}
+  };
+  function addResize(side){
+    const spec=RESIZE_SPECS[side];
+    const handle=document.createElement('div');handle.className=spec.cls;
     handle.addEventListener('pointerdown',e=>{
       e.stopPropagation();e.preventDefault();
-      const startX=e.clientX;
-      const startW=el.offsetWidth;
-      const startLeft=node.x;
-      const s=canvasStack[0].tx?.s||1;
+      const startX=e.clientX,startY=e.clientY;
+      const startW=el.offsetWidth,startH=card.offsetHeight;
+      const startLeft=node.x,startTop=node.y;
+      const s=frame().tx?.s||1;
+      // Capture default-state natural height: with has-h removed (ndesc clamps to 2 lines)
+      // and explicit height cleared, offsetHeight = head + ports + clamped body + padding.
+      // Used as the floor so the card can't shrink past what its content needs.
+      const savedHadH=card.classList.contains('has-h');
+      const savedHeight=card.style.height;
+      card.classList.remove('has-h');card.style.height='';
+      const naturalH=card.offsetHeight;
+      if(savedHadH)card.classList.add('has-h');
+      card.style.height=savedHeight;
       const onMove=ev=>{
-        const dx=(ev.clientX-startX)/s;
-        if(side==='right'){
-          const w=Math.max(CONFIG.MIN_NODE_WIDTH,startW+dx);
+        const dx=(ev.clientX-startX)/s,dy=(ev.clientY-startY)/s;
+        const minH=Math.max(CONFIG.MIN_NODE_HEIGHT,naturalH);
+        if(spec.xDir){
+          const w=Math.max(CONFIG.MIN_NODE_WIDTH,startW+spec.xDir*dx);
           el.style.width=w+'px';node._w=w;
-        }else{
-          const w=Math.max(CONFIG.MIN_NODE_WIDTH,startW-dx);
-          el.style.width=w+'px';node._w=w;
-          node.x=startLeft+dx;el.style.transform='translate('+node.x+'px,'+node.y+'px)';
+          if(spec.movesX)node.x=startLeft+(startW-w);
         }
-        const snapDx=computeResizeAlignSnap(node.id,side);
-        if(snapDx){
-          if(side==='right'){
-            const w2=node._w+snapDx;el.style.width=w2+'px';node._w=w2;
-          }else{
-            const w2=node._w-snapDx;el.style.width=w2+'px';node._w=w2;
-            node.x+=snapDx;el.style.transform='translate('+node.x+'px,'+node.y+'px)';
+        if(spec.yDir){
+          const h=Math.max(minH,startH+spec.yDir*dy);
+          card.style.height=h+'px';node._h=h;card.classList.add('has-h');
+          if(spec.movesY)node.y=startTop+(startH-h);
+        }
+        if(spec.movesX||spec.movesY)el.style.transform='translate('+node.x+'px,'+node.y+'px)';
+        // Snap to neighbor edges. For corners (both axes snap), clear once and pass skipClear
+        // so X and Y guides can both render within the same tick.
+        const isCorner=spec.xDir&&spec.yDir;
+        if(isCorner)clearAlignGuides();
+        if(spec.xDir){
+          const snapDx=computeResizeAlignSnap(node.id,spec.xDir>0?'right':'left',isCorner);
+          if(snapDx){
+            const w2=node._w+(spec.xDir>0?snapDx:-snapDx);el.style.width=w2+'px';node._w=w2;
+            if(spec.movesX)node.x+=snapDx;
           }
         }
+        if(spec.yDir){
+          const snapDy=computeResizeAlignSnap(node.id,spec.yDir>0?'bottom':'top',isCorner);
+          if(snapDy){
+            const h2=node._h+(spec.yDir>0?snapDy:-snapDy);
+            if(h2>=minH){  // skip snap if it would push below natural-min
+              card.style.height=h2+'px';node._h=h2;
+              if(spec.movesY)node.y+=snapDy;
+            }
+          }
+        }
+        if(spec.movesX||spec.movesY)el.style.transform='translate('+node.x+'px,'+node.y+'px)';
         updateEdgePaths();
       };
       const onUp=()=>{
@@ -2799,8 +3074,9 @@ function buildNode(node){
     });
     card.appendChild(handle);
   }
-  addSideResize('left');addSideResize('right');
+  ['e','w','n','s','ne','nw','se','sw'].forEach(addResize);
   if(node._w)el.style.width=node._w+'px';
+  if(node._h){card.style.height=node._h+'px';card.classList.add('has-h');}
 
   // ── NAMED PORTS (moved up, right after head) ──
   if(!node.inputs)node.inputs=[];
@@ -2842,14 +3118,45 @@ function buildNode(node){
     body.appendChild(desc);
   }else{
     const d=document.createElement('div');d.className='ndesc';
-    d.textContent=(sk.desc||'').slice(0,50)+((sk.desc||'').length>50?'…':'');
+    d.textContent=sk.desc||'';
     body.appendChild(d);
+  }
+
+  // Compute body-prominent instructions editor (Step 5). The central logic primitive's
+  // primary authored content surfaces directly on the node body, beneath the description.
+  // Single-node special case — not generic — per HANDOVER spec.
+  if(sk.id==='compute'){
+    const insTa=document.createElement('textarea');
+    insTa.className='node-instructions-editor';
+    insTa.spellcheck=false;
+    insTa.placeholder='What should this node do with its input?';
+    insTa.value=node.values?.instructions||'';
+    insTa.rows=4;
+    insTa.addEventListener('input',()=>{
+      node.values=node.values||{};
+      node.values.instructions=insTa.value;
+      markPipelineDirty(activePipelineId);
+    });
+    insTa.addEventListener('change',()=>{
+      // Mirror to inspector on blur (matches input-family drawer sync pattern).
+      if(selNode===node.id)renderInspector();
+    });
+    // Stop pointer events from bubbling to canvas drag handlers.
+    insTa.addEventListener('pointerdown',e=>e.stopPropagation());
+    body.appendChild(insTa);
   }
   card.appendChild(body);
 
   // ── EXPANDABLE CONTENT DRAWER (replicates insp-content panel) ──
-  const rawContent=sk.rawContent||'';
-  const hasContent=!!(rawContent.trim()||(sk.fields&&sk.fields.length));
+  // FAMILY SEAM: logic family carries behavior in rawContent (compute/router/context/Map);
+  // input family (text/file/fetch/code) carries captured data in values.* with empty
+  // rawContent. Using rawContent (not a hardcoded id list) lets Map inherit the logic path.
+  const isLogicFamily=!!(sk.rawContent&&sk.rawContent.trim());
+  // For input nodes, the primary captured-content value key: 'code' for CODE, else 'content'
+  // (text/file/fetch). Honest convention keyed on skill id, not a value-presence check.
+  const contentKey=sk.id==='code'?'code':'content';
+  const drawerContent=isLogicFamily?nodeRawContent(node,sk):(node.values?.[contentKey]||'');
+  const hasContent=!!(drawerContent.trim()||(sk.fields&&sk.fields.length));
   if(hasContent){
     const isOpen=!!node._drawerOpen;
     const toggle=document.createElement('div');toggle.className='node-drawer-toggle';
@@ -2857,50 +3164,104 @@ function buildNode(node){
 
     const drawer=document.createElement('div');drawer.className='node-drawer'+(isOpen?'':' closed');
 
-    // Content bar with View/Edit buttons
+    // Hard family branch: logic family gets the Edit/Apply/Merge toggle model (skill content
+    // is sensitive — protect against fat-fingers, require an explicit commit). Input family
+    // gets a direct inline-edit textarea (captured content edits in the inspector are already
+    // inline; the drawer matches for consistency).
     const cbar=document.createElement('div');cbar.className='node-content-bar';
-    const cblbl=document.createElement('span');cblbl.className='nc-lbl';cblbl.textContent='SKILL CONTENT';
-    const viewBtn=document.createElement('button');viewBtn.className='nc-btn active';viewBtn.textContent='View';
-    const editBtn=document.createElement('button');editBtn.className='nc-btn';editBtn.textContent='Edit';
-    const cancelBtn=document.createElement('button');cancelBtn.className='nc-btn hidden';cancelBtn.textContent='Cancel';cancelBtn.style.color='var(--dim)';
-    const saveBtn=document.createElement('button');saveBtn.className='nc-btn hidden';saveBtn.textContent='Save';saveBtn.style.color='var(--grn)';
-    cbar.appendChild(cblbl);cbar.appendChild(viewBtn);cbar.appendChild(editBtn);cbar.appendChild(cancelBtn);cbar.appendChild(saveBtn);
-
-    // Rendered view (markdown)
+    const cblbl=document.createElement('span');cblbl.className='nc-lbl';cblbl.textContent=isLogicFamily?'SKILL CONTENT':drawerLabelFor(sk);
+    cbar.appendChild(cblbl);
     const rendered=document.createElement('div');rendered.className='node-rendered';
-    rendered.innerHTML=renderMD(rawContent);
-
-    // Editor view
     const editorWrap=document.createElement('div');editorWrap.className='node-editor';
-    const textarea=document.createElement('textarea');textarea.spellcheck=false;textarea.value=rawContent;
+    const textarea=document.createElement('textarea');textarea.spellcheck=false;textarea.value=drawerContent;
     editorWrap.appendChild(textarea);
 
-    function setNodeContentMode(mode){
-      if(mode==='edit'){
-        rendered.style.display='none';editorWrap.style.display='flex';
-        editBtn.classList.add('active');viewBtn.classList.remove('active');
-        cancelBtn.classList.remove('hidden');saveBtn.classList.remove('hidden');
-        textarea.value=sk.rawContent||'';
-        textarea.focus();
+    if(isLogicFamily){
+      // ── Logic family: View / Edit / Cancel / Apply / Merge ──
+      const viewBtn=document.createElement('button');viewBtn.className='nc-btn active';viewBtn.textContent='View';
+      const editBtn=document.createElement('button');editBtn.className='nc-btn';editBtn.textContent='Edit';
+      const cancelBtn=document.createElement('button');cancelBtn.className='nc-btn hidden';cancelBtn.textContent='Cancel';cancelBtn.style.color='var(--dim)';
+      const applyBtn=document.createElement('button');applyBtn.className='nc-btn hidden';applyBtn.textContent='Apply';applyBtn.style.color='var(--grn)';
+      const promoteBtn=document.createElement('button');promoteBtn.className='nc-btn';promoteBtn.textContent='Merge';
+      cbar.appendChild(viewBtn);cbar.appendChild(editBtn);cbar.appendChild(cancelBtn);cbar.appendChild(applyBtn);cbar.appendChild(promoteBtn);
+      // Merge ghosted unless this instance diverges from the library.
+      const refreshPromote=()=>{
+        const diverged=isNodeDiverged(node,sk);
+        promoteBtn.disabled=!diverged;
+        promoteBtn.style.opacity=diverged?'':'0.4';
+        promoteBtn.style.cursor=diverged?'':'default';
+      };
+      refreshPromote();
+
+      rendered.innerHTML=renderMD(drawerContent);
+
+      const readContent=()=>nodeRawContent(node,sk);
+      function setNodeContentMode(mode){
+        if(mode==='edit'){
+          rendered.style.display='none';editorWrap.style.display='flex';
+          editBtn.classList.add('active');viewBtn.classList.remove('active');
+          cancelBtn.classList.remove('hidden');applyBtn.classList.remove('hidden');
+          textarea.value=readContent();
+          textarea.focus();
+        }else{
+          rendered.style.display='';editorWrap.style.display='none';
+          viewBtn.classList.add('active');editBtn.classList.remove('active');
+          cancelBtn.classList.add('hidden');applyBtn.classList.add('hidden');
+          rendered.innerHTML=renderMD(readContent());
+        }
+      }
+      viewBtn.addEventListener('click',e=>{e.stopPropagation();setNodeContentMode('view');});
+      editBtn.addEventListener('click',e=>{e.stopPropagation();setNodeContentMode('edit');});
+      cancelBtn.addEventListener('click',e=>{e.stopPropagation();setNodeContentMode('view');});
+      applyBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        node.values=node.values||{};
+        node.values._skillContent=textarea.value;
+        markPipelineDirty(activePipelineId);
+        setNodeContentMode('view');
+        refreshPromote();
+        updateDivergeBadge();
+      });
+      promoteBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(promoteBtn.disabled)return;
+        inspDraft=nodeRawContent(node,sk);
+        inspCurrentId=sk.id;
+        openBranchOverlay(sk);
+      });
+      // Double-click inside the drawer = Edit.
+      drawer.addEventListener('dblclick',e=>{
+        if(e.target.closest('.node-content-bar,.node-drawer-drag'))return;
+        e.stopPropagation();
+        if(rendered.style.display!=='none')setNodeContentMode('edit');
+      });
+    }else{
+      // ── Input family: direct editable textarea, no toggle, no Merge ──
+      // Edits autosave on input (source of truth always current); inspector syncs on blur.
+      // Binary content (data: URLs) shows a read-only preview instead — editing base64 corrupts it.
+      const isBinary=drawerContent.startsWith('data:');
+      if(isBinary){
+        rendered.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim)">[binary content \u2014 '+Math.round(drawerContent.length/1024)+'KB data URL]</div>';
+        editorWrap.style.display='none';
       }else{
-        rendered.style.display='';editorWrap.style.display='none';
-        viewBtn.classList.add('active');editBtn.classList.remove('active');
-        cancelBtn.classList.add('hidden');saveBtn.classList.add('hidden');
-        rendered.innerHTML=renderMD(sk.rawContent||'');
+        // Hide the rendered preview entirely — the textarea IS the view, always editable.
+        // .node-editor is display:none by CSS default; reveal it (logic-family path only
+        // un-hides it on Edit, but input-family is always-editing, so flex it on build).
+        rendered.style.display='none';
+        editorWrap.style.display='flex';
+        textarea.addEventListener('input',()=>{
+          node.values=node.values||{};
+          node.values[contentKey]=textarea.value;
+          markPipelineDirty(activePipelineId);
+        });
+        textarea.addEventListener('change',()=>{
+          if(selNode===node.id)renderInspector(); // mirror to inspector on blur
+        });
+        // Stop pointer events from bubbling to canvas drag handlers.
+        textarea.addEventListener('pointerdown',e=>e.stopPropagation());
       }
     }
 
-    viewBtn.addEventListener('click',e=>{e.stopPropagation();setNodeContentMode('view');});
-    editBtn.addEventListener('click',e=>{e.stopPropagation();setNodeContentMode('edit');});
-    cancelBtn.addEventListener('click',e=>{e.stopPropagation();setNodeContentMode('view');});
-    saveBtn.addEventListener('click',e=>{
-      e.stopPropagation();
-      // Save as a branch (same as inspector)
-      inspDraft=textarea.value;
-      inspCurrentId=sk.id;
-      document.getElementById('branch-name').value=sk.label+' (copy)';
-      document.getElementById('branch-overlay').classList.add('open');
-    });
 
     // Drawer bottom drag bar for vertical resize
     const dragBar=document.createElement('div');dragBar.className='node-drawer-drag';
@@ -2910,7 +3271,7 @@ function buildNode(node){
       const rdEl=drawer.querySelector('.node-rendered');
       const edEl=drawer.querySelector('.node-editor textarea');
       const startH=rdEl?rdEl.offsetHeight:(edEl?edEl.offsetHeight:160);
-      const s=canvasStack[0].tx?.s||1;
+      const s=frame().tx?.s||1;
       const onMove=ev=>{
         const dh=Math.max(CONFIG.MIN_DRAWER_HEIGHT,startH+(ev.clientY-startY)/s);
         if(rdEl)rdEl.style.maxHeight=dh+'px';
@@ -2980,7 +3341,7 @@ function buildNode(node){
   let origins={};
   el.addEventListener('pointerdown',e=>{
     if(e.button!==0)return;
-    if(e.target.closest('.port,.port-row,.node-drawer-toggle,.node-drawer,.node-side-resize,input,textarea,select,button'))return;
+    if(e.target.closest('.port,.port-row,.node-drawer-toggle,.node-drawer,.node-side-resize,.node-top-resize,.node-bot-resize,.node-corner-resize,input,textarea,select,button'))return;
     e.stopPropagation();
     dragging=true;didDrag=false;sx=e.clientX;sy=e.clientY;
     el.style.cursor='grabbing';
@@ -3061,14 +3422,14 @@ function buildNode(node){
   });
   // click handler retained only to stop propagation (selection is in pointerdown)
   el.addEventListener('click',e=>{
-    if(e.target.closest('.port,.port-row,.node-drawer-toggle,.node-drawer,.node-side-resize,input,textarea,select,button'))return;
+    if(e.target.closest('.port,.port-row,.node-drawer-toggle,.node-drawer,.node-side-resize,.node-top-resize,.node-bot-resize,.node-corner-resize,input,textarea,select,button'))return;
     e.stopPropagation();
   });
 
   // Double-click → open internal graph for skill nodes
   // Guard: don't open if this node's skill IS the current frame's skill (would recurse infinitely)
   el.addEventListener('dblclick',e=>{
-    if(e.target.closest('.port,.port-row,.node-drawer-toggle,.node-drawer,.node-side-resize,.node-label,input,textarea,select,button'))return;
+    if(e.target.closest('.port,.port-row,.node-drawer-toggle,.node-drawer,.node-side-resize,.node-top-resize,.node-bot-resize,.node-corner-resize,.node-label,input,textarea,select,button'))return;
     e.stopPropagation();
     const targetSkId=sk.id||node.skillId;
     if(!sk.isBuiltin&&targetSkId!==frame().skillId)pushGraph(targetSkId);
@@ -3210,7 +3571,8 @@ function duplicateSelNodes() {
   pushHistory();
   const OFFSET = 40;
   const newIds = [];
-  const idMap = {};  // oldId -> newId
+  const idMap = {};   // oldNodeId -> newNodeId
+  const portMap = {}; // oldPortId -> newPortId (built as ports get re-ID'd below)
 
   selNodes.forEach(oldId => {
     const orig = getNodes().find(n => n.id === oldId);
@@ -3221,9 +3583,12 @@ function duplicateSelNodes() {
     copy.id = newId;
     copy.x = snap(orig.x + OFFSET);
     copy.y = snap(orig.y + OFFSET);
-    // Re-ID ports so they're unique
-    copy.inputs  = (copy.inputs  || []).map(p => ({...p, id: uid('p')}));
-    copy.outputs = (copy.outputs || []).map(p => ({...p, id: uid('p')}));
+    // Re-ID ports so they're unique. Capture the old→new mapping so edges
+    // between duplicated nodes can be re-pointed to the new port IDs —
+    // otherwise multi-port nodes (Context, Router) silently collapse to
+    // first-port-only via portPos()'s side fallback.
+    copy.inputs  = (copy.inputs  || []).map(p => { const np = uid('p'); portMap[p.id] = np; return {...p, id: np}; });
+    copy.outputs = (copy.outputs || []).map(p => { const np = uid('p'); portMap[p.id] = np; return {...p, id: np}; });
     copy.isStart = false;
     frame().nodes.push(copy);
     const el = buildNode(copy);
@@ -3231,11 +3596,14 @@ function duplicateSelNodes() {
     newIds.push(newId);
   });
 
-  // Duplicate edges between selected nodes
+  // Duplicate edges between selected nodes — remap port IDs through portMap.
+  // Fallback to original port ID covers legacy pre-port edges and any port
+  // that wasn't captured (shouldn't happen, but defensive).
   getEdges().forEach(e => {
     if (idMap[e.from] && idMap[e.to]) {
       frame().edges.push({id: uid('e'), from: idMap[e.from], to: idMap[e.to],
-        fromPort: e.fromPort, toPort: e.toPort});
+        fromPort: portMap[e.fromPort] || e.fromPort,
+        toPort:   portMap[e.toPort]   || e.toPort});
     }
   });
 
@@ -3291,13 +3659,19 @@ function rebuildNode(node){
 // ═══════════════════════════════════════════════════════════
 // Walk edges forward from a node, return set of downstream node IDs
 function getDownstream(nodeId){
+  // Build forward-adjacency once so the BFS doesn't re-filter all edges per dequeue.
+  const adj=new Map();
+  getEdges().forEach(e=>{
+    if(!adj.has(e.from))adj.set(e.from,[]);
+    adj.get(e.from).push(e.to);
+  });
   const visited=new Set();
   const queue=[nodeId];
   while(queue.length){
     const id=queue.shift();
     if(visited.has(id))continue;
     visited.add(id);
-    getEdges().filter(e=>e.from===id).forEach(e=>queue.push(e.to));
+    (adj.get(id)||[]).forEach(to=>queue.push(to));
   }
   visited.delete(nodeId); // don't include self
   return visited;
@@ -3514,7 +3888,13 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Space'&&!e.target.closest('input,textarea,select,[contenteditable]')){spaceDown=true;e.preventDefault();}
   if(e.key==='Alt'){altDown=true;wrap.style.cursor='crosshair';}
   if(e.key==='Escape'){
-    if(conn)clearConn();
+    // Modal overlays close first; then export drawer; then canvas state.
+    const overlay=document.querySelector('[id$="-overlay"].open');
+    const drawer=document.getElementById('llm-drawer');
+    const drawerOpen=drawer&&drawer.classList.contains('drawer-open');
+    if(overlay)overlay.classList.remove('open');
+    else if(drawerOpen)closeDrawer();
+    else if(conn)clearConn();
     else if(lasso){lasso=null;document.getElementById('lasso').style.display='none';}
     else if(canvasStack.length>1)popGraph();
     else{clearSel();highlightDownstream(null);}
@@ -3663,21 +4043,22 @@ function updateLassoRect(){
 function commitLasso(){
   if(!lasso)return;
   lassoEl.style.display='none';
-  const NODE_W=214; // approximate node width
   const r=lassoSceneRect();
   // Only commit if the box has meaningful size (avoid treating a click as a lasso)
   if((r.right-r.left)<4&&(r.bottom-r.top)<4){lasso=null;return;}
   const hit=getNodes().filter(n=>{
-    // Use the node's own DOM element height if available, else estimate
+    // Use the node's own DOM element dimensions if available, else estimate from CONFIG
     const nel=document.getElementById('nd-'+n.id);
+    const w=nel?nel.offsetWidth:CONFIG.DEFAULT_NODE_WIDTH;
     const h=nel?nel.offsetHeight:80;
-    const nr={left:n.x,top:n.y,right:n.x+NODE_W,bottom:n.y+h};
+    const nr={left:n.x,top:n.y,right:n.x+w,bottom:n.y+h};
     return nr.left<r.right&&nr.right>r.left&&nr.top<r.bottom&&nr.bottom>r.top;
   });
   if(!lasso.shiftKey)selNodes.clear();
   hit.forEach(n=>selNodes.add(n.id));
   selNode=selNodes.size?[...selNodes][selNodes.size-1]:null;
-  selSkillId=selNode?(getNodes().find(x=>x.id===selNode)||({})).type||(getNodes().find(x=>x.id===selNode)||{}).skillId:null;
+  const _selN=selNode?getNodes().find(x=>x.id===selNode):null;
+  selSkillId=_selN?(_selN.type||_selN.skillId):null;
   lasso=null;
   applySelStyle(selNode);
   updateTopbar();renderInspector();
@@ -3744,7 +4125,7 @@ wrap.addEventListener('wheel',e=>{
   const d=-e.deltaY*.001;const rect=wrap.getBoundingClientRect();
   const cx2=e.clientX-rect.left,cy2=e.clientY-rect.top;
   const t=frame().tx;
-  const ns=Math.max(.1,Math.min(3,t.s+d*t.s));
+  const ns=Math.max(CONFIG.ZOOM_MIN,Math.min(CONFIG.ZOOM_MAX,t.s+d*t.s));
   t.x=cx2-(cx2-t.x)*(ns/t.s);t.y=cy2-(cy2-t.y)*(ns/t.s);t.s=ns;applyTx();
 },{passive:false});
 
@@ -3874,8 +4255,8 @@ function computeAlignSnap(primaryId,nodes){
 
 // Alignment guides during node resize — snaps the active edge(s) to other nodes
 // edge: 'left','right','bottom' — which edge is being resized
-function computeResizeAlignSnap(nodeId,edge){
-  clearAlignGuides();
+function computeResizeAlignSnap(nodeId,edge,skipClear){
+  if(!skipClear)clearAlignGuides();
   const nodes=getNodes();
   const p=nodes.find(n=>n.id===nodeId);if(!p)return 0;
   const pel=document.getElementById('nd-'+nodeId);
@@ -3903,6 +4284,16 @@ function computeResizeAlignSnap(nodeId,edge){
       });
     }else if(edge==='bottom'){
       const pv=pEdges.b;
+      [e.t,e.b].forEach(ev=>{
+        const d=Math.abs(pv-ev);
+        if(d<bestDist){bestDist=d;best=ev-pv;guides.length=0;
+          guides.push({axis:'y',y:ev,minX:Math.min(pEdges.l,e.l)-20,maxX:Math.max(pEdges.r,e.r)+20});
+        }else if(d===bestDist&&d<=ALIGN_THRESH){
+          guides.push({axis:'y',y:ev,minX:Math.min(pEdges.l,e.l)-20,maxX:Math.max(pEdges.r,e.r)+20});
+        }
+      });
+    }else if(edge==='top'){
+      const pv=pEdges.t;
       [e.t,e.b].forEach(ev=>{
         const d=Math.abs(pv-ev);
         if(d<bestDist){bestDist=d;best=ev-pv;guides.length=0;
@@ -3998,8 +4389,8 @@ function zoomToFit(){
   const bw=maxX-minX+PAD*2,bh=maxY-minY+PAD*2;
   const wr=wrap.getBoundingClientRect();
   const s=Math.max(CONFIG.ZOOM_MIN,Math.min(1.2,Math.min(wr.width/bw,wr.height/bh)));
-  const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
-  frame().tx={x:wr.width/2-cx*s,y:wr.height/2-cy*s,s};
+  const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2;
+  frame().tx={x:wr.width/2-centerX*s,y:wr.height/2-centerY*s,s};
   applyTx();renderEdges();
 }
 document.getElementById('btn-fit').addEventListener('click',zoomToFit);
@@ -4083,9 +4474,11 @@ function _applyColor(id){
   if(canvasNode){
     canvasNode.color=id;rebuildNode(canvasNode);markPipelineDirty(activePipelineId);
   }else{
-    sk.color=id;updateLibRow(sk.id);
+    mutateSkill(inspCurrentId, s => s.color=id);
+    updateLibRow(inspCurrentId);
     getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.color)rebuildNode(n);});
   }
+  renderEdges();
   const nc=cx(id);
   document.getElementById('if-glyph').style.color=nc;
   document.getElementById('if-name').style.color=nc;
@@ -4267,14 +4660,15 @@ document.getElementById('shape-sel').addEventListener('change',e=>{
   if(canvasNode){
     canvasNode.shape=e.target.value;rebuildNode(canvasNode);markPipelineDirty(activePipelineId);
   }else{
-    sk.shape=e.target.value;updateLibRow(sk.id);
+    mutateSkill(inspCurrentId, s => s.shape=e.target.value);
+    updateLibRow(inspCurrentId);
     getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.shape)rebuildNode(n);});
   }
 });
 document.getElementById('cat-sel').addEventListener('change',e=>{
   const sk=getSk(inspCurrentId);if(!sk)return;
-  if(e.target.value==='custom'){const c=prompt('Category name:');if(c){sk.category=c;renderLib();renderInspector();}}
-  else{sk.category=e.target.value;renderLib();}
+  if(e.target.value==='custom'){const c=prompt('Category name:');if(c){mutateSkill(inspCurrentId, s => s.category=c);renderLib();renderInspector();}}
+  else{mutateSkill(inspCurrentId, s => s.category=e.target.value);renderLib();}
 });
 document.getElementById('if-name').addEventListener('input',e=>{
   const sk=getSk(inspCurrentId);if(!sk)return;
@@ -4282,13 +4676,15 @@ document.getElementById('if-name').addEventListener('input',e=>{
   if(canvasNode){
     canvasNode.title=e.target.value;rebuildNode(canvasNode);markPipelineDirty(activePipelineId);
   }else{
-    sk.label=e.target.value;updateLibRow(sk.id);
+    mutateSkill(inspCurrentId, s => s.label=e.target.value);
+    updateLibRow(inspCurrentId);
     getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.title)rebuildNode(n);});
   }
 });
 document.getElementById('if-desc').addEventListener('input',function(e){
   const sk=getSk(inspCurrentId);if(!sk)return;
-  sk.desc=e.target.value;updateLibRow(sk.id);
+  mutateSkill(inspCurrentId, s => s.desc=e.target.value);
+  updateLibRow(inspCurrentId);
   getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>rebuildNode(n));
   this.style.height='auto';this.style.height=this.scrollHeight+'px';
 });
@@ -4299,8 +4695,12 @@ document.getElementById('tag-input').addEventListener('keydown',e=>{
     const val=e.target.value.trim().replace(/,$/,'');
     if(!val)return;
     const sk=getSk(inspCurrentId);if(!sk)return;
-    if(!sk.tags)sk.tags=[];
-    if(!sk.tags.includes(val)){sk.tags.push(val);renderLib();renderTagsRow(sk);}
+    let didAdd=false;
+    mutateSkill(inspCurrentId, s => {
+      if(!s.tags) s.tags=[];
+      if(!s.tags.includes(val)){ s.tags.push(val); didAdd=true; }
+    });
+    if(didAdd){ renderLib(); renderTagsRow(sk); }
     e.target.value='';
   }
 });
@@ -4312,7 +4712,7 @@ function renderTagsRow(sk){
   (sk.tags||[]).forEach(tag=>{
     const span=document.createElement('span');span.className='skill-tag';
     span.appendChild(document.createTextNode(tag));const tagX=document.createElement('span');tagX.className='tx';tagX.textContent='×';span.appendChild(tagX);
-    span.querySelector('.tx').addEventListener('click',()=>{sk.tags=sk.tags.filter(t=>t!==tag);renderLib();renderTagsRow(sk);});
+    span.querySelector('.tx').addEventListener('click',()=>{mutateSkill(sk.id, s => s.tags=s.tags.filter(t=>t!==tag));renderLib();renderTagsRow(sk);});
     row.appendChild(span);
   });
   row.appendChild(inp);
@@ -4328,7 +4728,8 @@ document.getElementById('if-glyph').addEventListener('click',()=>{
     if(canvasNode){
       canvasNode.glyph=glyph;rebuildNode(canvasNode);markPipelineDirty(activePipelineId);
     }else{
-      sk.glyph=glyph;updateLibRow(sk.id);
+      mutateSkill(inspCurrentId, s => s.glyph=glyph);
+      updateLibRow(inspCurrentId);
       getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>{if(!n.glyph)rebuildNode(n);});
     }
     renderInspector();
@@ -4339,41 +4740,155 @@ document.getElementById('if-glyph').addEventListener('click',()=>{
 document.getElementById('btn-view').addEventListener('click',()=>setContentMode('view'));
 document.getElementById('btn-edit-content').addEventListener('click',()=>setContentMode('edit'));
 document.getElementById('btn-cancel-edit').addEventListener('click',()=>setContentMode('view'));
-document.getElementById('btn-save-content').addEventListener('click',()=>{
+// Apply commits the edit to the SELECTED CANVAS NODE (values._skillContent) — instance-scoped,
+// silent, no library write. Hidden when no canvas node is selected (no instance to apply to).
+document.getElementById('btn-apply-content').addEventListener('click',()=>{
   const sk=getSk(inspCurrentId);if(!sk)return;
-  inspDraft=document.getElementById('insp-textarea').value;
-  document.getElementById('branch-name').value=sk.label+' (copy)';
-  document.getElementById('branch-overlay').classList.add('open');
+  const canvasNode=selNode?getNodes().find(n=>n.id===selNode):null;
+  if(!canvasNode)return; // Apply requires an instance; button should be hidden in this state
+  canvasNode.values=canvasNode.values||{};
+  canvasNode.values._skillContent=document.getElementById('insp-textarea').value;
+  markPipelineDirty(activePipelineId);
+  rebuildNode(canvasNode); // refresh the on-node drawer + divergence badge
+  setContentMode('view');
 });
+// Merge folds the edited content into the library. Routes through the branch overlay —
+// primitives → Branch as New only; custom → Update or Branch. Ghosted unless the inspected
+// content diverges from the library (covers both canvas-node-edited and library-direct-edited).
+document.getElementById('btn-merge-content').addEventListener('click',()=>{
+  const sk=getSk(inspCurrentId);if(!sk)return;
+  if(document.getElementById('btn-merge-content').disabled)return;
+  // Source of the Merge draft: current textarea if in edit mode, else effective content
+  // (instance override if a canvas node is selected, else library rawContent).
+  const canvasNode=selNode?getNodes().find(n=>n.id===selNode):null;
+  inspDraft=inspEditing
+    ?document.getElementById('insp-textarea').value
+    :(canvasNode?nodeRawContent(canvasNode,sk):(sk.rawContent||''));
+  openBranchOverlay(sk);
+});
+
+// Refresh Apply visibility + Merge ghost state. Apply is hidden when no canvas node is
+// selected (no instance). Merge is ghosted unless the inspected content diverges from
+// the library — for a canvas node, divergence = isNodeDiverged; for a library-only
+// view, divergence = the edit-mode textarea differs from sk.rawContent.
+function refreshInspectorContentButtons(){
+  const sk=getSk(inspCurrentId);
+  const canvasNode=selNode?getNodes().find(n=>n.id===selNode):null;
+  const applyBtn=document.getElementById('btn-apply-content');
+  const mergeBtn=document.getElementById('btn-merge-content');
+  // Apply: visible only when a canvas node is selected AND we're in edit mode.
+  if(canvasNode&&inspEditing)applyBtn.classList.remove('hidden');
+  else applyBtn.classList.add('hidden');
+  // Merge ghosting: divergence-gated.
+  let diverged=false;
+  if(sk){
+    if(inspEditing){
+      const draft=document.getElementById('insp-textarea').value;
+      const baseline=canvasNode?nodeRawContent(canvasNode,sk):(sk.rawContent||'');
+      diverged=draft!==baseline;
+    }else if(canvasNode){
+      diverged=isNodeDiverged(canvasNode,sk);
+    }
+  }
+  mergeBtn.disabled=!diverged;
+  mergeBtn.style.opacity=diverged?'':'0.4';
+  mergeBtn.style.cursor=diverged?'':'default';
+}
+
+// Per-type placeholder content shown in the inspector's Content tab for input-family
+// primitives when nothing has been captured yet. Ghosted via the .insp-placeholder CSS
+// class so it visually reads as a hint, not real content.
+const INPUT_PLACEHOLDERS={
+  text_input:'Your text content goes here…\n\nThis input emits its content verbatim to downstream nodes.',
+  code:'```python\n# Your code here\n# This node emits the code block verbatim to downstream nodes\n```',
+  io_input:'[Captured file content will appear here]\n\nUpload a file in the Fields tab to populate this node.',
+  fetch:'[Captured URL response body will appear here]\n\nEnter a URL in the Fields tab and click Fetch to populate this node.'
+};
 
 function setContentMode(mode){
   inspEditing=mode==='edit';
   const rendered=document.getElementById('insp-rendered');
   const editor=document.getElementById('insp-editor');
-  const saveBtn=document.getElementById('btn-save-content');
   const cancelBtn=document.getElementById('btn-cancel-edit');
   const viewBtn=document.getElementById('btn-view');
   const editBtn=document.getElementById('btn-edit-content');
+  const applyBtn=document.getElementById('btn-apply-content');
+  const mergeBtn=document.getElementById('btn-merge-content');
+  const label=document.querySelector('#insp-content-bar .lbl2');
+  const sk=getSk(inspCurrentId);
+  const canvasNode=selNode?getNodes().find(n=>n.id===selNode):null;
+
+  // INPUT FAMILY: no Edit/Apply/Merge — captured content edits happen inline in the Fields
+  // tab and the on-node drawer (both autosave). Content tab is read-only: show captured
+  // content if present, else a per-type placeholder. All five buttons hidden.
+  const isLogicFamily=!!(sk&&sk.rawContent&&sk.rawContent.trim());
+  if(sk&&!isLogicFamily){
+    if(label)label.textContent=drawerLabelFor(sk);
+    viewBtn.style.display='none';editBtn.style.display='none';cancelBtn.style.display='none';
+    applyBtn.style.display='none';mergeBtn.style.display='none';
+    editor.style.display='none';rendered.style.display='';
+    const contentKey=sk.id==='code'?'code':'content';
+    const captured=canvasNode?(canvasNode.values?.[contentKey]||''):'';
+    if(captured.startsWith('data:')){
+      // Binary captured content (uploaded file as data URL) — show a compact marker.
+      rendered.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:8px">[binary content \u2014 '+Math.round(captured.length/1024)+'KB data URL]</div>';
+    }else if(captured.trim()){
+      rendered.innerHTML=renderMD(captured);
+    }else{
+      const ph=INPUT_PLACEHOLDERS[sk.id]||'No content captured yet.';
+      rendered.innerHTML='<div class="insp-placeholder">'+renderMD(ph)+'</div>';
+    }
+    return;
+  }
+
+  // LOGIC FAMILY: restore button visibility (a previous selection may have hidden them).
+  if(label)label.textContent='SKILL CONTENT';
+  viewBtn.style.display='';editBtn.style.display='';cancelBtn.style.display='';
+  applyBtn.style.display='';mergeBtn.style.display='';
+
+  // Selection-scoped read: instance override for a canvas node, library rawContent otherwise.
+  const effective=sk?(canvasNode?nodeRawContent(canvasNode,sk):(sk.rawContent||'')):'';
   if(mode==='edit'){
     rendered.style.display='none';editor.style.display='flex';
-    saveBtn.classList.remove('hidden');cancelBtn.classList.remove('hidden');
+    cancelBtn.classList.remove('hidden');
     editBtn.classList.add('active');viewBtn.classList.remove('active');
-    const sk=getSk(inspCurrentId);
-    document.getElementById('insp-textarea').value=sk?.rawContent||'';
+    document.getElementById('insp-textarea').value=effective;
   }else{
     rendered.style.display='';editor.style.display='none';
-    saveBtn.classList.add('hidden');cancelBtn.classList.add('hidden');
+    cancelBtn.classList.add('hidden');
     viewBtn.classList.add('active');editBtn.classList.remove('active');
-    const sk=getSk(inspCurrentId);
-    document.getElementById('insp-rendered').innerHTML=renderMD(sk?.rawContent||'');
+    document.getElementById('insp-rendered').innerHTML=renderMD(effective);
   }
+  refreshInspectorContentButtons();
 }
 
+// Refresh Merge ghost state live as the user types — the predicate depends on the draft.
+document.getElementById('insp-textarea').addEventListener('input',refreshInspectorContentButtons);
+
 // Branch dialog
+// Opens the save-changes overlay. Primitives (isBuiltin) can NEVER be overwritten —
+// editing their content can only branch into a new custom skill — so the "Update
+// Existing" button is hidden for them, leaving "Branch as New" as the only path.
+function openBranchOverlay(sk){
+  if(!sk)return;
+  const updBtn=document.getElementById('branch-update');
+  const prompt=document.querySelector('#branch-overlay .dlg-body p');
+  if(sk.isBuiltin){
+    updBtn.style.display='none';
+    if(prompt)prompt.textContent='Primitives can\u2019t be modified directly. Save your changes as a new skill.';
+  }else{
+    updBtn.style.display='';
+    if(prompt)prompt.textContent='Update the existing skill, or branch it into a new one?';
+  }
+  document.getElementById('branch-name').value=sk.label+' (copy)';
+  document.getElementById('branch-overlay').classList.add('open');
+}
+
 document.getElementById('branch-cancel').addEventListener('click',()=>document.getElementById('branch-overlay').classList.remove('open'));
 document.getElementById('branch-update').addEventListener('click',()=>{
-  const sk=getSk(inspCurrentId);if(!sk)return;
-  sk.rawContent=inspDraft;
+  const sk=getSk(inspCurrentId);
+  if(!sk||sk.isBuiltin)return; // primitives are never overwritten — guard even if the button were reachable
+  mutateSkill(inspCurrentId, s => s.rawContent=inspDraft);
   document.getElementById('branch-overlay').classList.remove('open');
   setContentMode('view');renderLib();
   getNodes().filter(n=>(n.type||n.skillId)===inspCurrentId).forEach(n=>rebuildNode(n));
@@ -4382,16 +4897,262 @@ document.getElementById('branch-new').addEventListener('click',()=>{
   const name=document.getElementById('branch-name').value.trim()||'New Skill';
   const orig=getSk(inspCurrentId);if(!orig)return;
   const newSk={...orig,id:uid('sk'),label:name,rawContent:inspDraft,isBuiltin:false,tags:[...(orig.tags||[])],deps:[...(orig.deps||[])],internalGraph:{nodes:[],edges:[]}};
-  newSk._ts=Date.now();skills.push(newSk);
+  newSk._ts=Date.now();addSkill(newSk);
   document.getElementById('branch-overlay').classList.remove('open');
   setContentMode('view');renderLib();selectLib(newSk.id);
 });
 
-// Dependencies tab
-// ── sync helpers ──────────────────────────────────────────────
-// Add depSkId as a dep of sk AND place a node for it in sk's internal graph
+// ═══════════════════════════════════════════════════════════
+// BATCH MERGE DIALOG
+// ═══════════════════════════════════════════════════════════
+// State for the open dialog. Lives at module scope so handlers can mutate rows.
+let _batchRows=[];
 
-// Remove depSkId from sk.deps AND remove its node from the internal graph
+// Build rows for a selection: filter to diverged logic-family, cluster by skill,
+// assign defaults (top of cluster = update or branch-for-primitive, rest = skip).
+function buildBatchRows(nodeIds){
+  const allNodes=getNodes();
+  const eligible=[];
+  for(const nid of nodeIds){
+    const node=allNodes.find(n=>n.id===nid);if(!node)continue;
+    const sk=nodeSk(node);if(!sk)continue;
+    if(!sk.rawContent||!sk.rawContent.trim())continue; // input family
+    if(!isNodeDiverged(node,sk))continue;              // non-diverged
+    eligible.push({node,sk});
+  }
+  // Sort: cluster duplicates by skill id, preserve selection order within
+  const selOrder=new Map(nodeIds.map((id,i)=>[id,i]));
+  eligible.sort((a,b)=>{
+    if(a.sk.id!==b.sk.id)return a.sk.id.localeCompare(b.sk.id);
+    return selOrder.get(a.node.id)-selOrder.get(b.node.id);
+  });
+  // Assign defaults per cluster
+  const rows=[];
+  const claimedBranchNames=[];
+  let lastSkId=null,firstInCluster=true;
+  for(const {node,sk} of eligible){
+    if(sk.id!==lastSkId){firstInCluster=true;lastSkId=sk.id;}
+    const isBuiltin=!!sk.isBuiltin;
+    let action,branchName;
+    if(firstInCluster){
+      if(isBuiltin){
+        action='branch';branchName=_batchNextVersion(sk.label,claimedBranchNames);
+        claimedBranchNames.push(branchName);
+      }else{
+        action='update';branchName=_batchNextVersion(sk.label,claimedBranchNames);
+      }
+      firstInCluster=false;
+    }else{
+      action='skip';branchName=_batchNextVersion(sk.label,claimedBranchNames);
+    }
+    rows.push({
+      nodeId:node.id,
+      skillId:sk.id,
+      skillLabel:sk.label,
+      nodeLabel:node.title||sk.label,
+      isBuiltin,
+      action,
+      branchName,
+      content:nodeRawContent(node,sk),
+    });
+  }
+  return rows;
+}
+
+// nextVersionName variant that scans the library AND in-batch claimed names.
+// Used by buildBatchRows for initial defaults and by disambiguateBranchNames for live edits.
+function _batchNextVersion(baseLabel,claimedNames){
+  const base=(baseLabel||'Skill').replace(/\.v\d+$/,'');
+  const re=new RegExp('^'+base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\.v(\\d+)$');
+  let max=0;
+  skills.forEach(s=>{const m=(s.label||'').match(re);if(m){const n=+m[1];if(n>max)max=n;}});
+  (claimedNames||[]).forEach(name=>{const m=(name||'').match(re);if(m){const n=+m[1];if(n>max)max=n;}});
+  return base+'.v'+(max+1);
+}
+
+// Per-cluster radio: when a row is set to update, other update rows in the same cluster
+// auto-flip to skip. Branch rows are untouched.
+function applyClusterRadio(rows,changedIdx){
+  const c=rows[changedIdx];if(!c||c.action!=='update')return;
+  for(let i=0;i<rows.length;i++){
+    if(i===changedIdx)continue;
+    if(rows[i].skillId===c.skillId&&rows[i].action==='update')rows[i].action='skip';
+  }
+}
+
+// Disambiguate Branch names against the library + other Branch rows in this batch.
+// Only the row at `excludeIdx` is exempt (so the user's actively-edited row isn't renamed under them).
+function disambiguateBranchNames(rows,excludeIdx=-1){
+  const usedInLib=new Set(skills.map(s=>s.label));
+  const usedInBatch=new Set();
+  if(excludeIdx>=0&&rows[excludeIdx]?.action==='branch'){
+    usedInBatch.add(rows[excludeIdx].branchName); // protect the active edit
+  }
+  for(let i=0;i<rows.length;i++){
+    if(i===excludeIdx)continue;
+    const row=rows[i];if(row.action!=='branch')continue;
+    let name=row.branchName;
+    while(usedInLib.has(name)||usedInBatch.has(name)){
+      name=_batchNextVersion(name,[...usedInBatch]);
+    }
+    row.branchName=name;
+    usedInBatch.add(name);
+  }
+}
+
+function openBatchMergeDialog(nodeIds){
+  _batchRows=buildBatchRows(nodeIds);
+  // Re-pass through disambiguation in case nextVersionName collisions slipped through
+  // (the buildBatchRows pre-computes names but doesn't compare across all rows).
+  disambiguateBranchNames(_batchRows);
+  renderBatchMergeDialog();
+  document.getElementById('batch-merge-overlay').classList.add('open');
+}
+
+function renderBatchMergeDialog(){
+  const list=document.getElementById('batch-merge-list');
+  const hdr=document.getElementById('batch-merge-hdr');
+  const summary=document.getElementById('batch-merge-summary');
+  const submit=document.getElementById('batch-merge-submit');
+  hdr.textContent=`MERGE ${_batchRows.length} SKILL${_batchRows.length===1?'':'S'} TO LIBRARY`;
+
+  if(_batchRows.length===0){
+    list.innerHTML='<div class="bm-empty">No diverged skills in the selection.<br>Nothing to merge.</div>';
+    submit.disabled=true;submit.style.opacity='0.4';
+    summary.textContent='';
+    return;
+  }
+  submit.disabled=false;submit.style.opacity='';
+
+  list.innerHTML='';
+  _batchRows.forEach((row,idx)=>{
+    const el=document.createElement('div');el.className='bm-row '+row.action;el.dataset.idx=idx;
+
+    // Header line: source → target
+    const hdrLine=document.createElement('div');hdrLine.className='bm-row-hdr';
+    const src=document.createElement('span');src.className='bm-row-src';src.textContent=row.nodeLabel;
+    const arr=document.createElement('span');arr.className='bm-row-arrow';arr.textContent='→';
+    const tgt=document.createElement('span');tgt.className='bm-row-target';
+    if(row.action==='update')tgt.textContent='Overwrites '+row.skillLabel;
+    else if(row.action==='branch')tgt.textContent='New skill: '+row.branchName;
+    else tgt.textContent='Skip (will not merge)';
+    hdrLine.appendChild(src);hdrLine.appendChild(arr);hdrLine.appendChild(tgt);
+    if(row.action==='update'){
+      const warn=document.createElement('span');warn.className='bm-row-warn';warn.textContent='⚠ overwrites library';
+      hdrLine.appendChild(warn);
+    }
+    el.appendChild(hdrLine);
+
+    // Actions: update / branch / skip. Update hidden for primitives.
+    const acts=document.createElement('div');acts.className='bm-row-actions';
+    const mkAct=(actName,label)=>{
+      const w=document.createElement('label');w.className='bm-act '+actName+(row.action===actName?' active':'');
+      const r=document.createElement('input');r.type='radio';r.name='bm-act-'+idx;r.value=actName;r.checked=row.action===actName;
+      r.addEventListener('change',()=>{
+        if(!r.checked)return;
+        _batchRows[idx].action=actName;
+        if(actName==='update')applyClusterRadio(_batchRows,idx);
+        disambiguateBranchNames(_batchRows,actName==='branch'?idx:-1);
+        renderBatchMergeDialog();
+      });
+      w.appendChild(r);w.appendChild(document.createTextNode(label));
+      return w;
+    };
+    if(!row.isBuiltin)acts.appendChild(mkAct('update','Update Existing'));
+    acts.appendChild(mkAct('branch','Branch as New'));
+    acts.appendChild(mkAct('skip','Skip'));
+    el.appendChild(acts);
+
+    // Branch-name editor (visible only when action=branch via CSS .bm-row.branch .bm-row-name).
+    const nameRow=document.createElement('div');nameRow.className='bm-row-name';
+    const lbl=document.createElement('label');lbl.textContent='Name:';
+    const inp=document.createElement('input');inp.type='text';inp.value=row.branchName;
+    inp.addEventListener('input',()=>{
+      _batchRows[idx].branchName=inp.value;
+      // Live re-disambiguate OTHER rows (exclude this one — don't rename under user)
+      disambiguateBranchNames(_batchRows,idx);
+      // Update header text live without full rerender (keeps focus)
+      const tgtEl=el.querySelector('.bm-row-target');
+      if(tgtEl)tgtEl.textContent='New skill: '+inp.value;
+      // Update sibling rows' visible target text too
+      list.querySelectorAll('.bm-row').forEach(otherEl=>{
+        const oi=+otherEl.dataset.idx;if(oi===idx)return;
+        const orow=_batchRows[oi];
+        const ot=otherEl.querySelector('.bm-row-target');
+        if(ot&&orow.action==='branch')ot.textContent='New skill: '+orow.branchName;
+        // Also update the input field value of sibling branch rows
+        const oin=otherEl.querySelector('.bm-row-name input');
+        if(oin&&orow.action==='branch'&&oin.value!==orow.branchName)oin.value=orow.branchName;
+      });
+    });
+    nameRow.appendChild(lbl);nameRow.appendChild(inp);
+    el.appendChild(nameRow);
+
+    list.appendChild(el);
+  });
+
+  // Summary + submit label
+  const active=_batchRows.filter(r=>r.action!=='skip').length;
+  const updates=_batchRows.filter(r=>r.action==='update').length;
+  const branches=_batchRows.filter(r=>r.action==='branch').length;
+  const skipped=_batchRows.length-active;
+  summary.innerHTML=`<span class="bm-count">${updates}</span> update, <span class="bm-count">${branches}</span> branch, <span class="bm-count">${skipped}</span> skip`;
+  submit.textContent=active===0?'Merge':`Merge ${active} Skill${active===1?'':'s'}`;
+  if(active===0){submit.disabled=true;submit.style.opacity='0.4';}
+  else{submit.disabled=false;submit.style.opacity='';}
+}
+
+function closeBatchMerge(){
+  document.getElementById('batch-merge-overlay').classList.remove('open');
+  _batchRows=[];
+}
+
+document.getElementById('batch-merge-cancel').addEventListener('click',closeBatchMerge);
+
+document.getElementById('batch-merge-submit').addEventListener('click',()=>{
+  const updates=_batchRows.filter(r=>r.action==='update');
+  if(updates.length>0){
+    // Show confirm overlay first
+    const msg=document.getElementById('batch-confirm-msg');
+    const names=updates.map(r=>r.skillLabel).join(', ');
+    msg.textContent=`You're about to overwrite ${updates.length} library skill${updates.length===1?'':'s'} (${names}). This cannot be undone.`;
+    document.getElementById('batch-confirm-overlay').classList.add('open');
+  }else{
+    commitBatchMerge();
+  }
+});
+
+document.getElementById('batch-confirm-cancel').addEventListener('click',()=>{
+  document.getElementById('batch-confirm-overlay').classList.remove('open');
+});
+document.getElementById('batch-confirm-ok').addEventListener('click',()=>{
+  document.getElementById('batch-confirm-overlay').classList.remove('open');
+  commitBatchMerge();
+});
+
+function commitBatchMerge(){
+  // Mirror the existing branch-update / branch-new commit semantics, per-row.
+  for(const row of _batchRows){
+    if(row.action==='skip')continue;
+    const orig=getSk(row.skillId);if(!orig)continue;
+    if(row.action==='update'){
+      if(orig.isBuiltin)continue; // belt-and-suspenders — primitives never overwritten
+      mutateSkill(row.skillId, sk => sk.rawContent=row.content);
+    }else if(row.action==='branch'){
+      const newSk={...orig,id:uid('sk'),label:row.branchName,rawContent:row.content,
+        isBuiltin:false,tags:[...(orig.tags||[])],deps:[...(orig.deps||[])],
+        internalGraph:{nodes:[],edges:[]},_ts:Date.now()};
+      addSkill(newSk);
+    }
+  }
+  closeBatchMerge();
+  renderLib();
+  // Rebuild any affected canvas nodes — divergence badges and drawer state may change.
+  getNodes().forEach(n=>rebuildNode(n));
+  markPipelineDirty(activePipelineId);
+}
+
+// Dependencies tab
 
 
 // Graph tab
@@ -4412,6 +5173,9 @@ const PORT_TYPES=['Text','Number','Boolean','Image','Video','Audio','JSON','File
 function renderIOEditor(container, node, color){
   if(!node.inputs)node.inputs=[];
   if(!node.outputs)node.outputs=[];
+  // Compute/Code are constrained to exactly one output port (per port-value model).
+  const _sid=node.type||node.skillId;
+  const singleOut=_sid==='compute'||_sid==='code';
 
   ['inputs','outputs'].forEach(side=>{
     const sec=document.createElement('div');sec.className='io-section';
@@ -4423,7 +5187,10 @@ function renderIOEditor(container, node, color){
       node[side].push({id:uid('p'),name:'',type:'Any'});
       refreshList();rebuildNode(node);
     });
-    hdr.appendChild(lbl);hdr.appendChild(addBtn);sec.appendChild(hdr);
+    hdr.appendChild(lbl);
+    // Constrained primitives: no Add on the outputs side (exactly one output port).
+    if(!(singleOut&&side==='outputs'))hdr.appendChild(addBtn);
+    sec.appendChild(hdr);
 
     const list=document.createElement('div');list.className='io-port-list';sec.appendChild(list);
 
@@ -4448,6 +5215,10 @@ function renderIOEditor(container, node, color){
         // Delete
         const del=document.createElement('button');del.className='io-port-del';del.textContent='×';del.title='Remove';
         del.addEventListener('click',()=>{node[side].splice(i,1);refreshList();rebuildNode(node);});
+        // Never allow deleting the last output — a node with zero output sockets
+        // is a dead end (can't be wired downstream). To end a pipeline, just leave
+        // the final node's output unconnected.
+        if(side==='outputs'&&node.outputs.length<=1){del.style.display='none';del.title='At least one output required';}
         row.appendChild(nameIn);row.appendChild(typeSel);row.appendChild(del);list.appendChild(row);
       });
     };
@@ -4455,6 +5226,52 @@ function renderIOEditor(container, node, color){
     container.appendChild(sec);
   });
 }
+
+// Edit-time fetch for the FETCH primitive. Resolves a URL into the node's stored
+// values.content (body) and values._meta (useful response metadata) so the node is a
+// plain producer at run time. Failures clear prior content so stale data can't ship.
+async function doFetchNode(node,statusEl,btnEl){
+  const url=(node.values?.url||'').trim();
+  const setStatus=(msg,color)=>{
+    node.values._fetchStatus=msg;
+    if(statusEl){statusEl.textContent=msg;statusEl.style.color=color||'var(--dim)';}
+  };
+  if(!url){setStatus('No URL to fetch.','var(--dim)');return;}
+  // Parse "Key: Value" header lines (one per line).
+  const headers={};
+  (node.values?.headers||'').split('\n').forEach(line=>{
+    const i=line.indexOf(':');if(i<0)return;
+    const k=line.slice(0,i).trim(),v=line.slice(i+1).trim();
+    if(k)headers[k]=v;
+  });
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='⬇ Fetching…';}
+  setStatus('Fetching…','var(--dim)');
+  try{
+    const resp=await fetch(url,{headers,method:'GET'});
+    const body=await resp.text();
+    const meta={
+      status:resp.status,
+      statusText:resp.statusText,
+      contentType:resp.headers.get('content-type')||null,
+      contentLength:resp.headers.get('content-length')||null
+    };
+    node.values.content=body;
+    node.values._meta=JSON.stringify(meta,null,2);
+    setStatus('✓ '+resp.status+' '+resp.statusText+' — '+Math.round(body.length/1024)+'KB',resp.ok?'var(--grn)':'var(--org)');
+    markPipelineDirty(activePipelineId);
+    rebuildNode(node);renderInspector();
+  }catch(err){
+    // Network error or CORS block — the browser won't expose details for cross-origin denials.
+    node.values.content='';
+    node.values._meta='';
+    setStatus('✗ Fetch failed — the server may not allow browser access (CORS) or the URL is unreachable.','var(--org)');
+    markPipelineDirty(activePipelineId);
+    rebuildNode(node);renderInspector();
+  }finally{
+    if(btnEl){btnEl.disabled=false;btnEl.textContent='⬇ Fetch';}
+  }
+}
+
 
 // Renders the right inspector panel for the currently selected node/skill
 function renderInspector(){
@@ -4511,6 +5328,7 @@ function renderInspector(){
   // Canvas node built-in fields (canvasNode already declared above)
   if(canvasNode){
     ifields.style.display='flex';ifields.innerHTML='';
+    let deferredContentField=null;
 
     // Node title (instance-level override)
     // Node title — editable via double-click on the name field above
@@ -4526,7 +5344,7 @@ function renderInspector(){
         sel.addEventListener('change',()=>{canvasNode.values[f.key]=sel.value;rebuildNode(canvasNode);});
         w.appendChild(sel);ifields.appendChild(w);return;
       }
-      const l=document.createElement('div');l.className='flbl';l.textContent=f.label;w.appendChild(l);
+      const l=document.createElement('div');l.className='flbl';l.textContent=f.label;if(f.label)w.appendChild(l);
       let ctrl;
       if(f.type==='textarea'){ctrl=document.createElement('textarea');ctrl.rows=f.rows||3;ctrl.placeholder=f.ph||'';ctrl.value=canvasNode.values?.[f.key]||'';ctrl.addEventListener('input',()=>{canvasNode.values[f.key]=ctrl.value;markPipelineDirty(activePipelineId);});}
       else if(f.type==='medialist'){
@@ -4555,12 +5373,6 @@ function renderInspector(){
         };
         refreshList();
       }
-      else if(f.type==='codeeditor-lang'){
-        // Language selector — rendered as a styled select, no label wrapper needed
-        ctrl=document.createElement('select');ctrl.className='code-lang-sel';
-        (f.opts||[]).forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;if(canvasNode.values?.[f.key]===o)opt.selected=true;ctrl.appendChild(opt);});
-        ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});
-      }
       else if(f.type==='codeeditor'){
         // Code textarea with copy button
         ctrl=document.createElement('div');ctrl.className='code-field-wrap';
@@ -4574,9 +5386,73 @@ function renderInspector(){
         // Tab key inserts spaces
         ta.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart,end=ta.selectionEnd;ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(end);ta.selectionStart=ta.selectionEnd=s+2;}});
         ta.addEventListener('input',()=>{canvasNode.values[f.key]=ta.value;markPipelineDirty(activePipelineId);});
+        ta.addEventListener('change',()=>rebuildNode(canvasNode)); // sync on-node drawer on blur
         ctrl.appendChild(ta);
       }
+      else if(f.type==='jsonschema'){
+        // JSON Schema editor for per-Code-node GPT tool parameters.
+        // Saves raw text as-is; export parses lazily and falls back to default on failure.
+        ctrl=document.createElement('div');ctrl.className='code-field-wrap';
+        const bar=document.createElement('div');bar.className='code-lang-bar';
+        const tplBtn=document.createElement('button');tplBtn.className='code-copy-btn';tplBtn.textContent='Insert default template';
+        bar.appendChild(tplBtn);ctrl.appendChild(bar);
+        const ta=document.createElement('textarea');ta.className='code-textarea';ta.rows=f.rows||8;ta.placeholder=f.ph||'';ta.value=canvasNode.values?.[f.key]||'';ta.spellcheck=false;
+        ta.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart,end=ta.selectionEnd;ta.value=ta.value.slice(0,s)+'  '+ta.value.slice(end);ta.selectionStart=ta.selectionEnd=s+2;}});
+        ctrl.appendChild(ta);
+        const status=document.createElement('div');status.style.cssText='font-family:var(--mono);font-size:10px;margin-top:4px;min-height:14px';
+        ctrl.appendChild(status);
+        const updateStatus=()=>{
+          const v=ta.value.trim();
+          if(!v){status.textContent='Empty — will use default { input: string }';status.style.color='var(--dim)';return;}
+          try{JSON.parse(v);status.textContent='✓ Valid JSON';status.style.color='var(--grn)';}
+          catch(e){status.textContent='✗ '+e.message;status.style.color='var(--red)';}
+        };
+        ta.addEventListener('input',()=>{canvasNode.values[f.key]=ta.value;updateStatus();markPipelineDirty(activePipelineId);});
+        tplBtn.addEventListener('click',()=>{
+          const tpl=JSON.stringify({type:'object',properties:{input:{type:'string',description:'Text input to process through this step'}},required:['input']},null,2);
+          ta.value=tpl;canvasNode.values[f.key]=tpl;updateStatus();markPipelineDirty(activePipelineId);
+        });
+        updateStatus();
+      }
       else if(f.type==='select'){ctrl=document.createElement('select');ctrl.innerHTML='<option value="">— choose —</option>'+(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});}
+      else if(f.type==='content_preview'){
+        // Captured content (instance-scoped values.content). Editable when text, so the
+        // user can tweak imported file/URL content before sending. Binary data URLs stay
+        // read-only (editing a base64 blob would corrupt it).
+        const val=canvasNode.values?.[f.key]||'';
+        if(val.startsWith('data:')){
+          ctrl=document.createElement('div');
+          const box=document.createElement('div');
+          box.style.cssText='font-family:var(--mono);font-size:9px;line-height:1.4;color:var(--txt);background:var(--panel);border:1px solid var(--brd);border-radius:4px;padding:6px 8px;max-height:200px;overflow:auto;white-space:pre-wrap;word-break:break-word';
+          box.textContent='[binary content — '+Math.round(val.length/1024)+'KB data URL]';
+          ctrl.appendChild(box);
+        }else{
+          const ta=document.createElement('textarea');ta.className='code-textarea';ta.rows=12;ta.spellcheck=false;
+          ta.style.cssText='font-family:var(--mono);font-size:9px;line-height:1.4;max-height:60vh';
+          ta.placeholder='No content captured yet.';ta.value=val;
+          ta.addEventListener('input',()=>{canvasNode.values[f.key]=ta.value;markPipelineDirty(activePipelineId);});
+          ta.addEventListener('change',()=>rebuildNode(canvasNode)); // sync on-node drawer on blur
+          ctrl=ta;
+        }
+      }
+      else if(f.type==='meta_preview'){
+        // Read-only response metadata (instance-scoped values._meta JSON string).
+        const val=canvasNode.values?.[f.key]||'';
+        ctrl=document.createElement('div');
+        const box=document.createElement('div');
+        box.style.cssText='font-family:var(--mono);font-size:9px;line-height:1.4;background:var(--panel);border:1px solid var(--brd);border-radius:4px;padding:6px 8px;max-height:140px;overflow:auto;white-space:pre-wrap;word-break:break-word';
+        if(val){box.textContent=val;box.style.color='var(--txt)';}
+        else{box.textContent='No response yet.';box.style.color='var(--dim)';box.style.fontStyle='italic';}
+        ctrl.appendChild(box);
+      }
+      else if(f.type==='fetch_trigger'){
+        ctrl=document.createElement('div');ctrl.className+=' flex-col-gap';
+        const btn=document.createElement('button');btn.className='mbtn';btn.textContent='⬇ Fetch';btn.style.cssText='font-size:9px;align-self:flex-start';
+        const status=document.createElement('div');status.style.cssText='font-family:var(--mono);font-size:8px;color:var(--dim)';
+        status.textContent=canvasNode.values?._fetchStatus||'';
+        btn.addEventListener('click',()=>doFetchNode(canvasNode,status,btn));
+        ctrl.appendChild(btn);ctrl.appendChild(status);
+      }
       else if(f.type==='file_upload'){
         ctrl=document.createElement('div');ctrl.className+=' flex-col-gap';
         const fileBtn=document.createElement('button');fileBtn.className='mbtn';fileBtn.textContent='📁 Choose File';fileBtn.style.cssText='font-size:9px;align-self:flex-start';
@@ -4591,8 +5467,7 @@ function renderInspector(){
           reader.onload=ev=>{
             canvasNode.values[f.key]=ev.target.result;
             // Also populate the content field with the file text
-            const contentField=canvasNode.values;
-            contentField['content']=ev.target.result;
+            canvasNode.values.content=ev.target.result;
             rebuildNode(canvasNode);renderInspector();
           };
           if(file.type.startsWith('text/')||file.name.match(/\.(md|json|csv|txt|html|xml|yaml|yml|js|py|ts|css)$/i)){
@@ -4614,10 +5489,45 @@ function renderInspector(){
           b.addEventListener('click',()=>{const cur=canvasNode.values?.[f.key]||[];canvasNode.values[f.key]=cur.includes(opt)?cur.filter(x=>x!==opt):[...cur,opt];renderInspector();rebuildNode(canvasNode);});
           ctrl.appendChild(b);
         });
-      }else{ctrl=document.createElement('input');ctrl.type='text';ctrl.placeholder=f.ph||'';ctrl.value=canvasNode.values?.[f.key]||'';ctrl.addEventListener('input',()=>{canvasNode.values[f.key]=ctrl.value;markPipelineDirty(activePipelineId);});}
-      w.appendChild(ctrl);ifields.appendChild(w);
+      }else{ctrl=document.createElement('input');ctrl.type='text';ctrl.placeholder=f.ph||'';ctrl.value=canvasNode.values?.[f.key]||'';ctrl.addEventListener('input',()=>{canvasNode.values[f.key]=ctrl.value;markPipelineDirty(activePipelineId);});
+        // FETCH url field: fire the fetch when the user clicks away (assumes they're done typing).
+        if(sk.id==='fetch'&&f.key==='url'){
+          ctrl.addEventListener('blur',()=>{if((canvasNode.values?.url||'').trim())doFetchNode(canvasNode);});
+          ctrl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ctrl.blur();}});
+        }
+      }
+      w.appendChild(ctrl);
+      // content_preview renders AFTER the INPUTS/OUTPUTS editor (below OUTPUTS), so a tall
+      // captured-content field doesn't push the port editor past the panel's clip edge.
+      if(f.type==='content_preview'){deferredContentField=w;}
+      else{ifields.appendChild(w);}
     });
     } // end if(sk.fields?.length)
+    // Map projection line — when this is a Map node whose body contains Routers, show
+    // an upper-bound estimate of LLM calls. Dim, no chrome; updates live via renderInspector.
+    if(sk.id==='map'){
+      const routers=routersInMapBody(canvasNode.id,getNodes(),getEdges());
+      if(routers.length>0){
+        const defLoops=CONFIG.DEFAULT_MAX_LOOPS;
+        const iters=parseMaxIterations(canvasNode.values?.max_iterations,defLoops);
+        let loopSum=0,defaultedCount=0;
+        const nodeById=new Map(getNodes().map(n=>[n.id,n]));
+        for(const rid of routers){
+          const r=nodeById.get(rid);
+          const raw=r?.values?.max_loops;
+          if(raw==null||String(raw).trim()===''){loopSum+=defLoops;defaultedCount++;}
+          else{loopSum+=(parseInt(String(raw),10)||defLoops);}
+        }
+        const projected=iters*(1+loopSum);
+        const proj=document.createElement('div');
+        proj.style.cssText='font-family:var(--mono);font-size:9px;color:var(--dim);line-height:1.4;padding:6px 0;border-top:1px solid var(--brd);margin-top:4px';
+        const routerWord=routers.length===1?'Router':'Routers';
+        const sumNote=defaultedCount>0?' (using default '+defLoops+' for '+defaultedCount+')':'';
+        proj.textContent='\u26a0 Body contains '+routers.length+' '+routerWord+' (max '+loopSum+' loops'+sumNote+'). '+
+          'With '+iters+' iteration'+(iters===1?'':'s')+', up to ~'+projected+' LLM call'+(projected===1?'':'s')+'.';
+        ifields.appendChild(proj);
+      }
+    }
     // Start node toggle — shown for ALL canvas nodes
     const startRow=document.createElement('div');startRow.style.cssText='display:flex;align-items:center;gap:8px;padding-top:4px;border-top:1px solid var(--brd);margin-top:4px';
     const startCb=document.createElement('input');startCb.type='checkbox';startCb.id='start-cb';startCb.checked=!!canvasNode.isStart;startCb.style.cssText='width:auto;cursor:pointer;accent-color:var(--grn)';
@@ -4629,6 +5539,8 @@ function renderInspector(){
     startRow.appendChild(startCb);startRow.appendChild(startLbl);ifields.appendChild(startRow);
     // I/O PORT EDITOR
     renderIOEditor(ifields, canvasNode, color);
+    // Captured content goes last — below OUTPUTS — so it can be tall without clipping the ports.
+    if(deferredContentField)ifields.appendChild(deferredContentField);
   } else {
     ifields.style.display='none';
   }
@@ -4792,59 +5704,8 @@ async function _downloadSkillAsZip(sk){
     files.push({name:dir+'ports.json',data:new TextEncoder().encode(JSON.stringify({inputs:sk.defaultInputs,outputs:sk.defaultOutputs},null,2))});
   }
 
-  // Build ZIP (store method — no compression, simple and reliable)
-  const parts=[];
-  const centralDir=[];
-  let offset=0;
-
-  for(const file of files){
-    const nameBytes=new TextEncoder().encode(file.name);
-    // Local file header
-    const header=new Uint8Array(30+nameBytes.length);
-    const hv=new DataView(header.buffer);
-    hv.setUint32(0,0x04034b50,true);  // signature
-    hv.setUint16(4,20,true);           // version needed
-    hv.setUint16(8,0,true);            // method: stored
-    hv.setUint32(18,file.data.length,true); // compressed size
-    hv.setUint32(22,file.data.length,true); // uncompressed size
-    hv.setUint16(26,nameBytes.length,true);
-    header.set(nameBytes,30);
-
-    // Central directory entry
-    const cd=new Uint8Array(46+nameBytes.length);
-    const cv=new DataView(cd.buffer);
-    cv.setUint32(0,0x02014b50,true);   // signature
-    cv.setUint16(4,20,true);            // version made by
-    cv.setUint16(6,20,true);            // version needed
-    cv.setUint16(10,0,true);            // method: stored
-    cv.setUint32(20,file.data.length,true);
-    cv.setUint32(24,file.data.length,true);
-    cv.setUint16(28,nameBytes.length,true);
-    cv.setUint32(42,offset,true);       // local header offset
-    cd.set(nameBytes,46);
-    centralDir.push(cd);
-
-    parts.push(header);
-    parts.push(file.data);
-    offset+=header.length+file.data.length;
-  }
-
-  // Central directory
-  const cdOffset=offset;
-  let cdSize=0;
-  centralDir.forEach(cd=>{parts.push(cd);cdSize+=cd.length;});
-
-  // End of central directory
-  const eocd=new Uint8Array(22);
-  const ev=new DataView(eocd.buffer);
-  ev.setUint32(0,0x06054b50,true);
-  ev.setUint16(8,files.length,true);
-  ev.setUint16(10,files.length,true);
-  ev.setUint32(12,cdSize,true);
-  ev.setUint32(16,cdOffset,true);
-  parts.push(eocd);
-
-  const blob=new Blob(parts,{type:'application/zip'});
+  // Build ZIP via shared helper (store method — no compression, simple and reliable)
+  const blob=_makeZip(files);
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=baseName+'.skill';
   a.click();URL.revokeObjectURL(a.href);
@@ -4941,8 +5802,6 @@ function renderLib(){
       const affected=skills.filter(s=>(s.tags||[]).includes(tag));
       if(affected.length&&confirm('Remove tag "'+tag+'" from '+affected.length+' skill(s) and delete it?')){
         affected.forEach(s=>s.tags=s.tags.filter(t=>t!==tag));
-      } else if(!affected.length||!confirm('Also remove from skills?')) {
-        // Just remove from custom list (already done above)
       }
       saveCustomTags();renderLib();
     });
@@ -5007,9 +5866,9 @@ function renderLib(){
         const commit=()=>{
           const newCat=inp.value.trim()||cat;
           if(newCat!==cat){
-            sks.forEach(sk=>sk.category=newCat);
+            sks.forEach(sk=>mutateSkill(sk.id, s=>s.category=newCat));
             if(_collapsedCats.has(cat)){_collapsedCats.delete(cat);_collapsedCats.add(newCat);}
-            persistSkills();_saveCollapsedCats();
+            _saveCollapsedCats();
           }
           renderLib();
         };
@@ -5054,9 +5913,11 @@ function pipelineToSkill(p){
   const nodeCount=rootFrame.nodes?.length||0;
   const existing=skills.find(s=>s._pipelineId===p.id);
   if(existing){
-    existing.internalGraph={nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]};
-    existing.label=p.name.toUpperCase();
-    existing.desc=nodeCount+' node'+(nodeCount!==1?'s':'')+' · saved from pipeline';
+    mutateSkill(existing.id, sk => {
+      sk.internalGraph={nodes:rootFrame.nodes||[],edges:rootFrame.edges||[]};
+      sk.label=p.name.toUpperCase();
+      sk.desc=nodeCount+' node'+(nodeCount!==1?'s':'')+' · saved from pipeline';
+    });
     return existing;
   }
   const sk={
@@ -5067,7 +5928,7 @@ function pipelineToSkill(p){
     hasOut:true,hasIn:true,fields:[],defaultInputs:[],defaultOutputs:[],
     _pipelineId:p.id,
   };
-  skills.push(sk);
+  addSkill(sk);
   return sk;
 }
 
@@ -5166,7 +6027,7 @@ function mkLibRow(sk){
      const src=getSk(sk.id);if(!src)return;
      const copy=structuredClone(src);
      copy.id=uid('sk');copy.label=src.label+' Copy';copy.isBuiltin=false;
-     copy._ts=Date.now();skills.push(copy);persistSkills();renderLib();selectLib(copy.id);
+     copy._ts=Date.now();addSkill(copy);renderLib();selectLib(copy.id);
    }},
    {t:'Download',fn:e=>{
      e.stopPropagation();
@@ -5486,12 +6347,12 @@ document.getElementById('lmb-delete').addEventListener('click',()=>{
       const toRm=f.nodes.filter(n=>(n.type||n.skillId)===id).map(n=>n.id);
       toRm.forEach(nid=>{f.nodes=f.nodes.filter(n=>n.id!==nid);f.edges=f.edges.filter(e=>e.from!==nid&&e.to!==nid);});
     });
-    skills.forEach(s=>{if(s.deps)s.deps=s.deps.filter(d=>d!==id);});
-    skills=skills.filter(s=>s.id!==id);
     scene.querySelectorAll('.node').forEach(n=>{
       const nid=n.id.slice(3);if(!getNodes().find(x=>x.id===nid))n.remove();
     });
   });
+  const idSet=new Set(ids);
+  removeSkills(s=>idSet.has(s.id));
   if(selSkillId&&ids.includes(selSkillId)){selSkillId=null;clearSel();}
   renderEdges();renderLib();updateTopbar();
   selLibIds.clear();updateLibMultiBar();
@@ -5617,16 +6478,14 @@ document.getElementById('confirm-yes').addEventListener('click',()=>{
     const toRm=f.nodes.filter(n=>(n.type||n.skillId)===delId).map(n=>n.id);
     toRm.forEach(id=>{f.nodes=f.nodes.filter(n=>n.id!==id);f.edges=f.edges.filter(e=>e.from!==id&&e.to!==id);});
   });
-  // Remove deps references
-  skills.forEach(s=>{if(s.deps)s.deps=s.deps.filter(d=>d!==delId);});
-  skills=skills.filter(s=>s.id!==delId);
+  removeSkills(s=>s.id===delId);
   scene.querySelectorAll('.node').forEach(n=>{
     const nid=n.id.slice(3);
     if(!getNodes().find(x=>x.id===nid))n.remove();
   });
   renderEdges();
   if(selSkillId===delId)clearSel();
-  renderLib();updateTopbar();persistSkills();
+  renderLib();updateTopbar();
 });
 
 // ═══════════════════════════════════════════════════════════
@@ -5764,11 +6623,12 @@ function _resolveLLMRequest(provider, apiKey, model, messages, opts={}){
   } else if(provider==='gemini'){
     const gemModel=model||'gemini-2.0-flash-lite';
     const endpoint=stream?'streamGenerateContent?alt=sse':'generateContent';
-    const contents=system?messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}))
-      :messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
+    const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
     const body={contents,generationConfig:{maxOutputTokens:CONFIG.MAX_OUTPUT_TOKENS}};
     if(system)body.systemInstruction={parts:[{text:system}]};
-    return{url:'https://generativelanguage.googleapis.com/v1beta/models/'+gemModel+':'+endpoint+'&key='+apiKey,
+    // Separator picks ? for bare endpoints (generateContent) and & when endpoint already has a query (streamGenerateContent?alt=sse).
+    const sep=endpoint.includes('?')?'&':'?';
+    return{url:'https://generativelanguage.googleapis.com/v1beta/models/'+gemModel+':'+endpoint+sep+'key='+apiKey,
       headers:{'Content-Type':'application/json'},
       body,extract:d=>d.candidates?.[0]?.content?.parts?.[0]?.text||'',
       streamExtract:j=>j.candidates?.[0]?.content?.parts?.[0]?.text||''};
@@ -5868,12 +6728,7 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
   }
   const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
   if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
-  if(provider==='anthropic'){
-    // Anthropic SSE uses event: prefix lines with content_block_delta
-    await readSSE(resp,req.streamExtract);
-  } else {
-    await readSSE(resp,req.streamExtract);
-  }
+  await readSSE(resp,req.streamExtract);
 }
 
 // callAI with full conversation history (for follow-ups)
@@ -6228,18 +7083,13 @@ function doSaveWiz(){
     deps:existing?.deps||[],
     internalGraph:wiz._generatedGraph||existing?.internalGraph||{nodes:[],edges:[]}
   };
-  const idx=skills.findIndex(x=>x.id===id);
-  if(idx>=0)skills[idx]=s;else skills.push(s);
+  upsertSkill(s);
   document.getElementById('wiz-overlay').classList.remove('open');
   renderLib();updateTopbar();
   if(wiz.editId){getNodes().filter(n=>(n.type||n.skillId)===id).forEach(n=>rebuildNode(n));}
   selectLib(id);
-  persistSkills();
 }
 
-// ═══════════════════════════════════════════════════════════
-// EXPORT
-// ═══════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════
 // SHARED: extract node content for LLM export
 // ═══════════════════════════════════════════════════════════
@@ -6252,44 +7102,194 @@ function connectedOnly(nodes, edges){
   return nodes.filter(n=>connected.has(n.id));
 }
 
-// Get the user-facing content from a node: rawContent, field values, code
-function getNodeContent(node){
-  const sk=nodeSk(node);if(!sk)return{title:'',lines:[]};
-  const title=node.title||node.values?.name||sk.label;
-  const lines=[];
+// Effective skill content for ONE node instance: the per-node override
+// (values._skillContent) if the user edited it here, else the library skill default.
+// Used only on the per-node compile path — skill-level reads stay on sk.rawContent.
+function nodeRawContent(node,sk){
+  const ov=node?.values?._skillContent;
+  return (typeof ov==='string')?ov:(sk?.rawContent||'');
+}
 
-  // rawContent (the skill's markdown instructions)
-  const raw=sk.rawContent||'';
-  if(raw.trim())lines.push(raw.trim());
+// True if this node's skill content has been edited away from its library definition.
+// Same predicate gates the divergence badge AND the Merge button's enabled state.
+function isNodeDiverged(node,sk){
+  const ov=node?.values?._skillContent;
+  if(typeof ov!=='string')return false;          // never edited here
+  return ov!==(sk?.rawContent||'');               // edited and differs from library
+}
+
+// Drawer / Content-tab label for an input-family primitive.
+// Mirrors the inspector's Fields-tab field label for the primary content key, uppercased.
+// text_input → CONTENT, code → CODE, io_input/fetch → CAPTURED CONTENT (their field is so labeled).
+// Logic family doesn't call this — it uses the fixed 'SKILL CONTENT' label.
+function drawerLabelFor(sk){
+  if(!sk)return 'CAPTURED CONTENT';
+  const contentKey=sk.id==='code'?'code':'content';
+  const field=(sk.fields||[]).find(f=>f.key===contentKey);
+  return (field?.label||'Captured Content').toUpperCase();
+}
+
+// Next available version name for a base label: scans skills for "<base>.vN",
+// returns "<base>.v{max+1}" (so .v2, .v3… not a static .v1). Used by Merge/Save dialogs.
+function nextVersionName(baseLabel){
+  const base=(baseLabel||'Skill').replace(/\.v\d+$/,'');   // strip an existing .vN so we version the root
+  const re=new RegExp('^'+base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\.v(\\d+)$');
+  let max=0;
+  skills.forEach(s=>{const m=(s.label||'').match(re);if(m){const n=+m[1];if(n>max)max=n;}});
+  return base+'.v'+(max+1);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP RUNTIME HELPERS — pure functions, headless-tested
+// ═══════════════════════════════════════════════════════════
+// parseCollection: turn upstream string input into an array of items per split mode.
+// Throws on: JSON Array mode with invalid/non-array input; Custom delimiter with blank delimiter.
+// Empty/whitespace input → [] (Map skips silently per the empty-collection rule).
+function parseCollection(input, splitMode, delimiter){
+  const s=(input==null)?'':String(input);
+  const trimmed=s.trim();
+  if(!trimmed)return [];
+  if(splitMode==='JSON Array'){
+    let parsed;
+    try{parsed=JSON.parse(trimmed);}
+    catch(e){throw new Error('JSON Array mode: input is not valid JSON ('+e.message+')');}
+    if(!Array.isArray(parsed))throw new Error('JSON Array mode: input is valid JSON but not an array');
+    return parsed.map(x=>typeof x==='string'?x:JSON.stringify(x));
+  }
+  if(splitMode==='Newlines'){
+    return trimmed.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
+  }
+  if(splitMode==='Comma-separated'){
+    return trimmed.split(',').map(x=>x.trim()).filter(x=>x.length>0);
+  }
+  if(splitMode==='Custom delimiter'){
+    if(!delimiter||delimiter.length===0)throw new Error('Custom delimiter mode: no delimiter provided');
+    return trimmed.split(delimiter).map(x=>x.trim()).filter(x=>x.length>0);
+  }
+  // Auto: try JSON array if it looks like one, else newline fallback
+  if(trimmed.startsWith('[')){
+    try{
+      const parsed=JSON.parse(trimmed);
+      if(Array.isArray(parsed))return parsed.map(x=>typeof x==='string'?x:JSON.stringify(x));
+    }catch(e){/* fall through */}
+  }
+  return trimmed.split('\n').map(x=>x.trim()).filter(x=>x.length>0);
+}
+
+// parseMaxIterations: parse Map's max_iterations field with safe fallback.
+// Blank/non-numeric/non-positive → fallback. Otherwise → integer.
+function parseMaxIterations(val, fallback){
+  if(val==null||String(val).trim()==='')return fallback;
+  const n=parseInt(String(val).trim(),10);
+  if(!Number.isFinite(n)||n<=0)return fallback;
+  return n;
+}
+
+// findMapBody: nodes reachable downstream from a Map node's output, stopping at
+// graph-output or another Map (boundaries; excluded from body). Returns Set<id>.
+function findMapBody(mapNodeId, nodes, edges){
+  const nodeById=new Map(nodes.map(n=>[n.id,n]));
+  const body=new Set();
+  const visited=new Set([mapNodeId]);
+  const queue=edges.filter(e=>e.from===mapNodeId).map(e=>e.to);
+  while(queue.length){
+    const nid=queue.shift();
+    if(visited.has(nid))continue;
+    visited.add(nid);
+    const n=nodeById.get(nid);if(!n)continue;
+    const sk=nodeSk(n);
+    const skId=sk?.id;
+    if(skId==='graph-output'||skId==='map')continue;  // boundary, don't include and don't descend
+    body.add(nid);
+    for(const e of edges){
+      if(e.from===nid&&!visited.has(e.to))queue.push(e.to);
+    }
+  }
+  return body;
+}
+
+// routersInMapBody: array of Router node IDs found within a given Map's body.
+// Used by the nested-Router warning system (canvas badge, drawer projection, pre-run dialog).
+function routersInMapBody(mapNodeId, nodes, edges){
+  const body=findMapBody(mapNodeId,nodes,edges);
+  const nodeById=new Map(nodes.map(n=>[n.id,n]));
+  const out=[];
+  for(const bid of body){
+    const n=nodeById.get(bid);
+    if(n&&nodeSk(n)?.id==='router')out.push(bid);
+  }
+  return out;
+}
+
+// projectMaxCalls: upper-bound estimate of total body-iterations across the graph,
+// counting each Map's iters × (1 body pass + sum of router loops in that body).
+// Nested Maps don't multiply — each contributes its own subtotal (Option B limitation;
+// Option C would model the cross-product properly). Used by the pre-run confirm dialog
+// and the drawer projection line.
+// Returns { total, mapBreakdowns: [{mapId, iters, routers:[{id,loops,usedDefault}], subtotal}] }.
+function projectMaxCalls(nodes, edges){
+  const breakdowns=[];
+  let total=0;
+  const nodeById=new Map(nodes.map(n=>[n.id,n]));
+  const defLoops=CONFIG.DEFAULT_MAX_LOOPS;
+  for(const n of nodes){
+    if(nodeSk(n)?.id!=='map')continue;
+    const iters=parseMaxIterations(n.values?.max_iterations,defLoops);
+    const routerIds=routersInMapBody(n.id,nodes,edges);
+    const routers=routerIds.map(rid=>{
+      const r=nodeById.get(rid);
+      const raw=r?.values?.max_loops;
+      const usedDefault=(raw==null||String(raw).trim()==='');
+      const loops=usedDefault?defLoops:(parseInt(String(raw),10)||defLoops);
+      return {id:rid,loops,usedDefault};
+    });
+    const callsPerIter=1+routers.reduce((s,r)=>s+r.loops,0);
+    const subtotal=iters*callsPerIter;
+    breakdowns.push({mapId:n.id,iters,routers,subtotal});
+    total+=subtotal;
+  }
+  return {total,mapBreakdowns:breakdowns};
+}
+
+// Get the user-typed content from a node: field values + code body.
+// Skill rawContent is NOT included here — it's harvested separately by
+// _collectSkillsWithContent() for the reference-docs section of exports.
+// This separation prevents the same skill doc appearing inline AND in references.
+function getNodeContent(node,opts){
+  const sk=nodeSk(node);if(!sk)return{title:'',userLines:[]};
+  const title=node.title||node.values?.name||sk.label;
+  const userLines=[];
+  const skipJsonSchema=opts&&opts.skipJsonSchema;
 
   // User-filled field values
   (sk.fields||[]).forEach(f=>{
     const v=node.values?.[f.key];
     if(v===undefined||v===null||v==='')return;
+    if(skipJsonSchema&&f.type==='jsonschema')return;
     if(f.type==='codeeditor'){
       const lang=(node.values?.lang||f.lang||'').toLowerCase();
-      if(String(v).trim())lines.push('```'+lang+'\n'+String(v).trim()+'\n```');
+      if(String(v).trim())userLines.push('```'+lang+'\n'+String(v).trim()+'\n```');
     }else if(f.type==='medialist'&&Array.isArray(v)&&v.length){
-      lines.push('**'+f.label+':** '+v.filter(x=>x.url).map(x=>x.url).join(', '));
+      userLines.push('**'+f.label+':** '+v.filter(x=>x.url).map(x=>x.url).join(', '));
     }else if(Array.isArray(v)&&v.length){
-      lines.push('**'+f.label+':** '+v.join(', '));
+      userLines.push('**'+f.label+':** '+v.join(', '));
     }else if(String(v).trim()){
-      lines.push('**'+f.label+':** '+String(v).trim());
+      userLines.push('**'+f.label+':** '+String(v).trim());
     }
   });
 
   // Code node special case
-  if(sk.id==='code'&&node.values?.code?.trim()&&!lines.length){
+  if(sk.id==='code'&&node.values?.code?.trim()&&!userLines.length){
     const lang=(node.values.lang||'').toLowerCase()||'js';
-    lines.push('```'+lang+'\n'+node.values.code.trim()+'\n```');
+    userLines.push('```'+lang+'\n'+node.values.code.trim()+'\n```');
   }
 
-  return{title,lines};
+  return{title,userLines};
 }
 
-// Recursively render nodes in execution order, depth-limited
-// Recursively renders pipeline steps as numbered markdown for export
-function renderSteps(nodes,edges,depth,maxDepth){
+// Recursively render nodes in execution order, depth-limited.
+// Each step carries userLines (typed values) and subSteps (internal graph).
+function renderSteps(nodes,edges,depth,maxDepth,opts){
   if(depth>(maxDepth||10))return[];
   const ordered=topoWalk(nodes,edges);
   const steps=[];
@@ -6298,72 +7298,447 @@ function renderSteps(nodes,edges,depth,maxDepth){
     if(visited.has(node.id))return;
     visited.add(node.id);
     const sk=nodeSk(node);if(!sk)return;
-    const{title,lines}=getNodeContent(node);
-    const step={title,lines:lines.slice(),subSteps:[]};
+    const{title,userLines}=getNodeContent(node,opts);
+    const step={title,userLines:userLines.slice(),subSteps:[]};
     const ig=sk.internalGraph;
-    if(ig?.nodes?.length)step.subSteps=renderSteps(ig.nodes,ig.edges||[],depth+1,maxDepth);
+    if(ig?.nodes?.length)step.subSteps=renderSteps(ig.nodes,ig.edges||[],depth+1,maxDepth,opts);
     steps.push(step);
   });
   return steps;
 }
 
 // ═══════════════════════════════════════════════════════════
-// MARKDOWN EXPORT — for Claude / general LLM use
-// Optimized for Claude's XML-aware parsing: clean headers,
-// numbered execution sequence, full skill docs appended
+// EXPORT HELPERS — XML escaping + skill collection
 // ═══════════════════════════════════════════════════════════
-// Compiles the pipeline into a Markdown document for LLM export
-function buildMD(){
-  const rootFrame=canvasStack[0];
-  const p=activePipeline();
-  const name=p?.name||'Pipeline';
-  const mdNodes=connectedOnly(rootFrame.nodes,rootFrame.edges);
-  const steps=renderSteps(mdNodes,rootFrame.edges,0,10);
-  if(!steps.length)return'(empty pipeline)';
+function _xmlAttr(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function _xmlText(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-  let out='# '+name+'\n\n';
-  out+='> You are a specialized AI assistant executing the "'+name+'" workflow.\n';
-  out+='> **Do not hallucinate, fabricate, or assume information you do not have. If you lack the data, context, or knowledge needed to complete any part of a task, stop and ask the user for guidance before proceeding.**\n';
-  out+='> Follow each step in the **exact sequence below**. Complete each step fully before moving to the next. If a step requires information not yet provided, ask before proceeding. Always complete the full sequence.\n\n';
+// Strip surrounding ```...``` markdown code fences from a multiline value.
+// Used in XML/plain-text exports where fence markers are noise. Markdown
+// exports (GPT paste view) keep them since they render correctly there.
+function _unfence(s){
+  const m=String(s||'').match(/^```[^\n]*\n([\s\S]*?)\n```\s*$/);
+  return m?m[1]:String(s||'');
+}
 
-  // Execution sequence
-  out+='## Execution Sequence\n\n';
-  const writeSteps=(list,depth)=>{
-    list.forEach((step,i)=>{
-      const indent='  '.repeat(depth);
-      const num=depth===0?(i+1)+'. ':indent+'- ';
-      out+=num+step.title+'\n';
-      if(step.lines.length){
-        out+='\n';
-        step.lines.forEach(l=>{out+=indent+'  '+l+'\n';});
-        out+='\n';
-      }
-      if(step.subSteps.length)writeSteps(step.subSteps,depth+1);
-    });
-  };
-  writeSteps(steps,0);
+// True if a step has any user content directly or in any descendant subStep.
+// Used to skip empty scaffolding nodes (GRAPH INPUT, GRAPH OUTPUT) from exports.
+function _hasContent(step){
+  if(step.userLines&&step.userLines.length)return true;
+  return(step.subSteps||[]).some(_hasContent);
+}
 
-  // Appended skill documents (full rawContent, deduplicated)
-  const skillsSeen=new Set();
-  const collectSkills=(nodes,depth=0)=>{
+// Walk pipeline nodes (incl. internal graphs) and collect skills with rawContent.
+// Deduped by skill id, depth-capped. Returns Set of skill ids in discovery order.
+function _collectSkillsWithContent(rootNodes){
+  const seen=new Set();
+  const walk=(nodes,depth)=>{
     if(depth>10)return;
     nodes.forEach(n=>{
       const sk=nodeSk(n);
-      if(!sk||!sk.rawContent?.trim()||skillsSeen.has(sk.id))return;
-      skillsSeen.add(sk.id);
-      if(sk.internalGraph?.nodes?.length)collectSkills(sk.internalGraph.nodes,depth+1);
+      if(!sk||!sk.rawContent?.trim()||seen.has(sk.id))return;
+      seen.add(sk.id);
+      if(sk.internalGraph?.nodes?.length)walk(sk.internalGraph.nodes,depth+1);
     });
   };
-  collectSkills(mdNodes);
+  walk(rootNodes,0);
+  return seen;
+}
 
-  if(skillsSeen.size){
-    out+='\n---\n\n## Reference Documents\n\n';
-    skillsSeen.forEach(id=>{
+// Standard inputs every text-prompt exporter (Claude/GPT/Gemini) needs from
+// the root pipeline. `opts` is forwarded to renderSteps — currently only
+// { skipJsonSchema:true } from buildGPT to suppress the function-schema dump
+// that's already carried by tools[].
+function _exportInputs(opts){
+  const rootFrame=canvasStack[0];
+  const nodes=connectedOnly(rootFrame.nodes,rootFrame.edges);
+  return{
+    name:activePipeline()?.name||'Pipeline',
+    nodes,
+    steps:renderSteps(nodes,rootFrame.edges,0,10,opts),
+    skillIds:_collectSkillsWithContent(nodes),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLAUDE EXPORT — XML-structured prompt
+// XML tags map directly to Anthropic's documented best practices
+// for structured prompts. Reference docs stay inline (long context is fine).
+// ═══════════════════════════════════════════════════════════
+function buildClaude(){
+  const{name,steps,skillIds}=_exportInputs();
+  if(!steps.length)return'<workflow name="'+_xmlAttr(name)+'">\n  <!-- empty pipeline -->\n</workflow>';
+
+  let out='<workflow name="'+_xmlAttr(name)+'">\n\n';
+
+  // Role + constraints
+  out+='<role>\n';
+  out+='You are a specialized AI assistant executing the "'+name+'" workflow.\n\n';
+  out+='Do not hallucinate, fabricate, or assume information you do not have. If you lack the data, context, or knowledge needed to complete any part of a task, stop and ask the user for guidance before proceeding.\n\n';
+  out+='Follow each step in the exact sequence below. Complete each step fully before moving to the next. If a step requires information not yet provided, ask before proceeding. Always complete the full sequence.\n';
+  out+='</role>\n\n';
+
+  // Execution sequence — nested <step> elements with numeric paths (1, 1.1, 1.1.1, ...).
+  // Skips empty scaffolding nodes; numbering reflects rendered position, not list index.
+  out+='<execution_sequence>\n';
+  const writeSteps=(list,depth,parentNum)=>{
+    let idx=0;
+    list.forEach(step=>{
+      if(!_hasContent(step))return;
+      idx++;
+      const num=parentNum?parentNum+'.'+idx:idx+'';
+      const indent='  '.repeat(depth+1);
+      out+=indent+'<step n="'+num+'" title="'+_xmlAttr(step.title)+'">\n';
+      if(step.userLines.length){
+        out+=indent+'  <instructions>\n';
+        step.userLines.forEach(l=>{
+          _unfence(l).split('\n').forEach(ln=>{out+=indent+'    '+_xmlText(ln)+'\n';});
+        });
+        out+=indent+'  </instructions>\n';
+      }
+      if(step.subSteps.length&&step.subSteps.some(_hasContent)){
+        out+=indent+'  <sub_steps>\n';
+        writeSteps(step.subSteps,depth+2,num);
+        out+=indent+'  </sub_steps>\n';
+      }
+      out+=indent+'</step>\n';
+    });
+  };
+  writeSteps(steps,0,'');
+  out+='</execution_sequence>\n';
+
+  // Reference documents (skills with rawContent)
+  if(skillIds.size){
+    out+='\n<reference_documents>\n';
+    skillIds.forEach(id=>{
       const sk=getSk(id);if(!sk)return;
-      out+='### '+sk.label+'\n\n'+sk.rawContent+'\n\n';
+      out+='  <document source="'+_xmlAttr(sk.label)+'">\n';
+      out+=_xmlText(sk.rawContent)+'\n';
+      out+='  </document>\n';
+    });
+    out+='</reference_documents>\n';
+  }
+
+  out+='\n</workflow>';
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════
+// GPT EXPORT — paste-friendly markdown + real Assistants API JSON
+// Returns { text, json }. `text` is what shows in the tab (pasteable into
+// Custom GPT Instructions). `json` is the real Assistants/Responses API shape
+// used by buildGPTBundle for the .zip download.
+// ═══════════════════════════════════════════════════════════
+function buildGPT(){
+  const{name,nodes,steps,skillIds}=_exportInputs({skipJsonSchema:true});
+
+  if(!nodes.length)return{text:'No nodes to export.',json:null};
+
+  // ── Collect Code-node tools with REAL OpenAI function-call schemas ──
+  // Each Code node may define a custom `parameters` JSON Schema in its values.
+  // Falls back to default { input: string } when absent or unparseable.
+  const tools=[];
+  const toolNames=new Set();
+  const defaultParams={type:'object',properties:{input:{type:'string',description:'Text input to process through this step'}},required:['input']};
+  const collectTools=(nodeList,depth)=>{
+    if(depth>10)return;
+    nodeList.forEach(n=>{
+      const sk=nodeSk(n);
+      if(sk?.id==='code'&&(n.values?.code||'').trim()){
+        let tname=(n.title||sk.label||'tool').toLowerCase().replace(/[^a-z0-9_]/g,'_').replace(/^_+|_+$/g,'')||'tool';
+        let finalName=tname,i=2;
+        while(toolNames.has(finalName)){finalName=tname+'_'+i;i++;}
+        toolNames.add(finalName);
+        const lang=n.values?.lang||'JavaScript';
+        const label=n.title||sk.label||'Code step';
+        let parameters=defaultParams;
+        const customParams=(n.values?.parameters||'').trim();
+        if(customParams){
+          try{const parsed=JSON.parse(customParams);if(parsed&&typeof parsed==='object')parameters=parsed;}catch(e){/* fall through to default */}
+        }
+        tools.push({
+          type:'function',
+          function:{
+            name:finalName,
+            description:label+' ('+lang+' step from "'+name+'" pipeline)',
+            parameters,
+          },
+        });
+      }
+      const ig=sk?.internalGraph;
+      if(ig?.nodes?.length)collectTools(ig.nodes,depth+1);
+    });
+  };
+  collectTools(nodes,0);
+
+  // ── Build the instructions string (used in both `text` and `json.instructions`) ──
+  const instrLines=[];
+  instrLines.push('You are a specialized AI assistant executing the "'+name+'" workflow.');
+  instrLines.push('');
+  instrLines.push('Rules:');
+  instrLines.push('- Do not hallucinate, fabricate, or assume information you do not have.');
+  instrLines.push('- If you lack the data, context, or knowledge needed for any step, stop and ask the user.');
+  instrLines.push('- Follow each step in the exact sequence. Complete each fully before moving to the next.');
+  instrLines.push('- For any code step, execute or reason through the logic explicitly.');
+  instrLines.push('');
+  instrLines.push('Steps:');
+  const writeSteps=(list,depth,target)=>{
+    let idx=0;
+    list.forEach(step=>{
+      if(!_hasContent(step))return;
+      idx++;
+      const indent='  '.repeat(depth);
+      const num=depth===0?idx+'. ':indent+'- ';
+      target.push(num+step.title);
+      step.userLines.forEach(l=>{
+        l.split('\n').forEach(ln=>target.push(indent+'   '+ln));
+      });
+      if(step.subSteps.length)writeSteps(step.subSteps,depth+1,target);
+    });
+  };
+  writeSteps(steps,0,instrLines);
+  const instructions=instrLines.join('\n');
+
+  // ── Paste-friendly markdown view (what the tab displays) ──
+  const textLines=[];
+  textLines.push('# '+name);
+  textLines.push('');
+  textLines.push(instructions);
+  if(tools.length){
+    textLines.push('');
+    textLines.push('## Tools');
+    textLines.push('');
+    tools.forEach(t=>textLines.push('- `'+t.function.name+'` — '+t.function.description));
+  }
+  if(skillIds.size){
+    textLines.push('');
+    textLines.push('## Knowledge');
+    textLines.push('');
+    textLines.push('_Upload these as Knowledge files in the Custom GPT builder, or include them in the file_search vector store for the Assistants API:_');
+    textLines.push('');
+    skillIds.forEach(id=>{const sk=getSk(id);if(sk)textLines.push('- `'+sk.label+'.md`');});
+  }
+  const text=textLines.join('\n').trim();
+
+  // ── Real Assistants API spec (for the .json in the bundle) ──
+  const json={
+    name,
+    description:'Specialized assistant executing the "'+name+'" workflow (exported from GUIness).',
+    model:'gpt-4o',
+    instructions,
+    tools,
+  };
+
+  return{text,json};
+}
+
+// Build a downloadable .zip bundle for the GPT export:
+//   pipeline-name/
+//     assistant.json        — real Assistants API spec
+//     instructions.md       — pasteable into Custom GPT Instructions
+//     knowledge/<skill>.md  — one file per skill with rawContent (if any)
+function buildGPTBundle(){
+  const gpt=buildGPT();
+  if(!gpt.json)return null;
+  const enc=new TextEncoder();
+  const p=activePipeline();
+  const baseName=((p?.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase().replace(/-+/g,'-').replace(/^-|-$/g,''))||'pipeline';
+  const dir=baseName+'/';
+  const files=[];
+  files.push({name:dir+'assistant.json',data:enc.encode(JSON.stringify(gpt.json,null,2))});
+  files.push({name:dir+'instructions.md',data:enc.encode(gpt.json.instructions)});
+  const rootFrame=canvasStack[0];
+  const nodes=connectedOnly(rootFrame.nodes,rootFrame.edges);
+  const skillIds=_collectSkillsWithContent(nodes);
+  skillIds.forEach(id=>{
+    const sk=getSk(id);if(!sk)return;
+    const safe=((sk.label||'skill').toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''))||'skill';
+    files.push({name:dir+'knowledge/'+safe+'.md',data:enc.encode(sk.rawContent)});
+  });
+  return{blob:_makeZip(files),filename:baseName+'-gpt-bundle-'+(new Date().toISOString().slice(0,10))+'.zip'};
+}
+
+// Truncated reference form for a skill in the Gemini `full` export.
+// Fallback chain: hand-curated `desc` → first ~200 chars of `rawContent`
+// → empty (caller emits label-only). Both branches share the same 200-char
+// cap so "truncated" never emits more chars than "full" — desc is
+// curated but not guaranteed short.
+function _geminiSkillRef(sk){
+  const CAP=200;
+  const cap=s=>s.length>CAP?s.slice(0,CAP-3)+'...':s;
+  const desc=(sk.desc||'').trim();
+  if(desc)return cap(desc);
+  const raw=(sk.rawContent||'').trim();
+  return cap(raw);
+}
+
+// ═══════════════════════════════════════════════════════════
+// GEMINI EXPORT — Persona/Task/Constraints/Steps structure
+// Returns { full, fit }. Both are plain text (no markdown).
+// `full` includes REFERENCE block with skill rawContent.
+// `fit` is terser, drops REFERENCE, targets CONFIG.GEMINI_INSTRUCTION_LIMIT.
+// ═══════════════════════════════════════════════════════════
+function buildGemini(){
+  const{name,steps,skillIds}=_exportInputs();
+  if(!steps.length)return{full:'(empty pipeline)',fit:'(empty pipeline)'};
+
+  // ── Full variant ──
+  const fullLines=[];
+  fullLines.push('PERSONA');
+  fullLines.push('You are a specialized AI assistant executing the "'+name+'" workflow.');
+  fullLines.push('');
+  fullLines.push('TASK');
+  fullLines.push('Execute the workflow steps below, in sequence, against whatever input the user provides.');
+  fullLines.push('');
+  fullLines.push('CONSTRAINTS');
+  fullLines.push('- Do not hallucinate or fabricate information.');
+  fullLines.push('- If you lack data, context, or knowledge for any step, stop and ask the user.');
+  fullLines.push('- Complete each step fully before moving to the next. Do not skip or reorder steps.');
+  fullLines.push('- For any code step, reason through the logic explicitly.');
+  fullLines.push('');
+  fullLines.push('STEPS');
+  const writeFullSteps=(list,depth,parentNum)=>{
+    let idx=0;
+    list.forEach(step=>{
+      if(!_hasContent(step))return;
+      idx++;
+      const num=parentNum?parentNum+'.'+idx:idx+'';
+      const pad='  '.repeat(depth);
+      const prefix=depth===0?num+'. ':pad+'- ';
+      fullLines.push(prefix+step.title);
+      step.userLines.forEach(l=>{
+        _unfence(l).split('\n').forEach(ln=>fullLines.push(pad+'   '+ln));
+      });
+      if(step.subSteps.length)writeFullSteps(step.subSteps,depth+1,num);
+    });
+  };
+  writeFullSteps(steps,0,'');
+
+  if(skillIds.size){
+    fullLines.push('');
+    fullLines.push('REFERENCE');
+    skillIds.forEach(id=>{
+      const sk=getSk(id);if(!sk)return;
+      fullLines.push('');
+      fullLines.push('--- '+sk.label+' ---');
+      if(_geminiTruncatedSkillIds.has(id)){
+        const ref=_geminiSkillRef(sk);
+        if(ref)fullLines.push(ref);
+      }else{
+        fullLines.push(sk.rawContent);
+      }
     });
   }
-  return out;
+
+  fullLines.push('');
+  fullLines.push('OUTPUT');
+  fullLines.push('Always complete the full sequence. State assumptions explicitly.');
+
+  const full=fullLines.join('\n');
+
+  // ── Fit variant: terser, no REFERENCE, inline step bodies ──
+  const fitLines=[];
+  fitLines.push('PERSONA: AI assistant executing "'+name+'" workflow.');
+  fitLines.push('');
+  fitLines.push('RULES');
+  fitLines.push('- No hallucination. Ask if data is missing.');
+  fitLines.push('- Complete each step before the next.');
+  fitLines.push('- Reason through code steps explicitly.');
+  fitLines.push('');
+  fitLines.push('STEPS');
+  const writeFitSteps=(list,depth,parentNum)=>{
+    let idx=0;
+    list.forEach(step=>{
+      if(!_hasContent(step))return;
+      idx++;
+      const num=parentNum?parentNum+'.'+idx:idx+'';
+      const pad='  '.repeat(depth);
+      const prefix=depth===0?num+'. ':pad+'- ';
+      // Build a single compact inline string: unfence, collapse whitespace, truncate.
+      const inline=step.userLines
+        .map(l=>_unfence(l).replace(/\s+/g,' ').trim())
+        .filter(Boolean)
+        .join(' | ');
+      const capped=inline.length>200?inline.slice(0,197)+'...':inline;
+      fitLines.push(prefix+(capped?step.title+' — '+capped:step.title));
+      if(step.subSteps.length)writeFitSteps(step.subSteps,depth+1,num);
+    });
+  };
+  writeFitSteps(steps,0,'');
+
+  const fit=fitLines.join('\n');
+
+  return{full,fit};
+}
+
+// ═══════════════════════════════════════════════════════════
+// ZIP HELPER — store-only (uncompressed) ZIP writer
+// Shared by _downloadSkillAsZip and buildGPTBundle.
+// Takes [{name, data: Uint8Array}], returns a Blob.
+// ═══════════════════════════════════════════════════════════
+// CRC-32 (IEEE 802.3) with memoized lookup table. Required for strict
+// ZIP readers like 7-Zip; `unzip` tolerates zeros but flags warnings.
+function _crc32(data){
+  if(!_crc32._t){
+    const t=new Uint32Array(256);
+    for(let i=0;i<256;i++){
+      let c=i;
+      for(let j=0;j<8;j++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      t[i]=c;
+    }
+    _crc32._t=t;
+  }
+  const t=_crc32._t;
+  let crc=0xFFFFFFFF;
+  for(let i=0;i<data.length;i++)crc=t[(crc^data[i])&0xFF]^(crc>>>8);
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function _makeZip(files){
+  const parts=[];
+  const centralDir=[];
+  let offset=0;
+  for(const file of files){
+    const nameBytes=new TextEncoder().encode(file.name);
+    const crc=_crc32(file.data);
+    const header=new Uint8Array(30+nameBytes.length);
+    const hv=new DataView(header.buffer);
+    hv.setUint32(0,0x04034b50,true);
+    hv.setUint16(4,20,true);
+    hv.setUint16(8,0,true);
+    hv.setUint32(14,crc,true);
+    hv.setUint32(18,file.data.length,true);
+    hv.setUint32(22,file.data.length,true);
+    hv.setUint16(26,nameBytes.length,true);
+    header.set(nameBytes,30);
+    const cd=new Uint8Array(46+nameBytes.length);
+    const cv=new DataView(cd.buffer);
+    cv.setUint32(0,0x02014b50,true);
+    cv.setUint16(4,20,true);
+    cv.setUint16(6,20,true);
+    cv.setUint16(10,0,true);
+    cv.setUint32(16,crc,true);
+    cv.setUint32(20,file.data.length,true);
+    cv.setUint32(24,file.data.length,true);
+    cv.setUint16(28,nameBytes.length,true);
+    cv.setUint32(42,offset,true);
+    cd.set(nameBytes,46);
+    centralDir.push(cd);
+    parts.push(header);
+    parts.push(file.data);
+    offset+=header.length+file.data.length;
+  }
+  const cdOffset=offset;
+  let cdSize=0;
+  centralDir.forEach(cd=>{parts.push(cd);cdSize+=cd.length;});
+  const eocd=new Uint8Array(22);
+  const ev=new DataView(eocd.buffer);
+  ev.setUint32(0,0x06054b50,true);
+  ev.setUint16(8,files.length,true);
+  ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cdSize,true);
+  ev.setUint32(16,cdOffset,true);
+  parts.push(eocd);
+  return new Blob(parts,{type:'application/zip'});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -6373,7 +7748,8 @@ function buildMD(){
 function topoWalk(nodes, edges){
   const adj=new Map();
   const inDeg=new Map();
-  nodes.forEach(n=>{adj.set(n.id,[]);inDeg.set(n.id,0);});
+  const nodeMap=new Map();
+  nodes.forEach(n=>{adj.set(n.id,[]);inDeg.set(n.id,0);nodeMap.set(n.id,n);});
   edges.forEach(e=>{
     if(adj.has(e.from)&&inDeg.has(e.to)){
       adj.get(e.from).push(e.to);
@@ -6385,7 +7761,7 @@ function topoWalk(nodes, edges){
   const ordered=[];
   while(queue.length){
     const id=queue.shift();
-    const node=nodes.find(n=>n.id===id);
+    const node=nodeMap.get(id);
     if(node)ordered.push(node);
     (adj.get(id)||[]).forEach(succ=>{
       const newDeg=inDeg.get(succ)-1;
@@ -6418,113 +7794,13 @@ function wouldCycle(nodes, edges, fromId, toId){
   return false;
 }
 
-// ═══════════════════════════════════════════════════════════
-// GPT EXPORT — JSON with system prompt + function tools
-// Optimized for OpenAI Custom GPT / Assistants API:
-// structured system prompt, tools array, numbered steps
-// ═══════════════════════════════════════════════════════════
-// Compiles the pipeline into a GPT-compatible JSON payload
-function buildGPT(){
-  const rootFrame=canvasStack[0];
-  const edges=rootFrame.edges;
-  const nodes=connectedOnly(rootFrame.nodes,edges);
-  if(!nodes.length)return null;
-
-  const p=activePipeline();
-  const name=p?.name||'Pipeline';
-  const steps=renderSteps(nodes,edges,0,10);
-
-  // Build instructions as numbered steps
-  let instructions='';
-  const writeSteps=(list,depth)=>{
-    list.forEach((step,i)=>{
-      const indent='  '.repeat(depth);
-      const num=depth===0?'Step '+(i+1)+': ':'- ';
-      instructions+=indent+num+step.title+'\n';
-      step.lines.forEach(l=>{instructions+=indent+'  '+l+'\n';});
-      if(step.subSteps.length){
-        instructions+=indent+'  Sub-steps:\n';
-        writeSteps(step.subSteps,depth+1);
-      }
-      instructions+='\n';
-    });
-  };
-  writeSteps(steps,0);
-
-  // Collect CODE tools
-  const tools=[];
-  const toolNames=new Set();
-  const collectTools=(nodeList,depth=0)=>{
-    if(depth>10)return;
-    nodeList.forEach(n=>{
-      const sk=nodeSk(n);
-      if(sk?.id==='code'&&(n.values?.code||'').trim()){
-        let tname=(n.title||sk.label||'tool').toLowerCase().replace(/[^a-z0-9_]/g,'_');
-        let finalName=tname,i=2;
-        while(toolNames.has(finalName))finalName=tname+'_'+i++;
-        toolNames.add(finalName);
-        tools.push({type:'function',function:{
-          name:finalName,
-          language:n.values?.lang||'JavaScript',
-          parameters:{type:'object',properties:{},required:[]},
-          code:n.values?.code||'',
-        }});
-      }
-      const ig=sk?.internalGraph;
-      if(ig?.nodes?.length)collectTools(ig.nodes,depth+1);
-    });
-  };
-  collectTools(nodes); // already filtered to connected
-
-  return{
-    name,
-    systemPrompt:'You are a specialized AI assistant executing the "'+name+'" workflow.\n\nDo not hallucinate, fabricate, or assume information you do not have. If you lack the data, context, or knowledge needed to complete any part of a task, stop and ask the user for guidance before proceeding.\n\nFollow each step in the exact sequence below. Complete each step fully before proceeding to the next. Do not skip, reorder, or combine steps. If a step requires information not yet provided, ask before proceeding. For any code step, execute or reason through the logic explicitly. Always complete the full sequence.',
-    instructions:instructions.trim(),
-    tools,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════
-// GEM EXPORT — Gemini Custom Instructions paste format
-// Optimized for Gemini Gem Manager: flat numbered steps,
-// inline instructions, no markdown headers inside steps
-// ═══════════════════════════════════════════════════════════
-// Compiles the pipeline into Google Gem plain text format
-function buildGem(){
-  const rootFrame=canvasStack[0];
-  const p=activePipeline();
-  const name=p?.name||'Pipeline';
-  const gemNodes=connectedOnly(rootFrame.nodes,rootFrame.edges);
-  const steps=renderSteps(gemNodes,rootFrame.edges,0,10);
-  if(!steps.length)return'(empty pipeline)';
-
-  const lines=[];
-  lines.push('You are a specialized AI assistant that executes the "'+name+'" workflow.');
-  lines.push('Do not hallucinate, fabricate, or assume information you do not have. If you lack the data, context, or knowledge needed to complete any part of a task, stop and ask the user for guidance before proceeding.');
-  lines.push('Follow each step in the exact sequence. Complete each step fully before moving to the next. If a step requires information not yet provided, ask before proceeding.');
-  lines.push('');
-
-  const writeSteps=(list,depth)=>{
-    list.forEach((step,i)=>{
-      const pad='  '.repeat(depth);
-      const num=depth===0?(i+1)+'. ':pad+'• ';
-      lines.push(num+step.title);
-      if(step.lines.length){
-        step.lines.forEach(l=>lines.push(pad+'  '+l));
-        lines.push('');
-      }
-      if(step.subSteps.length)writeSteps(step.subSteps,depth+1);
-    });
-  };
-  writeSteps(steps,0);
-
-  lines.push('');
-  lines.push('Always complete the full sequence. For any code step, execute or reason through the logic explicitly.');
-  return lines.join('\n');
-}
-
-
-let _outFmt='md'; // 'md' | 'gpt' | 'gem'
+let _outFmt='claude'; // 'claude' | 'gpt' | 'gemini'
+let _geminiVariant='fit'; // 'fit' | 'full' — only used when _outFmt==='gemini'
+let _gptVariant='text'; // 'text' | 'json' — only used when _outFmt==='gpt'
+// Skill IDs that should emit a truncated form in the Gemini full REFERENCE
+// block. Per-export choice — ephemeral, lives in memory only. Stale IDs are
+// harmless since buildGemini iterates the current pipeline's skillIds Set.
+const _geminiTruncatedSkillIds=new Set();
 
 // ── Token estimation ────────────────────────────────────
 // ~4 chars per token (GPT/Claude rough average)
@@ -6593,33 +7869,49 @@ function _refreshOutput(){
   const pre=document.getElementById('out-pre');
   const dl=document.getElementById('out-download');
   const cp=document.getElementById('out-copy');
+  const gemBar=document.getElementById('out-gemini-variants');
+  const gptBar=document.getElementById('out-gpt-variants');
+  const charEl=document.getElementById('out-char-count');
   if(_outFmt==='gpt'){
     const gpt=buildGPT();
-    if(!gpt){pre.textContent='No nodes to export.';dl.textContent='↓ Download .json';cp.textContent='Copy JSON';}
-    else{
-      const toolList=gpt.tools.length
-        ? gpt.tools.map(t=>'  • '+t.function.name+' ('+t.function.language+')').join('\n')
-        : '';
-      pre.textContent=
-        '# '+gpt.name+'\n'+
-        '─'.repeat(Math.min(gpt.name.length+2,60))+'\n\n'+
-        '## System Prompt\n'+gpt.systemPrompt+'\n\n'+
-        '## Instructions\n'+gpt.instructions+
-        (toolList?'\n\n## Tools\n'+toolList:'');
+    if(_gptVariant==='json'){
+      pre.textContent=gpt.json?JSON.stringify(gpt.json,null,2):'(no JSON spec available)';
       dl.textContent='↓ Download .json';cp.textContent='Copy JSON';
+    }else{
+      pre.textContent=gpt.text;
+      dl.textContent='↓ Download .zip';cp.textContent='Copy text';
     }
-  }else if(_outFmt==='gem'){
-    pre.textContent=buildGem();
-    dl.textContent='↓ Download .md';cp.textContent='Copy Gem Prompt';
+    gptBar.style.display='flex';
+    gemBar.style.display='none';
+    charEl.style.display='none';
+  }else if(_outFmt==='gemini'){
+    const gem=buildGemini();
+    const variant=_geminiVariant==='full'?gem.full:gem.fit;
+    pre.textContent=variant;
+    dl.textContent='↓ Download .md';cp.textContent='Copy text';
+    gemBar.style.display='flex';
+    gptBar.style.display='none';
+    // Char count vs Gem Instructions limit
+    const limit=CONFIG.GEMINI_INSTRUCTION_LIMIT||8000;
+    const chars=variant.length;
+    charEl.style.display='inline';
+    charEl.textContent=chars+'/'+limit;
+    charEl.style.color=chars>limit?'var(--red)':chars>limit*0.85?'#f59e0b':'var(--txt)';
   }else{
-    pre.textContent=buildMD();
-    dl.textContent='↓ Download .md';cp.textContent='Copy MD';
+    // claude (default)
+    pre.textContent=buildClaude();
+    dl.textContent='↓ Download .xml';cp.textContent='Copy XML';
+    gemBar.style.display='none';
+    gptBar.style.display='none';
+    charEl.style.display='none';
   }
   updateTokenCount();
+  _renderGeminiSkillsBtn();
 }
 
 // Opens/closes the LLM export drawer on the right side
 function openOutput(){
+  _reattachOutModal();
   _refreshOutput();
   document.getElementById('out-overlay').classList.add('open');
 }
@@ -6630,8 +7922,136 @@ document.getElementById('out-fmt-tabs').addEventListener('click',e=>{
   document.querySelectorAll('.out-fmt-tab').forEach(t=>t.classList.toggle('on',t===tab));
   _refreshOutput();
 });
+document.getElementById('out-gemini-variants').addEventListener('click',e=>{
+  const tab=e.target.closest('.out-variant-tab');if(!tab)return;
+  _geminiVariant=tab.dataset.variant;
+  document.querySelectorAll('#out-gemini-variants .out-variant-tab').forEach(t=>t.classList.toggle('on',t===tab));
+  _refreshOutput();
+});
+
+// ── Gemini per-skill truncation popover ─────────────────────
+// Updates the "Skills: N/M full" button label & visibility. Hidden unless
+// the user is viewing Gemini full AND the pipeline has skills with content.
+function _renderGeminiSkillsBtn(){
+  const btn=document.getElementById('out-gemini-skills-btn');
+  if(!btn)return;
+  if(_outFmt!=='gemini'||_geminiVariant!=='full'){
+    btn.style.display='none';_closeGeminiSkillsPopover();return;
+  }
+  const{skillIds}=_exportInputs();
+  if(!skillIds.size){btn.style.display='none';_closeGeminiSkillsPopover();return;}
+  let truncated=0;
+  skillIds.forEach(id=>{if(_geminiTruncatedSkillIds.has(id))truncated++;});
+  btn.textContent='Skills: '+(skillIds.size-truncated)+'/'+skillIds.size+' full';
+  btn.style.display='inline-block';
+}
+function _closeGeminiSkillsPopover(){
+  const p=document.getElementById('out-gemini-skills-pop');if(p)p.remove();
+  if(_geminiSkillsOutsideHandler){document.removeEventListener('pointerdown',_geminiSkillsOutsideHandler);_geminiSkillsOutsideHandler=null;}
+}
+let _geminiSkillsOutsideHandler=null;
+function _openGeminiSkillsPopover(){
+  const btn=document.getElementById('out-gemini-skills-btn');
+  const{skillIds}=_exportInputs();
+  if(!skillIds.size)return;
+  const pop=document.createElement('div');
+  pop.id='out-gemini-skills-pop';
+  const r=btn.getBoundingClientRect();
+  pop.style.cssText='position:fixed;top:'+(r.bottom+4)+'px;left:'+Math.max(8,r.right-340)+'px;width:340px;max-height:60vh;overflow-y:auto;background:var(--panel);border:1px solid var(--brd);border-radius:8px;padding:10px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:6px';
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:flex;gap:6px;border-bottom:1px solid var(--brd);padding-bottom:8px;margin-bottom:2px';
+  const allFullBtn=document.createElement('button');allFullBtn.className='mbtn';allFullBtn.textContent='All full';allFullBtn.style.cssText='font-size:10px;flex:1';
+  const allTruncBtn=document.createElement('button');allTruncBtn.className='mbtn';allTruncBtn.textContent='All truncated';allTruncBtn.style.cssText='font-size:10px;flex:1';
+  hdr.appendChild(allFullBtn);hdr.appendChild(allTruncBtn);
+  pop.appendChild(hdr);
+  const rows=[];
+  skillIds.forEach(id=>{
+    const sk=getSk(id);if(!sk)return;
+    const row=document.createElement('label');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;cursor:pointer';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=!_geminiTruncatedSkillIds.has(id);cb.style.cssText='accent-color:var(--acc);flex-shrink:0;width:14px;height:14px';
+    const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:1px;min-width:0;flex:1';
+    const lbl=document.createElement('div');lbl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dhi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';lbl.textContent=sk.label||id;
+    const fullChars=(sk.rawContent||'').length;
+    const truncChars=_geminiSkillRef(sk).length;
+    const meta=document.createElement('div');meta.style.cssText='font-size:9px;color:var(--dim)';meta.textContent=fullChars+' → '+truncChars+' chars when truncated';
+    info.appendChild(lbl);info.appendChild(meta);
+    row.appendChild(cb);row.appendChild(info);
+    cb.addEventListener('change',()=>{
+      if(cb.checked)_geminiTruncatedSkillIds.delete(id);
+      else _geminiTruncatedSkillIds.add(id);
+      _refreshOutput();
+    });
+    pop.appendChild(row);
+    rows.push(cb);
+  });
+  allFullBtn.addEventListener('click',()=>{
+    skillIds.forEach(id=>_geminiTruncatedSkillIds.delete(id));
+    rows.forEach(cb=>cb.checked=true);
+    _refreshOutput();
+  });
+  allTruncBtn.addEventListener('click',()=>{
+    skillIds.forEach(id=>_geminiTruncatedSkillIds.add(id));
+    rows.forEach(cb=>cb.checked=false);
+    _refreshOutput();
+  });
+  document.body.appendChild(pop);
+  _geminiSkillsOutsideHandler=(ev)=>{
+    if(!pop.contains(ev.target)&&ev.target!==btn&&!btn.contains(ev.target))_closeGeminiSkillsPopover();
+  };
+  // Defer attach to avoid catching the current click
+  setTimeout(()=>document.addEventListener('pointerdown',_geminiSkillsOutsideHandler),0);
+}
+document.getElementById('out-gemini-skills-btn').addEventListener('click',()=>{
+  if(document.getElementById('out-gemini-skills-pop'))_closeGeminiSkillsPopover();
+  else _openGeminiSkillsPopover();
+});
+
+document.getElementById('out-gpt-variants').addEventListener('click',e=>{
+  const tab=e.target.closest('.out-variant-tab');if(!tab)return;
+  _gptVariant=tab.dataset.variant;
+  document.querySelectorAll('#out-gpt-variants .out-variant-tab').forEach(t=>t.classList.toggle('on',t===tab));
+  _refreshOutput();
+});
 document.getElementById('out-close').addEventListener('click',()=>document.getElementById('out-overlay').classList.remove('open'));
 document.getElementById('out-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('out-overlay').classList.remove('open');});
+
+// ── Export modal: drag (resize is native via CSS resize:both) ──────────
+// Detach from flex centering on first drag/resize; reattach on close so the
+// modal opens fresh each time. Reattach unconditionally clears inline
+// width/height too, so native resize also resets between opens.
+function _reattachOutModal(){
+  const m=document.getElementById('out-modal');
+  m.style.position='';m.style.left='';m.style.top='';m.style.margin='';
+  m.style.width='';m.style.height='';
+}
+function _detachOutModal(){
+  const m=document.getElementById('out-modal');
+  if(m.style.position==='fixed')return;
+  const r=m.getBoundingClientRect();
+  m.style.position='fixed';m.style.left=r.left+'px';m.style.top=r.top+'px';m.style.margin='0';
+}
+document.querySelector('#out-modal .mhd').addEventListener('pointerdown',e=>{
+  // Bail if pointerdown is on an interactive child (buttons, inputs, etc.)
+  if(e.target.closest('button,input,select,textarea,a'))return;
+  e.preventDefault();
+  _detachOutModal();
+  const m=document.getElementById('out-modal');
+  const sx=e.clientX,sy=e.clientY;
+  const sl=parseFloat(m.style.left)||0,st=parseFloat(m.style.top)||0;
+  const w=m.offsetWidth;
+  const minH=200,minV=50; // 200px modal must stay in viewport; 50px sliver of header
+  m.style.transition='none';
+  const mv=ev=>{
+    let nl=sl+(ev.clientX-sx),nt=st+(ev.clientY-sy);
+    nl=Math.max(minH-w,Math.min(window.innerWidth-minH,nl));
+    nt=Math.max(0,Math.min(window.innerHeight-minV,nt));
+    m.style.left=nl+'px';m.style.top=nt+'px';
+  };
+  const up=()=>{m.style.transition='';window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);};
+  window.addEventListener('pointermove',mv);
+  window.addEventListener('pointerup',up);
+});
 
 // ── Run Pipeline via LLM (drawer) ──────────────────────
 const AI_MODELS={
@@ -6643,8 +8063,8 @@ const AI_MODELS={
 let _runProvider='anthropic',_runKey='',_runModel='';
 const _localUrl=()=>(document.getElementById('out-run-url')?.value||'http://localhost:11434').replace(/\/+$/,'');
 
-function openDrawer(){document.getElementById('llm-drawer').style.right='0';refreshRunProviders();refreshRunKeys();refreshRunModels();document.getElementById('out-run-local').style.display=_runProvider==='local'?'flex':'none';updateTokenCount();}
-function closeDrawer(){const d=document.getElementById('llm-drawer');d.style.right='-'+d.offsetWidth+'px';}
+function openDrawer(){const d=document.getElementById('llm-drawer');d.style.right='0';d.classList.add('drawer-open');refreshRunProviders();refreshRunKeys();refreshRunModels();document.getElementById('out-run-local').style.display=_runProvider==='local'?'flex':'none';updateTokenCount();}
+function closeDrawer(){const d=document.getElementById('llm-drawer');d.style.right='-'+d.offsetWidth+'px';d.classList.remove('drawer-open');}
 
 function refreshRunProviders(){
   const c=document.getElementById('out-run-providers');c.innerHTML='';
@@ -6956,12 +8376,30 @@ async function runChain(provider,apiKey,model,rb,st){
   });
 
   // Track per-node outputs for context merging
-  const nodeOutputs={}; // nodeId -> output string
+  const nodeOutputs={}; // nodeId -> { [portId]: output string }
   const loopCounts={}; // nodeId -> number of times executed
+
+  // Read the value flowing along an edge: the specific source port's value.
+  // Fallback (older/loose edges with missing fromPort, or a fromPort that no
+  // longer exists in the producer's output map): use the producer's first output port.
+  function edgeValue(e){
+    const m=nodeOutputs[e.from];
+    if(!m)return '';
+    if(e.fromPort&&e.fromPort in m)return m[e.fromPort];
+    const src=nodes.find(n=>n.id===e.from);
+    const firstPort=src?.outputs?.[0]?.id;
+    if(firstPort&&firstPort in m)return m[firstPort];
+    // Last resort: any single value present (covers fully portless legacy nodes).
+    const vals=Object.values(m);
+    return vals.length?vals[0]:'';
+  }
+  // The producer node's single/first output port id — for writing per-port values.
+  function outPortId(node){return node.outputs?.[0]?.id||'out';}
 
   let fullLog='';
   const totalSteps=ordered.length;
   let stepNum=0;
+  let lastRender=0; // per-run streaming throttle — reset to 0 on every runChain invocation
 
   // Execute nodes in topological order, with routing support
   async function executeNode(node){
@@ -6976,7 +8414,7 @@ async function runChain(provider,apiKey,model,rb,st){
       // Collect all incoming edges' source outputs
       const incoming=edges.filter(e=>e.to===node.id);
       const parts=[];
-      incoming.forEach(e=>{if(nodeOutputs[e.from])parts.push(nodeOutputs[e.from]);});
+      incoming.forEach(e=>{const v=edgeValue(e);if(v)parts.push(v);});
       // Add variables from fields
       const vars=node.values?.variables||'';
       if(vars)parts.push('Variables:\n'+vars);
@@ -6984,7 +8422,7 @@ async function runChain(provider,apiKey,model,rb,st){
       fullLog+='\n\n## Step '+stepNum+': '+stepLabel+' (Context Merge)\n\n'+
         '_Merged '+incoming.length+' inputs'+(vars?' + variables':'')+' into context._\n';
       rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
-      nodeOutputs[node.id]=merged;
+      nodeOutputs[node.id]={[outPortId(node)]:merged};
       return merged;
     }
 
@@ -6992,9 +8430,9 @@ async function runChain(provider,apiKey,model,rb,st){
     if(skId==='router'){
       const condition=node.values?.condition||'';
       const mode=node.values?.mode||'LLM (natural language)';
-      const maxLoops=parseInt(node.values?.max_loops)||CONFIG.DEFAULT_MAX_LOOPS;
+      const maxLoops=parseInt(node.values?.max_loops,10)||CONFIG.DEFAULT_MAX_LOOPS;
       const incoming=edges.filter(e=>e.to===node.id);
-      const inputCtx=incoming.map(e=>nodeOutputs[e.from]||'').filter(Boolean).join('\n\n');
+      const inputCtx=incoming.map(e=>edgeValue(e)).filter(Boolean).join('\n\n');
       st.textContent='Step '+stepNum+': '+stepLabel+' (routing)';st.style.color='var(--dim)';
 
       let routeResult='pass';
@@ -7020,7 +8458,7 @@ async function runChain(provider,apiKey,model,rb,st){
       const outEdges=adjOut[node.id]||[];
       const matchPort=routeResult==='pass'?'r-pass':'r-fail';
       const routeEdges=outEdges.filter(e=>e.fromPort===matchPort);
-      nodeOutputs[node.id]=inputCtx; // pass input through
+      nodeOutputs[node.id]={[matchPort]:inputCtx}; // pass input through the matched branch only
 
       if(routeEdges.length){
         for(const re of routeEdges){
@@ -7030,7 +8468,7 @@ async function runChain(provider,apiKey,model,rb,st){
           if(!loopCounts[targetNode.id])loopCounts[targetNode.id]=0;
           loopCounts[targetNode.id]++;
           if(loopCounts[targetNode.id]>maxLoops){
-            fullLog+='\n_⚠ Max loops ('+maxLoops+') reached for '+nodeSk(targetNode)?.label+', stopping._\n';
+            fullLog+='\n_⚠ Max loops ('+maxLoops+') reached for '+(nodeSk(targetNode)?.label||'node')+', stopping._\n';
             rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
             continue;
           }
@@ -7040,13 +8478,130 @@ async function runChain(provider,apiKey,model,rb,st){
       return routeResult;
     }
 
+    // ── Map node: iterate body once per item in collection ──
+    if(skId==='map'){
+      const incoming=edges.filter(e=>e.to===node.id);
+      const inputCtx=incoming.map(e=>edgeValue(e)).filter(Boolean).join('\n\n');
+      const splitMode=node.values?.split_mode||'Auto';
+      const delimiter=node.values?.delimiter||'';
+      const joinSep=(node.values?.join_separator||'\n\n---\n\n').replace(/\\n/g,'\n');
+      const maxIters=parseMaxIterations(node.values?.max_iterations,CONFIG.DEFAULT_MAX_LOOPS);
+
+      st.textContent='Step '+stepNum+': '+stepLabel+' (parsing collection)';st.style.color='var(--dim)';
+
+      // Parse the collection. Throws on strict-mode failures (JSON Array, Custom delimiter).
+      let items;
+      try{
+        items=parseCollection(inputCtx,splitMode,delimiter);
+      }catch(e){
+        fullLog+='\n\n## Step '+stepNum+': '+stepLabel+' (Map)\n\n_⚠ '+e.message+'_\n';
+        rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
+        nodeOutputs[node.id]={[outPortId(node)]:''};
+        return '';
+      }
+
+      // Empty collection → skip silently with a log line.
+      if(items.length===0){
+        fullLog+='\n\n## Step '+stepNum+': '+stepLabel+' (Map)\n\n_Collection is empty, skipping iteration._\n';
+        rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
+        nodeOutputs[node.id]={[outPortId(node)]:''};
+        return '';
+      }
+
+      // Cap iterations at max_iterations (guardrail).
+      const willRun=Math.min(items.length,maxIters);
+      const truncated=items.length>maxIters;
+
+      // Find body and pre-compute its topo order (the same body executes every iteration).
+      const body=findMapBody(node.id,nodes,edges);
+      const bodyEdges=edges.filter(e=>body.has(e.from)&&body.has(e.to));
+      const bodyNodes=nodes.filter(n=>body.has(n.id));
+      const bodyTopo=topoWalk(bodyNodes,bodyEdges);
+
+      // Exit edges: from-in-body, to-outside-body. Their source ports carry the iteration result.
+      const exitEdges=edges.filter(e=>body.has(e.from)&&!body.has(e.to));
+
+      fullLog+='\n\n## Step '+stepNum+': '+stepLabel+' (Map)\n\n'+
+        '_Collection: '+items.length+' item'+(items.length===1?'':'s')+
+        (truncated?' (capped at '+maxIters+')':'')+
+        ', body: '+body.size+' node'+(body.size===1?'':'s')+'._\n';
+      rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
+
+      const mapOutPort=outPortId(node);
+      const iterResults=[];
+      for(let i=0;i<willRun;i++){
+        const item=items[i];
+        const preview=item.length>40?item.slice(0,40)+'…':item;
+        fullLog+='\n_Iteration '+(i+1)+'/'+willRun+': "'+preview.replace(/\n/g,' ')+'"_\n';
+        rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
+
+        // Seed Map's output port with the current item — body reads it via edgeValue.
+        nodeOutputs[node.id]={[mapOutPort]:item};
+
+        // Empty body: the item itself is the iteration result (orphan-Map semantic).
+        if(bodyTopo.length===0){
+          iterResults.push(item);
+          continue;
+        }
+
+        // Execute body nodes in topo order for this iteration.
+        for(const bn of bodyTopo){
+          await executeNode(bn);
+        }
+
+        // Collect this iteration's output from exit edges (or from body's terminal
+        // nodes if no exit edges exist — i.e., body terminates in the graph itself).
+        let iterValue;
+        if(exitEdges.length){
+          iterValue=exitEdges.map(e=>edgeValue(e)).filter(Boolean).join('\n');
+        }else{
+          // Body has no exits: take last topo node's output as the iteration result.
+          const last=bodyTopo[bodyTopo.length-1];
+          const m=nodeOutputs[last.id]||{};
+          iterValue=Object.values(m)[0]||'';
+        }
+        iterResults.push(iterValue);
+      }
+
+      if(truncated){
+        fullLog+='\n_⚠ Max iterations ('+maxIters+') reached, stopping at item '+willRun+' of '+items.length+'._\n';
+      }
+
+      const joined=iterResults.join(joinSep);
+      nodeOutputs[node.id]={[mapOutPort]:joined};
+      fullLog+='\n_Map complete: '+iterResults.length+' iteration'+(iterResults.length===1?'':'s')+' joined._\n';
+      rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
+      return joined;
+    }
+
+    // ── Producer nodes: emit captured content verbatim (no LLM call) ──
+    // TEXT/CODE/FILE/FETCH are atomic units of context — their stored content flows
+    // downstream as-is, rather than being processed by the model.
+    if(skId==='text_input'||skId==='code'||skId==='io_input'||skId==='fetch'){
+      let content='';
+      if(skId==='code'){
+        const code=(node.values?.code||'').trim();
+        const lang=(node.values?.lang||'').toLowerCase();
+        content=code?'```'+lang+'\n'+code+'\n```':'';
+      }else{
+        content=node.values?.content||'';
+      }
+      st.textContent='Step '+stepNum+': '+stepLabel+' (input)';st.style.color='var(--dim)';
+      fullLog+='\n\n## Step '+stepNum+': '+stepLabel+' (Input)\n\n'+
+        (content?'_Provided '+content.length+' chars of content._\n':'_No content._\n');
+      rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
+      nodeOutputs[node.id]={[outPortId(node)]:content};
+      return content;
+    }
+
     // ── Regular Compute node: LLM call ──
     // Gather context from all connected upstream nodes
     const incoming=edges.filter(e=>e.to===node.id);
-    const inputCtx=incoming.map(e=>nodeOutputs[e.from]||'').filter(Boolean).join('\n\n---\n\n');
+    const inputCtx=incoming.map(e=>edgeValue(e)).filter(Boolean).join('\n\n---\n\n');
 
     let nodePrompt='';
-    if(sk.rawContent)nodePrompt+=sk.rawContent+'\n\n';
+    const nodeRaw=nodeRawContent(node,sk);
+    if(nodeRaw)nodePrompt+=nodeRaw+'\n\n';
     (sk.fields||[]).forEach(f=>{
       const v=node.values?.[f.key];
       if(v)nodePrompt+=f.label+': '+(Array.isArray(v)?v.join(', '):String(v))+'\n';
@@ -7064,24 +8619,32 @@ async function runChain(provider,apiKey,model,rb,st){
     await callAIStreaming(userMsg,systemPrompt,provider,apiKey,model,(chunk)=>{
       stepOutput+=chunk;
       const now=Date.now();
-      if(!runChain._lastRender||now-runChain._lastRender>CONFIG.STREAM_THROTTLE_MS){
-        runChain._lastRender=now;
+      if(now-lastRender>CONFIG.STREAM_THROTTLE_MS){
+        lastRender=now;
         rb.innerHTML=renderMdResponse(fullLog+stepOutput);
         rb.scrollTop=rb.scrollHeight;
       }
     });
 
     fullLog+=stepOutput;
-    nodeOutputs[node.id]=stepOutput;
+    nodeOutputs[node.id]={[outPortId(node)]:stepOutput};
     rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
     return stepOutput;
   }
 
   // Execute all nodes in topological order
-  // Skip nodes that were already executed by a Router redirect
+  // Skip nodes that were already executed by a Router redirect, OR that belong to
+  // any Map's body (those run inside the Map's iteration loop instead).
+  const mapBodyUnion=new Set();
+  for(const n of nodes){
+    if(nodeSk(n)?.id==='map'){
+      for(const id of findMapBody(n.id,nodes,edges)) mapBodyUnion.add(id);
+    }
+  }
   const executed=new Set();
   for(const node of ordered){
     if(executed.has(node.id))continue;
+    if(mapBodyUnion.has(node.id))continue; // belongs to a Map body; runs inside Map's loop
     const sk=nodeSk(node);if(!sk)continue;
     // Skip nodes where ALL incoming edges come from a Router — they'll be called by the router itself
     const incomingEdges=edges.filter(e=>e.to===node.id);
@@ -7120,6 +8683,23 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
     // ── Chain mode: run nodes sequentially ──
     try{
       rb.innerHTML='';
+      // Layer C: pre-run cost projection. If the graph contains Maps with Routers
+      // in their body that could fire a lot of calls, ask the user to confirm before
+      // running. Below threshold (CONFIG.HIGH_CALL_THRESHOLD) the dialog never appears.
+      // Cancel path just sets status + returns — the outer finally restores button state.
+      try{
+        const _rootFrame=canvasStack[0];
+        const _proj=projectMaxCalls(_rootFrame.nodes,_rootFrame.edges);
+        if(_proj.total>(CONFIG.HIGH_CALL_THRESHOLD||100)){
+          const _msg='This pipeline could make up to ~'+_proj.total+' LLM calls.\n\n'+
+            'Are you sure you want to run it?';
+          if(!confirm(_msg)){
+            st.textContent='Cancelled';st.style.color='var(--dim)';
+            rb.innerHTML='';
+            return;
+          }
+        }
+      }catch(_e){/* projection failure should never block a run */}
       const r=await runChain(_runProvider,_runKey,_runModel||undefined,rb,st);
       rb.dataset.rawResponse=r||'';
       updateFmtBadge(r||'');
@@ -7337,20 +8917,48 @@ document.getElementById('out-copy').addEventListener('click',()=>{
   const btn=document.getElementById('out-copy');
   navigator.clipboard.writeText(document.getElementById('out-pre').textContent).then(()=>{
     btn.textContent='✓ Copied';btn.style.color='var(--grn)';btn.style.borderColor='var(--grn)';
-    setTimeout(()=>{btn.textContent=_outFmt==='gpt'?'Copy JSON':_outFmt==='gem'?'Copy Gem Prompt':'Copy MD';btn.style.color='';btn.style.borderColor='';},2000);
+    setTimeout(()=>{btn.textContent=_outFmt==='gpt'?(_gptVariant==='json'?'Copy JSON':'Copy text'):_outFmt==='gemini'?'Copy text':'Copy XML';btn.style.color='';btn.style.borderColor='';},2000);
   });
 });
 
 document.getElementById('out-download').addEventListener('click',()=>{
-  const text=document.getElementById('out-pre').textContent;
-  const isGPT=_outFmt==='gpt';
-  const isGem=_outFmt==='gem';
-  const ext=isGPT?'.json':'.md';
-  const mime=isGPT?'application/json':'text/markdown';
   const p=activePipeline();
-  const base=(p?.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase();
-  const filename=base+(isGPT?'-gpt-export':isGem?'-gem-instructions':'')+'-'+(new Date().toISOString().slice(0,10))+ext;
-  const blob=new Blob([text],{type:mime});
+  const base=((p?.name||'pipeline').replace(/[^a-z0-9]/gi,'-').toLowerCase().replace(/-+/g,'-').replace(/^-|-$/g,''))||'pipeline';
+  const datestamp=new Date().toISOString().slice(0,10);
+  let blob,filename,ext;
+  if(_outFmt==='gpt'){
+    if(_gptVariant==='json'){
+      const gpt=buildGPT();
+      if(!gpt.json){
+        document.getElementById('out-pre').textContent='No JSON spec available.';
+        return;
+      }
+      blob=new Blob([JSON.stringify(gpt.json,null,2)],{type:'application/json'});
+      filename=base+'-gpt-spec-'+datestamp+'.json';
+      ext='.json';
+    }else{
+      const bundle=buildGPTBundle();
+      if(!bundle){
+        document.getElementById('out-pre').textContent='No nodes to export.';
+        return;
+      }
+      blob=bundle.blob;
+      filename=bundle.filename;
+      ext='.zip';
+    }
+  }else if(_outFmt==='gemini'){
+    const text=document.getElementById('out-pre').textContent;
+    blob=new Blob([text],{type:'text/markdown'});
+    const suffix=_geminiVariant==='full'?'-gemini-full':'-gemini-fit';
+    filename=base+suffix+'-'+datestamp+'.md';
+    ext='.md';
+  }else{
+    // claude
+    const text=document.getElementById('out-pre').textContent;
+    blob=new Blob([text],{type:'application/xml'});
+    filename=base+'-claude-'+datestamp+'.xml';
+    ext='.xml';
+  }
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=filename;
@@ -7412,10 +9020,9 @@ async function loadLibraryJSON(){
     loaded.forEach(sk=>{
       if(!sk.id||!sk.label)return;
       sk.isBuiltin=false;
-      const idx=skills.findIndex(s=>s.id===sk.id);
-      if(idx>=0){skills[idx]=sk;updated++;}else{skills.push(sk);added++;}
+      if(upsertSkill(sk)) added++; else updated++;
     });
-    renderLib();persistSkills();
+    renderLib();
     // Rebuild all canvas nodes so edges reconnect to restored skills
     getNodes().forEach(n=>rebuildNode(n));
     renderEdges();
@@ -7453,6 +9060,37 @@ function openCtxMenu(x,y,node){
   document.getElementById('ctx-paste').style.display=nodeClipboard?'flex':'none';
   document.getElementById('ctx-save-as-skill').style.display=!multi?'flex':'none';
 
+  // Merge to Library: logic-family only (input family doesn't merge — captured content
+  // isn't reusable behavior). Single-select shows disabled when not diverged (discoverability).
+  // Multi-select shows "Merge N Skills" when ≥1 selected node is an eligible diverged logic-family node.
+  const mergeEl=document.getElementById('ctx-merge');
+  if(multi){
+    // Count eligible: diverged logic-family nodes in the selection.
+    const allNodes=getNodes();
+    let eligible=0;
+    for(const id of selNodes){
+      const n=allNodes.find(x=>x.id===id);if(!n)continue;
+      const ns=nodeSk(n);if(!ns||!ns.rawContent||!ns.rawContent.trim())continue;
+      if(isNodeDiverged(n,ns))eligible++;
+    }
+    if(eligible>0){
+      mergeEl.style.display='flex';
+      mergeEl.classList.remove('disabled');
+      mergeEl.innerHTML=`<span class="ci">◊</span> Merge ${eligible} Skill${eligible===1?'':'s'} to Library…`;
+    }else{
+      mergeEl.style.display='none';
+    }
+  }else{
+    const isLogic=!!(sk&&sk.rawContent&&sk.rawContent.trim());
+    if(!isLogic){
+      mergeEl.style.display='none';
+    }else{
+      mergeEl.style.display='flex';
+      mergeEl.classList.toggle('disabled',!isNodeDiverged(node,sk));
+      mergeEl.innerHTML='<span class="ci">◊</span> Merge to Library…';
+    }
+  }
+
   // Delete label: reflect count in multi-select
   const delEl=document.getElementById('ctx-delete');
   delEl.innerHTML=multi
@@ -7472,7 +9110,7 @@ function openCtxMenu(x,y,node){
     : '<span class="ci">⧉</span> Duplicate';
 
   // Position — keep inside viewport
-  const mw=180,mh=multi?120:180;
+  const mw=180,mh=multi?120:220;
   ctxMenu.style.left=Math.min(x,window.innerWidth-mw-8)+'px';
   ctxMenu.style.top=Math.min(y,window.innerHeight-mh-8)+'px';
   ctxMenu.classList.add('open');
@@ -7533,9 +9171,9 @@ function importSkillFileAsNode(){
     // Handle .ppln/.sklb via unified handler (canvas target, center of viewport)
     if(routeFiles.length){
       const t=frame().tx;
-      const cx=scene.offsetWidth/2;const cy=scene.offsetHeight/2;
+      const centerX=scene.offsetWidth/2;const centerY=scene.offsetHeight/2;
       const rect=wrap.getBoundingClientRect();
-      await _handleFileDrop(routeFiles,'canvas',rect.left+cx,rect.top+cy);
+      await _handleFileDrop(routeFiles,'canvas',rect.left+centerX,rect.top+centerY);
     }
     if(!skillFiles.length){inp.remove();return;}
 
@@ -7564,7 +9202,7 @@ function importSkillFileAsNode(){
             const text=await f.text();
             _importTextAsSkill(text,f.name,baseCx+idx*OFFSET,baseCy+idx*OFFSET);
             totalImported++;
-          }catch(e2){console.warn('Import failed:',f.name,err);}
+          }catch(e2){console.warn('Import failed:',f.name,'zip:',err,'text:',e2);}
         }
       }else{
         // ── Plain text or .json that might be a pipeline/library ──
@@ -7585,15 +9223,17 @@ function importSkillFileAsNode(){
 
     inp.remove();
     if(totalImported){
-      persistSkills();renderLib();renderEdges();markPipelineDirty(activePipelineId);
+      renderLib();renderEdges();markPipelineDirty(activePipelineId);
       flashBtn('btn-save-pipeline','◈ '+totalImported+' skill'+(totalImported!==1?'s':'')+' imported','💾 Save Pipeline');
     }
   });
   inp.click();
 }
 
-// ── Import a plain text file as a single skill node ──
-function _importTextAsSkill(raw,filename,cx,cy){
+// ── Import a plain text file as a single skill (and optionally place a node on canvas) ──
+// When placeNode is false, only the skill is added to the library — no canvas node.
+// This removes the need for library-drop callers to manually pop+remove a node afterward.
+function _importTextAsSkill(raw,filename,centerX,centerY,placeNode=true){
   let name='',desc='';
   const fm=raw.match(/^---\s*\n([\s\S]*?)\n---/);
   if(fm){
@@ -7609,8 +9249,9 @@ function _importTextAsSkill(raw,filename,cx,cy){
     internalGraph:{nodes:[],edges:[]},hasOut:true,hasIn:true,fields:[],
     defaultInputs:[],defaultOutputs:[],
   };
-  skills.push(newSk);
-  const node={id:uid(),type:null,skillId:newSk.id,x:cx,y:cy,values:{},title:name,
+  addSkill(newSk);
+  if(!placeNode)return;
+  const node={id:uid(),type:null,skillId:newSk.id,x:centerX,y:centerY,values:{},title:name,
     inputs:structuredClone(newSk.defaultInputs),
     outputs:structuredClone(newSk.defaultOutputs)};
   frame().nodes.push(node);
@@ -7726,8 +9367,8 @@ async function _addPipelineAsNode(data,filename,sceneX,sceneY){
     }
   }
 
-  skills.push(newSk);
-  persistSkills();renderLib();
+  addSkill(newSk);
+  renderLib();
   placeNodeAt(newSk.id,sceneX,sceneY);
 }
 
@@ -7760,7 +9401,7 @@ function _showSkillPickerModal(skillList,message){
       checks.push({cb,sk});
     });
     const btnRow=document.createElement('div');btnRow.style.cssText='display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--brd);padding-top:12px';
-    const selAllBtn=document.createElement('button');selAllBtn.className='mbtn';selAllBtn.textContent='Select All';selAllBtn.style.cssText='font-size:10px';
+    const selAllBtn=document.createElement('button');selAllBtn.className='mbtn';selAllBtn.textContent='Deselect All';selAllBtn.style.cssText='font-size:10px';
     const skipBtn=document.createElement('button');skipBtn.className='mbtn';skipBtn.textContent='Skip All';skipBtn.style.cssText='font-size:10px';
     const importBtn=document.createElement('button');importBtn.className='mbtn pri';importBtn.textContent='Import Selected';importBtn.style.cssText='font-size:10px';
     selAllBtn.addEventListener('click',()=>{
@@ -7773,10 +9414,9 @@ function _showSkillPickerModal(skillList,message){
       const toImport=checks.filter(c=>c.cb.checked).map(c=>c.sk);
       toImport.forEach(sk=>{
         sk.isBuiltin=false;
-        const idx=skills.findIndex(s=>s.id===sk.id);
-        if(idx>=0)skills[idx]=sk;else skills.push(sk);
+        upsertSkill(sk);
       });
-      if(toImport.length){persistSkills();renderLib();}
+      if(toImport.length){renderLib();}
       overlay.remove();resolve(toImport);
     });
     btnRow.appendChild(selAllBtn);btnRow.appendChild(skipBtn);btnRow.appendChild(importBtn);
@@ -7835,11 +9475,12 @@ async function _handleFileDrop(files,target,dropClientX,dropClientY){
           let updated=0;
           arr.forEach(sk=>{
             if(!sk.id||!sk.label)return;
+            if(!getSk(sk.id))return; // defensive — skip if id not in library
             sk.isBuiltin=false;
-            const idx=skills.findIndex(s=>s.id===sk.id);
-            if(idx>=0){skills[idx]=sk;updated++;}
+            upsertSkill(sk);
+            updated++;
           });
-          if(updated){persistSkills();renderLib();}
+          if(updated)renderLib();
           _showDropBanner(isCanvas?wrap:leftPanel,'Library up to date ('+updated+' updated)','type-library');
         }
       }catch(e){console.warn('Library import failed:',f.name,e);}
@@ -7858,10 +9499,7 @@ async function _handleFileDrop(files,target,dropClientX,dropClientY){
             const firstText=zipEntries.find(e=>!e.name.endsWith('/'));
             if(firstText){
               const dec=new TextDecoder();
-              _importTextAsSkill(dec.decode(firstText.data),f.name,sceneX,sceneY);
-              // Remove the node that was just placed on canvas (library-only import)
-              const lastNode=frame().nodes[frame().nodes.length-1];
-              if(lastNode){frame().nodes.pop();const el=document.getElementById('nd-'+lastNode.id);if(el)el.remove();}
+              _importTextAsSkill(dec.decode(firstText.data),f.name,0,0,false);
             }
             _showDropBanner(leftPanel,'Skill added to library','type-skill');
           }
@@ -7870,7 +9508,7 @@ async function _handleFileDrop(files,target,dropClientX,dropClientY){
         // Fallback: try as text
         if(text){
           if(isCanvas){pushHistory();_importTextAsSkill(text,f.name,sceneX+i*CONFIG.IMPORT_NODE_OFFSET,sceneY+i*CONFIG.IMPORT_NODE_OFFSET);}
-          else{_importTextAsSkill(text,f.name,sceneX,sceneY);const lastNode=frame().nodes[frame().nodes.length-1];if(lastNode){frame().nodes.pop();const el=document.getElementById('nd-'+lastNode.id);if(el)el.remove();}}
+          else{_importTextAsSkill(text,f.name,0,0,false);}
         }
       }
 
@@ -7883,14 +9521,12 @@ async function _handleFileDrop(files,target,dropClientX,dropClientY){
         _importTextAsSkill(text,f.name,sceneX+i*CONFIG.IMPORT_NODE_OFFSET,sceneY+i*CONFIG.IMPORT_NODE_OFFSET);
       }else{
         // Library only: add skill, don't place node on canvas
-        _importTextAsSkill(text,f.name,sceneX,sceneY);
-        const lastNode=frame().nodes[frame().nodes.length-1];
-        if(lastNode){frame().nodes.pop();const el=document.getElementById('nd-'+lastNode.id);if(el)el.remove();}
+        _importTextAsSkill(text,f.name,0,0,false);
       }
     }
   }
 
-  persistSkills();renderLib();renderEdges();
+  renderLib();renderEdges();
   if(isCanvas)markPipelineDirty(activePipelineId);
 }
 
@@ -7998,7 +9634,7 @@ async function _importZipAsGraph(entries,zipName,startX,startY){
     if(da!==db)return da-db;
     // Numbered prefixes sort naturally
     const na=a.name.match(/(\d+)/)?.[1],nb=b.name.match(/(\d+)/)?.[1];
-    if(na&&nb)return parseInt(na)-parseInt(nb);
+    if(na&&nb)return parseInt(na,10)-parseInt(nb,10);
     return a.name.localeCompare(b.name);
   });
 
@@ -8036,7 +9672,7 @@ async function _importZipAsGraph(entries,zipName,startX,startY){
           defaultInputs:[{id:uid('p'),name:'input',type:'Any'}],
           defaultOutputs:[{id:uid('p'),name:'output',type:'Any'}],
         };
-        skills.push(sk);
+        addSkill(sk);
         const x=startX+col*COL_W,y=startY+row*ROW_H;
         const node={id:uid(),type:null,skillId:sk.id,x,y,values:{},title:baseName||shortName,
           inputs:structuredClone(sk.defaultInputs),
@@ -8110,8 +9746,8 @@ async function _importZipAsGraph(entries,zipName,startX,startY){
   // Strategy 2: sequential connection for numbered files (01_xxx, 02_xxx)
   const numbered=fileNodes.filter(fn=>/^\d+/.test(fn.entry.name.split('/').pop()));
   numbered.sort((a,b)=>{
-    const na=parseInt(a.entry.name.split('/').pop().match(/^(\d+)/)[1]);
-    const nb=parseInt(b.entry.name.split('/').pop().match(/^(\d+)/)[1]);
+    const na=parseInt(a.entry.name.split('/').pop().match(/^(\d+)/)[1],10);
+    const nb=parseInt(b.entry.name.split('/').pop().match(/^(\d+)/)[1],10);
     return na-nb;
   });
   for(let i=1;i<numbered.length;i++){
@@ -8157,7 +9793,8 @@ function pasteNodes(){
   if(!nodeClipboard||!nodeClipboard.nodes.length)return;
   pushHistory();
   const OFFSET=60;
-  const idMap={};
+  const idMap={};   // oldNodeId -> newNodeId
+  const portMap={}; // oldPortId -> newPortId — see duplicateSelNodes for rationale
   const newIds=[];
 
   nodeClipboard.nodes.forEach(orig=>{
@@ -8167,19 +9804,21 @@ function pasteNodes(){
     copy.id=newId;
     copy.x=snap(orig.x+OFFSET);
     copy.y=snap(orig.y+OFFSET);
-    copy.inputs =(copy.inputs ||[]).map(p=>({...p,id:uid('p')}));
-    copy.outputs=(copy.outputs||[]).map(p=>({...p,id:uid('p')}));
+    copy.inputs =(copy.inputs ||[]).map(p=>{const np=uid('p');portMap[p.id]=np;return{...p,id:np};});
+    copy.outputs=(copy.outputs||[]).map(p=>{const np=uid('p');portMap[p.id]=np;return{...p,id:np};});
     copy.isStart=false;
     frame().nodes.push(copy);
     const el=buildNode(copy);if(el)scene.appendChild(el);
     newIds.push(newId);
   });
 
-  // Re-wire internal edges
+  // Re-wire internal edges — remap port IDs through portMap so multi-port
+  // nodes (Context, Router) keep their port-specific wiring.
   nodeClipboard.edges.forEach(e=>{
     if(idMap[e.from]&&idMap[e.to]){
       frame().edges.push({id:uid('e'),from:idMap[e.from],to:idMap[e.to],
-        fromPort:e.fromPort,toPort:e.toPort});
+        fromPort:portMap[e.fromPort]||e.fromPort,
+        toPort:  portMap[e.toPort]  ||e.toPort});
     }
   });
 
@@ -8215,6 +9854,23 @@ document.getElementById('ctx-save-as-skill').addEventListener('click',()=>{
   saveNodeAsSkill(ctxNode.id);
   closeCtxMenu();
 });
+document.getElementById('ctx-merge').addEventListener('click',()=>{
+  // Pointer-events:none on .disabled means this only fires when actually enabled.
+  // Multi-select → batch dialog. Single-select → existing branch overlay.
+  // Capture ctxNode BEFORE closeCtxMenu() nulls it (matches the pattern other
+  // ctx-* handlers use of closing the menu after the action, not before).
+  const node=ctxNode;
+  closeCtxMenu();
+  if(selNodes.size>1){
+    openBatchMergeDialog([...selNodes]);
+    return;
+  }
+  if(!node)return;
+  const sk=nodeSk(node);if(!sk)return;
+  inspDraft=nodeRawContent(node,sk);
+  inspCurrentId=sk.id;
+  openBranchOverlay(sk);
+});
 document.getElementById('ctx-copy').addEventListener('click',()=>{
   if(!ctxNode)return;
   // Keep multi-selection; only narrow if ctxNode not part of it
@@ -8246,9 +9902,6 @@ document.getElementById('ctx-delete').addEventListener('click',()=>{
 // CREDENTIAL VAULT — AES-GCM encryption via Web Crypto API
 // Master password never stored — only ciphertext + salt + IV
 // ═══════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// CRYPTOMANAGER — AES-GCM + PBKDF2 credential vault
-// ════════════════════════════════════════════════════════════
 const CryptoManager = (() => {
   const STORAGE_KEY = 'pb_vault_v1';
   const b64   = buf => btoa(String.fromCharCode(...buf));
@@ -8301,26 +9954,6 @@ const CryptoManager = (() => {
       const enc = await encrypt(this.key, this.creds);
       stored.iv = enc.iv; stored.data = enc.data;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-    },
-
-    async unlock(password) {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      const salt = stored.salt ? unb64(stored.salt) : crypto.getRandomValues(new Uint8Array(16));
-      const key = await deriveKey(password, salt);
-      if (stored.data) {
-        this.creds = await decrypt(key, stored);
-      } else {
-        // New vault — store salt
-        stored.salt = b64(salt);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-        this.creds = [];
-      }
-      this.key = key;
-    },
-
-    async reset() {
-      localStorage.removeItem(STORAGE_KEY);
-      this.lock();
     },
 
     deriveKey, encrypt, decrypt, b64, unb64, STORAGE_KEY,
@@ -8548,7 +10181,7 @@ function renderCredItem(cred) {
 
 // ── Vault DOM helpers ────────────────────────────────────────
 function el(tag, cls='', text='') {
-  const e = document.createElement(tag === 'button' ? 'button' : tag==='div'?'div':tag);
+  const e = document.createElement(tag);
   if (cls)  e.className = cls;
   if (text) e.textContent = text;
   return e;
@@ -8584,7 +10217,10 @@ async function _autoGistSync(){
   const gists=CryptoManager.creds.filter(c=>c.type==='gist-id');
   if(!tokens.length||!gists.length)return;
   const token=tokens[0].value,gistId=gists[0].value;
-  if(!token||!gistId||token.startsWith('github_pat_'))return;
+  if(!token||!gistId)return;
+  // Fine-grained tokens (github_pat_*) aren't supported by the Gist API path used here.
+  // Surface this in the autosave status rather than silently skipping — hidden rules are bloat.
+  if(token.startsWith('github_pat_')){_updateAutoSaveStatus('gist: fine-grained token not supported');return;}
   try{
     const files={'pipeline-skills.json':{content:JSON.stringify(skills.filter(s=>!s.isBuiltin),null,2)}};
     if(_gistSyncScope==='all'){
@@ -8821,16 +10457,17 @@ function renderGitHub() {
         const pulled = JSON.parse(raw);
         if (Array.isArray(pulled)){
           pulled.forEach(sk => {
-            const idx = skills.findIndex(s => s.id === sk.id);
-            if (idx >= 0) {
+            const local = getSk(sk.id);
+            if (local) {
               // Conflict detection: compare timestamps
-              const local=skills[idx];
               const localTs=local._ts||0;
               const remoteTs=sk._ts||0;
-              if(remoteTs>=localTs){skills[idx]={...local,...sk};updated++;}
-              else{conflicts++;} // local is newer, skip
+              if(remoteTs>=localTs){
+                mutateSkill(sk.id, s => Object.assign(s, sk));
+                updated++;
+              } else { conflicts++; } // local is newer, skip
             }
-            else { skills.push(sk); added++; }
+            else { addSkill(sk); added++; }
           });
         }
       }
@@ -8852,7 +10489,7 @@ function renderGitHub() {
           }
         }
       }
-      persistSkills();renderLib();updateTopbar();
+      renderLib();updateTopbar();
       _lastGistSync=Date.now();try{localStorage.setItem('pb_last_gist_sync',String(_lastGistSync));}catch(e){}
       lastSyncInfo.textContent='Last sync: '+new Date(_lastGistSync).toLocaleString();
       let msg=`✓ Pulled — ${added} added, ${updated} updated`;
@@ -8924,7 +10561,12 @@ function renderGitHub() {
     map.classList.toggle('collapsed',collapsed);
     toggle.textContent=collapsed?'▸ MAP':'▾ MAP';
     localStorage.setItem('pb_minimap_collapsed',collapsed?'1':'0');
-    if(!collapsed)renderMinimap();
+    if(!collapsed){
+      map.addEventListener('transitionend',function te(ev){
+        if(ev.propertyName!=='height'){return;}
+        map.removeEventListener('transitionend',te);renderMinimap();
+      });
+    }
   });
 
   function renderMinimap(){
@@ -9173,9 +10815,7 @@ function _initSocialPosting(){
         const igId=igData.instagram_business_account?.id;
         if(!igId)throw new Error('No Instagram Business account linked');
         if(!images.length)throw new Error('Instagram requires at least one image');
-        // Step 2: create media container
-        const mediaUrl=URL.createObjectURL(new Blob([images[0].data],{type:images[0].type}));
-        // Note: IG API requires a publicly accessible image URL — local blobs won't work
+        // IG API requires a publicly accessible image URL — local blobs won't work.
         throw new Error('Instagram API requires a public image URL. Upload your image to a hosting service first, then use the URL.');
       }
     },
@@ -9275,6 +10915,7 @@ function _initSocialPosting(){
     Object.entries(PLATFORMS).forEach(([key,plat])=>{
       const hasCred=CryptoManager.creds.some(c=>c.type===plat.credType);
       const chip=document.createElement('div');
+      chip.dataset.platform=key;
       chip.className='social-chip'+(hasCred?(_selectedPlatforms.has(key)?' selected':' ready'):' disabled');
       chip.innerHTML=plat.icon+' '+plat.name+' <span class="chip-count">'+plat.charLimit+'</span>';
       if(!hasCred){chip.title='Add a '+plat.name+' credential in the Vault';}
@@ -9296,8 +10937,8 @@ function _initSocialPosting(){
     const text=editor.innerText||'';
     document.querySelectorAll('.social-chip .chip-count').forEach(el=>{
       const chip=el.closest('.social-chip');if(!chip)return;
-      const key=Object.keys(PLATFORMS).find(k=>chip.textContent.includes(PLATFORMS[k].name));
-      if(!key)return;
+      const key=chip.dataset.platform;
+      if(!key||!PLATFORMS[key])return;
       const limit=PLATFORMS[key].charLimit;
       const remaining=limit-text.length;
       el.textContent=remaining;
@@ -9341,7 +10982,7 @@ function _initSocialPosting(){
         const thumb=document.createElement('img');thumb.className='social-img-thumb';thumb.src=img.preview;thumb.title=img.name;
         const rm=document.createElement('div');rm.style.cssText='position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:var(--red);color:#fff;border-radius:50%;font-size:10px;text-align:center;line-height:16px;cursor:pointer';
         rm.textContent='\u00d7';
-        rm.addEventListener('click',()=>{_socialImages.splice(i,1);renderImagePreviews();});
+        rm.addEventListener('click',()=>{URL.revokeObjectURL(_socialImages[i].preview);_socialImages.splice(i,1);renderImagePreviews();});
         wrap.appendChild(thumb);wrap.appendChild(rm);preview.appendChild(wrap);
       });
       dropzone.textContent=_socialImages.length?'+ Add more images':'Drop images here or click to browse';
@@ -9453,9 +11094,7 @@ function _initSocialPosting(){
 // THEME TOGGLE + TEXT SIZE
 // ═══════════════════════════════════════════════════════════
 (function(){
-  // Restore persisted prefs
-  window.addEventListener('beforeunload',()=>{saveAllPipelines();});
-const savedTheme=localStorage.getItem('pb_theme')||'dark';
+  const savedTheme=localStorage.getItem('pb_theme')||'dark';
   const savedSize=parseFloat(localStorage.getItem('pb_size')||'13');
 
   function applyTheme(theme){
@@ -9478,12 +11117,12 @@ const savedTheme=localStorage.getItem('pb_theme')||'dark';
     _sizeStyleEl.textContent=`
       #topbar,#left,#right,#breadcrumb,#pipeline-tabbar,
       .overlay,.vault-overlay,#ctx-menu,
-      #branch-overlay,#confirm-overlay{
+      #branch-overlay,#confirm-overlay,#batch-merge-overlay,#batch-confirm-overlay{
         font-size:${(13*scale).toFixed(2)}px!important;
       }
       #topbar *,#left *,#right *,#breadcrumb *,
       .overlay *,.vault-overlay *,#ctx-menu *,
-      #branch-overlay *,#confirm-overlay *{
+      #branch-overlay *,#confirm-overlay *,#batch-merge-overlay *,#batch-confirm-overlay *{
         font-size:inherit;
       }
       #topbar .t-logo{font-size:${(15*scale).toFixed(2)}px!important}
