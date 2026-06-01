@@ -125,9 +125,9 @@ Drag-and-drop is supported on the canvas and library panel.
 <!DOCTYPE html>
 <!--
   ╔═══════════════════════════════════════════════════════════════╗
-  ║  GUIness — A GUI Harness                                      ║
-  ║  Visual AI Workflow Pipeline Builder                         ║
-  ║  A self-contained, single-file HTML application               ║
+  ║  GUIness — The GUI Harness                                    ║
+  ║  A Visual AI Workflow Pipeline Builder consisting of          ║
+  ║  a self-contained, single-file HTML application               ║
   ║  https://github.com/discoposse/GUIness                        ║
   ╚═══════════════════════════════════════════════════════════════╝
 
@@ -969,7 +969,7 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v47</span>
+    <span class="t-badge">v43</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
@@ -1611,13 +1611,14 @@ let skills=[
     ],hasOut:true,hasIn:false},
 
   {id:'fetch',label:'FETCH',color:'accent',glyph:'⬢',shape:'default',category:'Primitives',
-    desc:'Fetch a URL or API endpoint at edit time. Body → content, response status/headers → metadata.',
+    desc:'Fetch a URL or API endpoint at edit time. Body → content, response status/headers → metadata. Use Markdown for clean content extraction (recommended for prose), HTML for raw page inspection (SEO).',
     tags:['input','url','api','http','fetch','boundary'],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
     defaultInputs:[],
     defaultOutputs:[{id:'io-out-data',name:'content',type:'Any'},{id:'io-out-meta',name:'metadata',type:'JSON'}],
     fields:[
       {key:'url',label:'URL / Endpoint',type:'text',ph:'https://api.example.com/data'},
-      {key:'headers',label:'Headers (optional)',type:'codeeditor',rows:2,ph:'Authorization: Bearer xxx'},
+      {key:'backend',label:'Backend',type:'select',opts:['Direct','Proxy (HTML)','Proxy (Markdown)']},
+      {key:'headers',label:'Headers (optional)',type:'codeeditor',rows:2,ph:'Authorization: Bearer xxx — ignored when Backend is Proxy (HTML) or Proxy (Markdown)'},
       {key:'fetch_trigger',label:'',type:'fetch_trigger'},
       {key:'content',label:'Captured Content',type:'content_preview'},
       {key:'_meta',label:'Response Metadata',type:'meta_preview'},
@@ -5230,41 +5231,90 @@ function renderIOEditor(container, node, color){
 // Edit-time fetch for the FETCH primitive. Resolves a URL into the node's stored
 // values.content (body) and values._meta (useful response metadata) so the node is a
 // plain producer at run time. Failures clear prior content so stale data can't ship.
+// Backend options:
+//   'Direct'            — plain fetch, subject to browser CORS.
+//   'Proxy (HTML)'      — routes through AllOrigins; returns raw HTML for inspection.
+//   'Proxy (Markdown)'  — routes through Jina Reader (r.jina.ai); returns clean markdown
+//                         article text, stripped of nav/CSS — ideal for LLM consumption.
+// Proxies don't forward custom request headers, so the Headers field is dropped under
+// either proxy mode. Backward-compat: v48 saved 'Proxy' — mapped to 'Proxy (HTML)'.
 async function doFetchNode(node,statusEl,btnEl){
-  const url=(node.values?.url||'').trim();
+  let url=(node.values?.url||'').trim();
+  // Auto-prepend https:// if no scheme present — matches browser address bar behavior.
+  if(url&&!url.includes('://')){
+    url='https://'+url;
+    node.values.url=url; // persist so the user sees the normalized URL after fetch
+  }
+  let backend=node.values?.backend||'Direct';
+  if(backend==='Proxy')backend='Proxy (HTML)'; // v48 → v48.2 migration
   const setStatus=(msg,color)=>{
     node.values._fetchStatus=msg;
     if(statusEl){statusEl.textContent=msg;statusEl.style.color=color||'var(--dim)';}
   };
   if(!url){setStatus('No URL to fetch.','var(--dim)');return;}
-  // Parse "Key: Value" header lines (one per line).
+  // Parse "Key: Value" header lines (one per line). Dropped when proxying.
+  const isProxy=backend==='Proxy (HTML)'||backend==='Proxy (Markdown)';
   const headers={};
-  (node.values?.headers||'').split('\n').forEach(line=>{
-    const i=line.indexOf(':');if(i<0)return;
-    const k=line.slice(0,i).trim(),v=line.slice(i+1).trim();
-    if(k)headers[k]=v;
-  });
+  if(!isProxy){
+    (node.values?.headers||'').split('\n').forEach(line=>{
+      const i=line.indexOf(':');if(i<0)return;
+      const k=line.slice(0,i).trim(),v=line.slice(i+1).trim();
+      if(k)headers[k]=v;
+    });
+  }
+  let fetchUrl;
+  if(backend==='Proxy (HTML)'){
+    fetchUrl='https://api.allorigins.win/raw?url='+encodeURIComponent(url);
+  }else if(backend==='Proxy (Markdown)'){
+    fetchUrl='https://r.jina.ai/'+url; // Jina takes the URL inline, not URL-encoded
+  }else{
+    fetchUrl=url;
+  }
   if(btnEl){btnEl.disabled=true;btnEl.textContent='⬇ Fetching…';}
-  setStatus('Fetching…','var(--dim)');
+  const fetchingLabel=backend==='Proxy (HTML)'?'Fetching via AllOrigins (HTML)…':
+                       backend==='Proxy (Markdown)'?'Fetching via Jina (Markdown)…':'Fetching…';
+  setStatus(fetchingLabel,'var(--dim)');
   try{
-    const resp=await fetch(url,{headers,method:'GET'});
+    const resp=await fetch(fetchUrl,{headers,method:'GET'});
     const body=await resp.text();
+    // Defensive Markdown check: Jina sometimes returns HTML when it can't render the
+    // target (JS-heavy SPA, anti-bot, etc.). Don't let HTML leak into downstream nodes
+    // that expect clean prose — surface a discoverable fix instead.
+    if(backend==='Proxy (Markdown)'&&resp.ok){
+      const head=body.trimStart().slice(0,15).toLowerCase();
+      if(head.startsWith('<!doctype')||head.startsWith('<html')){
+        node.values.content='';node.values._meta='';
+        setStatus('✗ Jina returned HTML, not markdown — try switching Backend to Proxy (HTML).','var(--org)');
+        markPipelineDirty(activePipelineId);rebuildNode(node);renderInspector();
+        return;
+      }
+    }
     const meta={
       status:resp.status,
       statusText:resp.statusText,
       contentType:resp.headers.get('content-type')||null,
-      contentLength:resp.headers.get('content-length')||null
+      contentLength:resp.headers.get('content-length')||null,
+      backend
     };
     node.values.content=body;
     node.values._meta=JSON.stringify(meta,null,2);
-    setStatus('✓ '+resp.status+' '+resp.statusText+' — '+Math.round(body.length/1024)+'KB',resp.ok?'var(--grn)':'var(--org)');
+    const suffix=backend==='Proxy (HTML)'?' (via proxy)':backend==='Proxy (Markdown)'?' (via Jina)':'';
+    setStatus('✓ '+resp.status+' '+resp.statusText+' — '+Math.round(body.length/1024)+'KB'+suffix,resp.ok?'var(--grn)':'var(--org)');
     markPipelineDirty(activePipelineId);
     rebuildNode(node);renderInspector();
   }catch(err){
     // Network error or CORS block — the browser won't expose details for cross-origin denials.
     node.values.content='';
     node.values._meta='';
-    setStatus('✗ Fetch failed — the server may not allow browser access (CORS) or the URL is unreachable.','var(--org)');
+    let msg;
+    if(backend==='Proxy (Markdown)'){
+      msg='✗ Jina fetch failed — try Proxy (HTML) backend, or check the URL.';
+    }else if(backend==='Proxy (HTML)'){
+      msg='✗ AllOrigins fetch failed — service may be down or rate-limiting. Try Proxy (Markdown) for content extraction.';
+    }else{
+      msg='✗ Fetch failed — likely CORS block. Try Proxy (Markdown) for content, or Proxy (HTML) for raw page.';
+    }
+    setStatus(msg,'var(--org)');
     markPipelineDirty(activePipelineId);
     rebuildNode(node);renderInspector();
   }finally{
