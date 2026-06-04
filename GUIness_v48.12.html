@@ -1039,7 +1039,7 @@ select option{background:var(--panel)}
           <div id="lib-head-btns">
             <button id="btn-ai-generate" class="btn-action" title="Generate skills or pipelines with AI">✦ Generate</button>
             <button id="add-skill-btn" class="btn-action">+ Add Skill</button>
-            <button id="import-skill-btn" class="btn-action" title="Import .ppln / .sklb / .skill / .md / .json / .txt files (supports multiple)">⬆ Import File</button>
+            <button id="import-skill-btn" class="btn-action" title="Import .ppln / .sklb / .sk / .skill / .md / .json / .txt files (supports multiple)">⬆ Import File</button>
           </div>
           <div style="display:flex;gap:4px;align-items:center">
             <input id="lib-search" placeholder="Search skills…" type="text" style="flex:4"/>
@@ -1203,6 +1203,9 @@ select option{background:var(--panel)}
   <div class="ctx-item" id="ctx-copy"><span class="ci">⎘</span> Copy</div>
   <div class="ctx-item" id="ctx-paste"><span class="ci">⎗</span> Paste</div>
   <div class="ctx-item" id="ctx-duplicate"><span class="ci">⧉</span> Duplicate</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-download-content"><span class="ci">⬇</span> Download Content</div>
+  <div class="ctx-item" id="ctx-download-skill"><span class="ci">⬇</span> Download Skill…</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item red" id="ctx-delete"><span class="ci">×</span> Delete Node</div>
 </div>
@@ -1369,7 +1372,9 @@ select option{background:var(--panel)}
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <select id="out-run-key" style="flex:1;background:var(--surf);border:1px solid var(--brd);border-radius:5px;color:var(--txt);padding:5px 8px;font-size:10px"></select>
       <select id="out-run-model" style="flex:1;background:var(--surf);border:1px solid var(--brd);border-radius:5px;color:var(--txt);padding:5px 8px;font-size:10px"></select>
+      <button id="out-run-model-refresh" class="mbtn" title="Refresh models (bypass cache)" style="font-size:11px;padding:4px 8px;flex-shrink:0">↻</button>
     </div>
+    <div id="out-run-model-status" style="display:none;font-family:var(--mono);font-size:9px;color:#f59e0b"></div>
     <div id="out-run-local" style="display:none;flex-direction:column;gap:6px">
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <input id="out-run-url" type="text" placeholder="http://localhost:11434" value="http://localhost:11434" style="flex:1;min-width:160px;background:var(--surf);border:1px solid var(--brd);border-radius:5px;color:var(--txt);padding:5px 8px;font-size:10px;font-family:var(--mono)"/>
@@ -1399,6 +1404,7 @@ select option{background:var(--panel)}
     </div>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
       <button class="mbtn pri" id="out-run-send" style="flex:1">▶ Send to LLM</button>
+      <button class="mbtn" id="out-run-stop" style="display:none;color:var(--red);border-color:var(--red);flex-shrink:0" title="Stop the in-flight LLM request (Shift+Esc)">⏹ Stop</button>
       <div style="display:flex;gap:1px;background:var(--surf);border:1px solid var(--brd);border-radius:5px;padding:1px;flex-shrink:0">
         <button id="out-mode-single" class="mbtn" style="font-size:8px;padding:2px 8px;border-radius:3px;background:var(--alo);color:var(--acc)" title="Compile entire pipeline into one prompt">Single</button>
         <button id="out-mode-chain" class="mbtn" style="font-size:8px;padding:2px 8px;border-radius:3px;background:transparent;color:var(--dim)" title="Run nodes sequentially, piping output to next">Chain</button>
@@ -1408,10 +1414,12 @@ select option{background:var(--panel)}
     <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0 0;border-top:1px solid var(--brd);margin-top:2px">
       <span style="font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.06em">PROMPT SIZE</span>
       <span style="display:flex;align-items:center;gap:8px">
-        <span id="out-cost-estimate" style="font-family:var(--mono);font-size:8px;color:var(--dim)"></span>
-        <span id="out-token-count" style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dim)"></span>
+        <span id="out-cost-estimate" style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--txt)"></span>
+        <span id="out-token-count" style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--dim)"></span>
       </span>
     </div>
+    <div id="out-orphan-warning" style="display:none;padding:4px 0 0;font-family:var(--mono);font-size:9px;color:#f59e0b"></div>
+    <div id="out-automode-banner" style="display:none;padding:4px 0 0;font-family:var(--mono);font-size:9px;color:var(--cyn)"></div>
   </div>
   <div style="padding:6px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:6px;flex-shrink:0">
     <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--grn);letter-spacing:.08em;flex:1">RESPONSE</span>
@@ -1600,7 +1608,7 @@ let skills=[
     hasOut:true,hasIn:false},
 
   {id:'io_input',label:'FILE',color:'accent',glyph:'⬡',shape:'default',category:'Primitives',
-    desc:'Upload a file to provide its contents to the pipeline as context.',
+    desc:'Upload one or more files. Multi-file mode concatenates with file-boundary markers (=== FILE N OF M: name [mime, sizeKB] ===) so downstream atoms can navigate per-file evidence. Drop files or click to choose; binary formats surface as ⚠ unsupported.',
     tags:['input','file','upload','boundary'],isBuiltin:true,rawContent:'',deps:[],internalGraph:{nodes:[],edges:[]},
     defaultInputs:[],
     defaultOutputs:[{id:'io-out-data',name:'content',type:'Any'}],
@@ -1616,7 +1624,7 @@ let skills=[
     defaultInputs:[],
     defaultOutputs:[{id:'io-out-data',name:'content',type:'Any'},{id:'io-out-meta',name:'metadata',type:'JSON'}],
     fields:[
-      {key:'url',label:'URL / Endpoint',type:'text',ph:'https://api.example.com/data'},
+      {key:'url',label:'URL / Endpoint',type:'codeeditor',rows:2,ph:'https://api.example.com/data\n# One URL per line. Lines starting with # are comments. Single URL behaves as before.'},
       {key:'backend',label:'Backend',type:'select',opts:['Direct','Proxy (HTML)','Proxy (Markdown)']},
       {key:'headers',label:'Headers (optional)',type:'codeeditor',rows:2,ph:'Authorization: Bearer xxx — ignored when Backend is Proxy (HTML) or Proxy (Markdown)'},
       {key:'fetch_trigger',label:'',type:'fetch_trigger'},
@@ -2046,12 +2054,47 @@ function exportPipeline(id){
 }
 
 // ── Skill import prompt after pipeline open ──────────────
+// Compare bundled skill against library copy on behavior-affecting fields.
+// Returns true if any of these differ; false if functionally identical.
+function _skillContentDiffers(a,b){
+  const norm=s=>JSON.stringify({
+    rawContent:s.rawContent||'',
+    internalGraph:s.internalGraph||null,
+    fields:s.fields||[],
+    defaultInputs:s.defaultInputs||[],
+    defaultOutputs:s.defaultOutputs||[],
+    label:s.label||'',
+    desc:s.desc||''
+  });
+  return norm(a)!==norm(b);
+}
+
+// Walk bundled skills and tag each as 'new' (no ID in lib) or 'updated' (ID present, content differs).
+// Skills present in lib with identical content are silently skipped.
+function _buildSkillImportCandidates(bundled){
+  if(!Array.isArray(bundled)||!bundled.length)return [];
+  const out=[];
+  bundled.forEach(bs=>{
+    const existing=skills.find(s=>s.id===bs.id);
+    if(!existing)out.push({...bs,_status:'new'});
+    else if(_skillContentDiffers(bs,existing))out.push({...bs,_status:'updated'});
+  });
+  return out;
+}
+
+function _candidatesMessage(candidates){
+  const nNew=candidates.filter(c=>c._status==='new').length;
+  const nUpd=candidates.filter(c=>c._status==='updated').length;
+  const parts=[];
+  if(nNew)parts.push(nNew+' new');
+  if(nUpd)parts.push(nUpd+' updated');
+  return 'This pipeline references '+parts.join(' and ')+' skill'+(nNew+nUpd!==1?'s':'')+'. Select which to import:';
+}
+
 async function _checkAndImportBundledSkills(data,onComplete){
-  const bundled=data.skills;
-  if(!Array.isArray(bundled)||!bundled.length){onComplete();return Promise.resolve();}
-  const missing=bundled.filter(bs=>!skills.find(s=>s.id===bs.id));
-  if(!missing.length){onComplete();return Promise.resolve();}
-  await _showSkillPickerModal(missing,'This pipeline references '+missing.length+' skill'+(missing.length!==1?'s':'')+' not in your library. Select which to import:');
+  const candidates=_buildSkillImportCandidates(data.skills);
+  if(!candidates.length){onComplete();return Promise.resolve();}
+  await _showSkillPickerModal(candidates,_candidatesMessage(candidates));
   onComplete();
 }
 
@@ -2906,6 +2949,9 @@ function updateEdgePaths(){
 // Builds the complete DOM element for a canvas node: card, head, ports, body, content drawer
 function buildNode(node){
   const sk=nodeSk(node);if(!sk)return null;
+  // Per-skill default seeding: FETCH defaults to Proxy (Markdown) — the most useful backend
+  // for marketing/CRO content. Only seeds when truly unset; explicit Direct/Proxy (HTML) selections persist.
+  if(sk.id==='fetch'){node.values=node.values||{};if(node.values.backend===undefined)node.values.backend='Proxy (Markdown)';}
   // Per-instance overrides: node.color/glyph/shape/title take precedence over sk defaults
   const nodeColor=node.color||sk.color;
   const nodeGlyph=node.glyph||sk.glyph;
@@ -5238,20 +5284,136 @@ function renderIOEditor(container, node, color){
 //                         article text, stripped of nav/CSS — ideal for LLM consumption.
 // Proxies don't forward custom request headers, so the Headers field is dropped under
 // either proxy mode. Backward-compat: v48 saved 'Proxy' — mapped to 'Proxy (HTML)'.
-async function doFetchNode(node,statusEl,btnEl){
-  let url=(node.values?.url||'').trim();
-  // Auto-prepend https:// if no scheme present — matches browser address bar behavior.
-  if(url&&!url.includes('://')){
-    url='https://'+url;
-    node.values.url=url; // persist so the user sees the normalized URL after fetch
+// ---------------------------------------------------------------------------
+// Multi-file FILE primitive helpers (v48.12). Mirrors the FETCH delimiter
+// contract so downstream atoms can grep file-boundary markers identically
+// regardless of whether sources came from FETCH or FILE. Single-file output
+// (1 entry) is byte-identical to v48.11 — raw content, no marker. Browser
+// File.type is unreliable for many text formats (.md often empty); extension
+// fallback covers the common cases GUIness pipelines actually see.
+function _resolveFileMime(file){
+  let mime=(file.type||'').trim();
+  if(!mime||mime==='application/octet-stream'){
+    const m=(file.name||'').match(/\.([a-z0-9]+)$/i);
+    const ext=m?m[1].toLowerCase():'';
+    const extMap={
+      md:'text/markdown',markdown:'text/markdown',mdx:'text/markdown',
+      txt:'text/plain',log:'text/plain',
+      csv:'text/csv',tsv:'text/tab-separated-values',
+      json:'application/json',jsonl:'application/jsonl',ndjson:'application/jsonl',
+      html:'text/html',htm:'text/html',
+      xml:'application/xml',svg:'image/svg+xml',
+      yaml:'text/yaml',yml:'text/yaml',toml:'text/toml',
+      js:'text/javascript',mjs:'text/javascript',cjs:'text/javascript',jsx:'text/javascript',
+      ts:'text/typescript',tsx:'text/typescript',
+      py:'text/x-python',rb:'text/x-ruby',go:'text/x-go',rs:'text/x-rust',
+      java:'text/x-java',kt:'text/x-kotlin',swift:'text/x-swift',
+      c:'text/x-c',h:'text/x-c',cpp:'text/x-c++',hpp:'text/x-c++',cc:'text/x-c++',
+      cs:'text/x-csharp',php:'text/x-php',
+      sh:'text/x-shellscript',bash:'text/x-shellscript',zsh:'text/x-shellscript',
+      ps1:'text/x-powershell',
+      sql:'text/x-sql',
+      css:'text/css',scss:'text/css',sass:'text/css',less:'text/css',
+      tf:'text/x-terraform',hcl:'text/x-terraform',tfvars:'text/x-terraform',
+      dockerfile:'text/x-dockerfile',
+      ini:'text/x-ini',conf:'text/plain',env:'text/plain',gitignore:'text/plain'
+    };
+    if(ext&&extMap[ext])mime=extMap[ext];
   }
-  let backend=node.values?.backend||'Direct';
-  if(backend==='Proxy')backend='Proxy (HTML)'; // v48 → v48.2 migration
+  // text/* is always readable. SVG and a few application/* types are XML-ish text.
+  const isText=mime.startsWith('text/')||
+               mime==='application/json'||
+               mime==='application/jsonl'||
+               mime==='application/xml'||
+               mime==='application/javascript'||
+               mime==='image/svg+xml';
+  return {mime:mime||'application/octet-stream',isText};
+}
+function _readOneFile(file){
+  return new Promise(resolve=>{
+    const {mime,isText}=_resolveFileMime(file);
+    const base={name:file.name,size:file.size,lastModified:file.lastModified,mime,isText};
+    if(!isText){
+      // Don't read binary — record metadata only so the marker surfaces an unsupported entry.
+      resolve({...base,content:'',error:'binary format, text extraction not enabled'});
+      return;
+    }
+    const reader=new FileReader();
+    reader.onload=ev=>resolve({...base,content:ev.target.result||'',error:null});
+    reader.onerror=()=>resolve({...base,content:'',error:'read error: '+(reader.error?.message||'unknown')});
+    reader.readAsText(file);
+  });
+}
+function _fileEntryKey(f){return (f.name||'')+'|'+(f.size||0)+'|'+(f.lastModified||0);}
+function _buildFileMultiContent(files){
+  if(!files||files.length===0)return '';
+  if(files.length===1){
+    // Legacy-compatible single-file output: raw content, no marker. Binary returns '' so
+    // downstream consumers don't get data-URL garbage they can't parse.
+    return files[0].isText?(files[0].content||''):'';
+  }
+  return files.map((ff,i)=>{
+    const sizeKb=(ff.size/1024).toFixed(ff.size<10240?1:0);
+    const header='=== FILE '+(i+1)+' OF '+files.length+': '+ff.name+' ['+ff.mime+', '+sizeKb+'KB] ===';
+    if(ff.isText){
+      return header+'\n[✓ '+ff.mime+']\n\n'+(ff.content||'');
+    }
+    return header+'\n[✗ ERROR — '+(ff.error||'unsupported format')+']\n\n[No content captured. Downstream atoms should treat this surface as unavailable.]';
+  }).join('\n\n');
+}
+function _buildFileMultiStatus(files){
+  if(!files||files.length===0)return {text:'No files',color:'var(--dim)'};
+  if(files.length===1){
+    const ff=files[0];
+    if(!ff.isText)return {text:'⚠ '+ff.name+' — unsupported',color:'var(--org)'};
+    return {text:'✓ '+ff.name+' ('+Math.round(ff.size/1024)+'KB)',color:'var(--grn)'};
+  }
+  const okCount=files.filter(ff=>ff.isText).length;
+  const failCount=files.length-okCount;
+  if(failCount===0)return {text:'✓ '+okCount+'/'+files.length,color:'var(--grn)'};
+  return {text:'⚠ '+okCount+'/'+files.length+' — '+failCount+' unsupported',color:'var(--org)'};
+}
+// ---------------------------------------------------------------------------
+
+// Per-node in-memory cache for multi-URL FETCH. Keyed by node.id.
+// Value shape: { [url]: { success: bool, content: string, status: int, size: int, error: string } }
+// Not persisted — wiped on page reload. After reload, "Retry failed" is unavailable;
+// user re-runs the whole list via the main Fetch button. Concatenated final content
+// is still persisted via node.values.content as before.
+const _fetchCacheByNode = new Map();
+
+// Multi-URL FETCH dispatcher. Parses the URL field for newline-delimited list,
+// dispatches to single-URL path (verbatim v48.10 behavior) or multi-URL path.
+// mode: 'all' (default) refetches everything; 'retry' skips URLs already cached as success.
+async function doFetchNode(node,statusEl,btnEl,mode){
+  if(mode===undefined)mode='all';
+  // Parse the URL field. Newline-delimited; '#' prefix = comment line; blank lines ignored.
+  // Single URL (no newlines or only one effective entry) behaves exactly as v48.10.
+  const rawUrlField=(node.values?.url||'').trim();
+  const urls=rawUrlField.split('\n')
+    .map(s=>s.trim())
+    .filter(s=>s&&!s.startsWith('#'))
+    .map(s=>s.includes('://')?s:'https://'+s);
   const setStatus=(msg,color)=>{
     node.values._fetchStatus=msg;
     if(statusEl){statusEl.textContent=msg;statusEl.style.color=color||'var(--dim)';}
   };
-  if(!url){setStatus('No URL to fetch.','var(--dim)');return;}
+  if(urls.length===0){setStatus('No URL to fetch.','var(--dim)');return;}
+  let backend=node.values?.backend||'Direct';
+  if(backend==='Proxy')backend='Proxy (HTML)'; // v48 → v48.2 migration
+  if(urls.length===1){
+    // Single-URL path: original v48.10 body, unchanged. Drop any stale multi-URL cache.
+    _fetchCacheByNode.delete(node.id);
+    await _doFetchSingle(node,urls[0],backend,statusEl,btnEl,setStatus);
+    return;
+  }
+  // Multi-URL path.
+  await _doFetchMulti(node,urls,backend,statusEl,btnEl,setStatus,mode);
+}
+
+// Original v48.10 single-URL fetch logic, extracted verbatim. Behavior preserved.
+async function _doFetchSingle(node,url,backend,statusEl,btnEl,setStatus){
+  node.values.url=url; // persist normalized URL (https:// prepend) — single-URL only
   // Parse "Key: Value" header lines (one per line). Dropped when proxying.
   const isProxy=backend==='Proxy (HTML)'||backend==='Proxy (Markdown)';
   const headers={};
@@ -5319,6 +5481,91 @@ async function doFetchNode(node,statusEl,btnEl){
     rebuildNode(node);renderInspector();
   }finally{
     if(btnEl){btnEl.disabled=false;btnEl.textContent='⬇ Fetch';}
+  }
+}
+
+// Multi-URL path. Sequential fetch with in-memory cache; partial failures don't fail the node.
+async function _doFetchMulti(node,urls,backend,statusEl,btnEl,setStatus,mode){
+  const cache=_fetchCacheByNode.get(node.id)||{};
+  // Drop cache entries for URLs no longer in the list (user edited list between runs).
+  Object.keys(cache).forEach(u=>{if(!urls.includes(u))delete cache[u];});
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='⬇ Fetching…';}
+  let failedCount=0;
+  for(let i=0;i<urls.length;i++){
+    const url=urls[i];
+    const reuse=mode==='retry'&&cache[url]&&cache[url].success===true;
+    if(!reuse){
+      setStatus('Fetching '+(i+1)+'/'+urls.length+'…','var(--dim)');
+      cache[url]=await _fetchOneUrl(url,backend,node);
+    }
+    if(!cache[url].success)failedCount++;
+  }
+  _fetchCacheByNode.set(node.id,cache);
+  // Build concatenated content in original URL order.
+  const contentParts=[],metaParts=[];
+  urls.forEach((url,idx)=>{
+    const r=cache[url];
+    const header='=== FILE '+(idx+1)+' OF '+urls.length+': '+url+' ===';
+    if(r.success){
+      const sizeKb=Math.round((r.content||'').length/1024);
+      contentParts.push(header+'\n[✓ '+r.status+' OK · '+sizeKb+'KB · '+backend+']\n\n'+r.content);
+    }else{
+      contentParts.push(header+'\n[✗ ERROR — '+r.error+']\n\n[No content fetched. Downstream atoms should treat this surface as unavailable.]');
+    }
+    metaParts.push({url,success:r.success,status:r.status,size:r.size,error:r.error,backend});
+  });
+  node.values.content=contentParts.join('\n\n');
+  node.values._meta=JSON.stringify({multiUrl:true,urlCount:urls.length,failedCount,results:metaParts},null,2);
+  // Never fail the node on partial failure — surface the count so the user knows.
+  if(failedCount===0){
+    setStatus('✓ '+urls.length+'/'+urls.length,'var(--grn)');
+  }else{
+    setStatus('⚠ '+(urls.length-failedCount)+'/'+urls.length+' — '+failedCount+' failed','var(--org)');
+  }
+  markPipelineDirty(activePipelineId);
+  rebuildNode(node);
+  renderInspector(); // re-render so the "Retry failed" button shows/hides per new cache state
+  if(btnEl){btnEl.disabled=false;btnEl.textContent='⬇ Fetch';}
+}
+
+// Pure fetch helper for the multi-URL path. Returns a plain result object; no UI side effects.
+async function _fetchOneUrl(url,backend,node){
+  const isProxy=backend==='Proxy (HTML)'||backend==='Proxy (Markdown)';
+  const headers={};
+  if(!isProxy){
+    (node.values?.headers||'').split('\n').forEach(line=>{
+      const i=line.indexOf(':');if(i<0)return;
+      const k=line.slice(0,i).trim(),v=line.slice(i+1).trim();
+      if(k)headers[k]=v;
+    });
+  }
+  let fetchUrl;
+  if(backend==='Proxy (HTML)'){
+    fetchUrl='https://api.allorigins.win/raw?url='+encodeURIComponent(url);
+  }else if(backend==='Proxy (Markdown)'){
+    fetchUrl='https://r.jina.ai/'+url;
+  }else{
+    fetchUrl=url;
+  }
+  try{
+    const resp=await fetch(fetchUrl,{headers,method:'GET'});
+    const body=await resp.text();
+    // Same defensive Markdown check as single-URL: Jina sometimes returns HTML for SPAs.
+    if(backend==='Proxy (Markdown)'&&resp.ok){
+      const head=body.trimStart().slice(0,15).toLowerCase();
+      if(head.startsWith('<!doctype')||head.startsWith('<html')){
+        return {success:false,content:'',status:resp.status,size:0,error:'Jina returned HTML, not markdown'};
+      }
+    }
+    return {
+      success:resp.ok,
+      content:resp.ok?body:'',
+      status:resp.status,
+      size:body.length,
+      error:resp.ok?null:(resp.status+' '+(resp.statusText||'')).trim()
+    };
+  }catch(err){
+    return {success:false,content:'',status:0,size:0,error:'Network error or CORS block'};
   }
 }
 
@@ -5464,7 +5711,12 @@ function renderInspector(){
         });
         updateStatus();
       }
-      else if(f.type==='select'){ctrl=document.createElement('select');ctrl.innerHTML='<option value="">— choose —</option>'+(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});}
+      else if(f.type==='select'){ctrl=document.createElement('select');ctrl.innerHTML='<option value="">— choose —</option>'+(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});
+        // FETCH backend: fire fetch on change if URL is already filled (parallel to the URL-blur trigger below).
+        if(sk.id==='fetch'&&f.key==='backend'){
+          ctrl.addEventListener('change',()=>{if((canvasNode.values?.url||'').trim())doFetchNode(canvasNode);});
+        }
+      }
       else if(f.type==='content_preview'){
         // Captured content (instance-scoped values.content). Editable when text, so the
         // user can tweak imported file/URL content before sending. Binary data URLs stay
@@ -5498,37 +5750,119 @@ function renderInspector(){
       else if(f.type==='fetch_trigger'){
         ctrl=document.createElement('div');ctrl.className+=' flex-col-gap';
         const btn=document.createElement('button');btn.className='mbtn';btn.textContent='⬇ Fetch';btn.style.cssText='font-size:9px;align-self:flex-start';
+        // Retry-failed button: only visible when the in-memory multi-URL cache has at least
+        // one failed URL for this node. Disappears after a successful full re-fetch.
+        const retryBtn=document.createElement('button');retryBtn.className='mbtn';retryBtn.textContent='↻ Retry failed';retryBtn.style.cssText='font-size:9px;align-self:flex-start';
+        const cache=_fetchCacheByNode.get(canvasNode.id);
+        const hasFailed=cache&&Object.values(cache).some(r=>!r.success);
+        if(!hasFailed)retryBtn.style.display='none';
         const status=document.createElement('div');status.style.cssText='font-family:var(--mono);font-size:8px;color:var(--dim)';
         status.textContent=canvasNode.values?._fetchStatus||'';
         btn.addEventListener('click',()=>doFetchNode(canvasNode,status,btn));
-        ctrl.appendChild(btn);ctrl.appendChild(status);
+        retryBtn.addEventListener('click',()=>doFetchNode(canvasNode,status,retryBtn,'retry'));
+        ctrl.appendChild(btn);ctrl.appendChild(retryBtn);ctrl.appendChild(status);
       }
       else if(f.type==='file_upload'){
+        // Multi-file FILE primitive (v48.12). Same delimiter contract as multi-URL FETCH:
+        // single entry → byte-identical to v48.11 (raw content, no marker); 2+ entries →
+        // `=== FILE N OF M: name [mime, sizeKB] ===` markers with [✓ ...]/[✗ ERROR — ...]
+        // blocks. Legacy single-file pipelines migrate on first render.
         ctrl=document.createElement('div');ctrl.className+=' flex-col-gap';
-        const fileBtn=document.createElement('button');fileBtn.className='mbtn';fileBtn.textContent='📁 Choose File';fileBtn.style.cssText='font-size:9px;align-self:flex-start';
-        const fileInfo=document.createElement('div');fileInfo.style.cssText='font-family:var(--mono);font-size:8px;color:var(--dim)';
-        fileInfo.textContent=canvasNode.values?.[f.key+'_name']||'No file selected';
-        const fileInput=document.createElement('input');fileInput.type='file';fileInput.style.display='none';
-        fileInput.addEventListener('change',e=>{
-          const file=e.target.files[0];if(!file)return;
-          fileInfo.textContent=file.name+' ('+Math.round(file.size/1024)+'KB)';
-          canvasNode.values[f.key+'_name']=file.name;
-          const reader=new FileReader();
-          reader.onload=ev=>{
-            canvasNode.values[f.key]=ev.target.result;
-            // Also populate the content field with the file text
-            canvasNode.values.content=ev.target.result;
-            rebuildNode(canvasNode);renderInspector();
-          };
-          if(file.type.startsWith('text/')||file.name.match(/\.(md|json|csv|txt|html|xml|yaml|yml|js|py|ts|css)$/i)){
-            reader.readAsText(file);
+        ctrl.style.cssText+=';border:1px dashed var(--dim);border-radius:6px;padding:6px;';
+        const fkey=f.key+'_files';
+        // Lazy migrate legacy single-file state into the _files array.
+        if(!Array.isArray(canvasNode.values?.[fkey])){
+          const legacyName=canvasNode.values?.[f.key+'_name'];
+          const legacyContent=canvasNode.values?.[f.key];
+          if(legacyName&&typeof legacyContent==='string'&&!legacyContent.startsWith('data:')){
+            canvasNode.values[fkey]=[{
+              name:legacyName,size:legacyContent.length,lastModified:0,
+              mime:_resolveFileMime({name:legacyName,type:''}).mime,
+              isText:true,content:legacyContent,error:null
+            }];
           }else{
-            reader.readAsDataURL(file);
-            fileInfo.textContent=file.name+' ('+Math.round(file.size/1024)+'KB) — binary, stored as data URL';
+            canvasNode.values[fkey]=[];
           }
+        }
+        const files=canvasNode.values[fkey];
+        const refreshContent=()=>{
+          canvasNode.values.content=_buildFileMultiContent(files);
+          markPipelineDirty(activePipelineId);
+          rebuildNode(canvasNode);
+          renderInspector();
+        };
+        const addFiles=async(fileList)=>{
+          const incoming=Array.from(fileList||[]);
+          if(incoming.length===0)return;
+          const existing=new Set(files.map(_fileEntryKey));
+          const reads=incoming
+            .filter(file=>!existing.has(_fileEntryKey({name:file.name,size:file.size,lastModified:file.lastModified})))
+            .map(_readOneFile);
+          if(reads.length===0)return; // all duplicates
+          const newEntries=await Promise.all(reads);
+          files.push(...newEntries);
+          refreshContent();
+        };
+        // Hidden multi-select input.
+        const fileInput=document.createElement('input');
+        fileInput.type='file';fileInput.multiple=true;fileInput.style.display='none';
+        fileInput.addEventListener('change',e=>{addFiles(e.target.files);fileInput.value='';});
+        // Header row: add + clear-all + status.
+        const headerRow=document.createElement('div');
+        headerRow.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;';
+        const addBtn=document.createElement('button');
+        addBtn.className='mbtn';addBtn.textContent='📁 Add Files';addBtn.style.cssText='font-size:9px';
+        addBtn.addEventListener('click',()=>fileInput.click());
+        headerRow.appendChild(addBtn);
+        if(files.length>=2){
+          const clearBtn=document.createElement('button');
+          clearBtn.className='mbtn';clearBtn.textContent='✕ Clear';clearBtn.style.cssText='font-size:9px';
+          clearBtn.addEventListener('click',()=>{files.length=0;refreshContent();});
+          headerRow.appendChild(clearBtn);
+        }
+        const statusEl=document.createElement('div');
+        statusEl.style.cssText='font-family:var(--mono);font-size:8px;margin-left:auto;';
+        const st=_buildFileMultiStatus(files);
+        statusEl.textContent=st.text;statusEl.style.color=st.color;
+        headerRow.appendChild(statusEl);
+        ctrl.appendChild(headerRow);
+        // File list or drop hint.
+        if(files.length>0){
+          const list=document.createElement('div');
+          list.style.cssText='display:flex;flex-direction:column;gap:3px;';
+          files.forEach((ff,idx)=>{
+            const row=document.createElement('div');
+            row.style.cssText='display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:8px;';
+            const icon=document.createElement('span');
+            icon.textContent=ff.isText?'✓':'⚠';
+            icon.style.color=ff.isText?'var(--grn)':'var(--org)';
+            const name=document.createElement('span');
+            name.textContent=ff.name;
+            name.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            const meta=document.createElement('span');
+            meta.textContent=ff.mime+' · '+Math.round(ff.size/1024)+'KB';
+            meta.style.color='var(--dim)';
+            const rm=document.createElement('button');
+            rm.className='mbtn';rm.textContent='✕';rm.style.cssText='font-size:8px;padding:1px 4px;';
+            rm.addEventListener('click',()=>{files.splice(idx,1);refreshContent();});
+            row.appendChild(icon);row.appendChild(name);row.appendChild(meta);row.appendChild(rm);
+            list.appendChild(row);
+          });
+          ctrl.appendChild(list);
+        }else{
+          const hint=document.createElement('div');
+          hint.textContent='Drop files here or click "Add Files"';
+          hint.style.cssText='font-family:var(--mono);font-size:8px;color:var(--dim);text-align:center;padding:4px;';
+          ctrl.appendChild(hint);
+        }
+        ctrl.appendChild(fileInput);
+        // Drag-and-drop on the ctrl container.
+        ctrl.addEventListener('dragover',e=>{e.preventDefault();ctrl.style.borderColor='var(--accent)';});
+        ctrl.addEventListener('dragleave',e=>{e.preventDefault();ctrl.style.borderColor='var(--dim)';});
+        ctrl.addEventListener('drop',e=>{
+          e.preventDefault();ctrl.style.borderColor='var(--dim)';
+          if(e.dataTransfer?.files?.length)addFiles(e.dataTransfer.files);
         });
-        fileBtn.addEventListener('click',()=>fileInput.click());
-        ctrl.appendChild(fileBtn);ctrl.appendChild(fileInfo);ctrl.appendChild(fileInput);
       }
       else if(f.type==='multicheck'){
         ctrl=document.createElement('div');ctrl.className='mc';
@@ -5540,11 +5874,6 @@ function renderInspector(){
           ctrl.appendChild(b);
         });
       }else{ctrl=document.createElement('input');ctrl.type='text';ctrl.placeholder=f.ph||'';ctrl.value=canvasNode.values?.[f.key]||'';ctrl.addEventListener('input',()=>{canvasNode.values[f.key]=ctrl.value;markPipelineDirty(activePipelineId);});
-        // FETCH url field: fire the fetch when the user clicks away (assumes they're done typing).
-        if(sk.id==='fetch'&&f.key==='url'){
-          ctrl.addEventListener('blur',()=>{if((canvasNode.values?.url||'').trim())doFetchNode(canvasNode);});
-          ctrl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ctrl.blur();}});
-        }
       }
       w.appendChild(ctrl);
       // content_preview renders AFTER the INPUTS/OUTPUTS editor (below OUTPUTS), so a tall
@@ -5649,14 +5978,22 @@ function _showDownloadMenu(sk,anchor){
   document.getElementById('dl-skill-menu')?.remove();
   const menu=document.createElement('div');menu.id='dl-skill-menu';
   menu.style.cssText='position:fixed;background:var(--panel);border:1px solid var(--brd);border-radius:8px;padding:4px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:2px';
-  const rect=anchor.getBoundingClientRect();
-  menu.style.left=rect.left+'px';menu.style.top=(rect.bottom+4)+'px';
 
   const opts=[
     {label:'📄 Markdown (.md)',fn:()=>_downloadSkillAsMd(sk)},
-    {label:'📦 JSON (.json)',fn:()=>_downloadSkillAsJson(sk)},
+    {label:'🧩 Skill (.sk)',fn:()=>_downloadSkillAsSk(sk)},
     {label:'🗜️ Skill (.skill)',fn:()=>_downloadSkillAsZip(sk)},
   ];
+
+  // Viewport-aware positioning: flip above anchor if popup would overflow bottom edge.
+  // Reachable since v48.6 added canvas right-click trigger (was previously only library-panel anchors).
+  const rect=anchor.getBoundingClientRect();
+  const popupH=opts.length*28+12, popupW=180;
+  menu.style.left=Math.min(rect.left,window.innerWidth-popupW-8)+'px';
+  menu.style.top=(rect.bottom+4+popupH>window.innerHeight
+    ? Math.max(8,rect.top-popupH-4)
+    : rect.bottom+4)+'px';
+
   opts.forEach(({label,fn})=>{
     const btn=document.createElement('button');
     btn.textContent=label;
@@ -5674,6 +6011,10 @@ function _showDownloadMenu(sk,anchor){
     document.addEventListener('pointerdown',close);
   },0);
 }
+
+// CODE primitive lang → file extension. Used by per-node content download (_downloadNodeContent)
+// and by .skill archive subnode export (_downloadSkillAsZip). Single source of truth.
+const CODE_LANG_EXT={Python:'py',JavaScript:'js',TypeScript:'ts',Bash:'sh',SQL:'sql',Ruby:'rb',Go:'go',Rust:'rs',HTML:'html',CSS:'css',JSON:'json',YAML:'yaml'};
 
 function _downloadSkillAsMd(sk){
   let md='---\n';
@@ -5695,12 +6036,12 @@ function _downloadSkillAsMd(sk){
   a.click();URL.revokeObjectURL(a.href);
 }
 
-function _downloadSkillAsJson(sk){
+function _downloadSkillAsSk(sk){
   const clean=structuredClone(sk);
   delete clean.isBuiltin;
   const blob=new Blob([JSON.stringify(clean,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=(sk.label||'skill').toLowerCase().replace(/\s+/g,'-')+'.json';
+  a.download=(sk.label||'skill').toLowerCase().replace(/\s+/g,'-')+'.sk';
   a.click();URL.revokeObjectURL(a.href);
 }
 
@@ -5735,7 +6076,7 @@ async function _downloadSkillAsZip(sk){
       const nName=n.title||nsk?.label||('node-'+i);
       const safeName=nName.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
       if(nsk?.id==='code'&&n.values?.code){
-        const ext={Python:'.py',JavaScript:'.js',TypeScript:'.ts',Bash:'.sh',SQL:'.sql',Ruby:'.rb',Go:'.go',Rust:'.rs',HTML:'.html',CSS:'.css',JSON:'.json',YAML:'.yaml'}[n.values.lang]||'.txt';
+        const ext='.'+(CODE_LANG_EXT[n.values.lang]||'txt');
         files.push({name:dir+'scripts/'+safeName+ext,data:new TextEncoder().encode(n.values.code)});
       }else if(nsk?.id==='text_input'&&n.values?.content){
         files.push({name:dir+'content/'+safeName+'.txt',data:new TextEncoder().encode(n.values.content)});
@@ -6727,7 +7068,7 @@ async function callAI(userPrompt, systemPrompt, provider, apiKey, model){
 }
 
 // ── Streaming callAI — calls onChunk(text) progressively ──
-async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model, onChunk){
+async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model, onChunk, signal){
   async function readSSE(resp, extract){
     const reader=resp.body.getReader();
     const decoder=new TextDecoder();
@@ -6766,36 +7107,36 @@ async function callAIStreaming(userPrompt, systemPrompt, provider, apiKey, model
   const req=_resolveLLMRequest(provider,apiKey,model,msgs,{system:systemPrompt,stream:true});
   if(req.isLocal){
     try{
-      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body),signal});
       if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
       await readNDJSON(resp,req.streamExtract);
     }catch(ollamaErr){
-      const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body),signal});
       if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
       await readSSE(resp,req.openaiStreamExtract);
     }
     return;
   }
-  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body),signal});
   if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
   await readSSE(resp,req.streamExtract);
 }
 
 // callAI with full conversation history (for follow-ups)
-async function callAIWithHistory(history, provider, apiKey, model){
+async function callAIWithHistory(history, provider, apiKey, model, signal){
   const req=_resolveLLMRequest(provider,apiKey,model,history,{});
   if(req.isLocal){
     try{
-      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      const resp=await fetch(req.url+'/api/chat',{method:'POST',headers:req.headers,body:JSON.stringify(req.body),signal});
       if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+resp.status);}
       return req.extract(await resp.json());
     }catch(ollamaErr){
-      const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+      const resp=await fetch(req.url+'/v1/chat/completions',{method:'POST',headers:req.headers,body:JSON.stringify(req.body),signal});
       if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
       return req.openaiExtract(await resp.json());
     }
   }
-  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body)});
+  const resp=await fetch(req.url,{method:'POST',headers:req.headers,body:JSON.stringify(req.body),signal});
   if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+resp.status);}
   return req.extract(await resp.json());
 }
@@ -6903,7 +7244,7 @@ function drawAIOverlay(){
     if(aiProvider==='gemini'&&apiKey){
       const loadOpt=document.createElement('option');loadOpt.textContent='Loading models…';loadOpt.disabled=true;sel.appendChild(loadOpt);
       modelCont.appendChild(sel);
-      const live=await fetchGeminiModelsList(apiKey);
+      const live=await fetchGeminiModelsList(apiKey).catch(()=>null);
       sel.innerHTML='';
       const list=live&&live.length?live:AI_MODELS.gemini;
       list.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;sel.appendChild(o);});
@@ -7147,6 +7488,7 @@ function doSaveWiz(){
 // Return only nodes that are connected to at least one edge
 // Filters nodes to only those connected to at least one edge
 function connectedOnly(nodes, edges){
+  if(nodes.length<=1)return nodes.slice();        // 1 node IS the pipeline; >1 nodes filter by edges
   const connected=new Set();
   edges.forEach(e=>{connected.add(e.from);connected.add(e.to);});
   return nodes.filter(n=>connected.has(n.id));
@@ -7196,7 +7538,16 @@ function nextVersionName(baseLabel){
 // Throws on: JSON Array mode with invalid/non-array input; Custom delimiter with blank delimiter.
 // Empty/whitespace input → [] (Map skips silently per the empty-collection rule).
 function parseCollection(input, splitMode, delimiter){
-  const s=(input==null)?'':String(input);
+  let s=(input==null)?'':String(input);
+
+  // Strip leading/trailing markdown code-fence wrappers. Some models (notably Phi-4) wrap
+  // the entire structured output in ```lang ... ```, which contaminates the first/last
+  // chunks of any delimiter-based split. The fence is a model artifact at the LLM output
+  // boundary — it's never part of the structured content. Match only when the fence
+  // brackets the whole input; inline fences (e.g. code blocks inside a single item) are preserved.
+  s=s.replace(/^\s*```[a-zA-Z0-9_-]*\s*\n/, '');
+  s=s.replace(/\n\s*```\s*$/, '');
+
   const trimmed=s.trim();
   if(!trimmed)return [];
   if(splitMode==='JSON Array'){
@@ -7898,6 +8249,7 @@ function _fmtCost(usd){
 }
 
 function updateTokenCount(){
+  updateOrphanWarning();
   const prompt=document.getElementById('out-pre')?.textContent||'';
   const el=document.getElementById('out-token-count');
   const costEl=document.getElementById('out-cost-estimate');
@@ -7910,9 +8262,25 @@ function updateTokenCount(){
   if(costEl){
     const model=_runModel||'';
     const cost=estimateCost(n,model);
-    if(cost!==null){costEl.textContent=_fmtCost(cost);costEl.style.color=cost>0.1?'#f59e0b':'var(--dim)';}
+    if(cost!==null){costEl.textContent=_fmtCost(cost);costEl.style.color=cost>0.1?'#f59e0b':'var(--txt)';}
     else{costEl.textContent=_runProvider==='local'?'free':'';}
   }
+}
+
+// Surfaces nodes on the root canvas that aren't in any edge — only when there's >1 node
+// (1-node canvases bypass connection logic per connectedOnly). Shown in the Run panel so
+// the user sees, before sending, which nodes won't make it into the pipeline.
+function updateOrphanWarning(){
+  const el=document.getElementById('out-orphan-warning');if(!el)return;
+  const rf=canvasStack&&canvasStack[0];
+  if(!rf||rf.nodes.length<=1){el.style.display='none';return;}
+  const connected=new Set();
+  rf.edges.forEach(e=>{connected.add(e.from);connected.add(e.to);});
+  const orphans=rf.nodes.filter(n=>!connected.has(n.id));
+  if(!orphans.length){el.style.display='none';return;}
+  const labels=orphans.map(n=>{const sk=nodeSk(n);return sk?.label||n.title||'node';});
+  el.textContent='\u26a0 '+orphans.length+' disconnected \u2014 '+labels.map(l=>'"'+l+'"').join(', ');
+  el.style.display='';
 }
 
 function _refreshOutput(){
@@ -8136,17 +8504,62 @@ function refreshRunKeys(){
   cr.forEach(c=>{const o=document.createElement('option');o.value=c.value;o.textContent=c.name;s.appendChild(o);});
   _runKey=cr[0].value;s.onchange=()=>{_runKey=s.value;};
 }
-// ── Shared: fetch Gemini models list ─────────────────────
+// ── Model-list cache (Tuesday-weekly invalidation) ───────
+// localStorage key includes a non-crypto hash of the API key tail so multiple
+// keys for the same provider don't collide. Plain localStorage; same-origin only.
+function _modelCacheKey(provider, apiKey){
+  let h=0;const s=String(apiKey||'');
+  for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}
+  return 'guiness:models:'+provider+':'+(h>>>0).toString(36);
+}
+// Most recent Tuesday 00:00 in local time. Cache is fresh iff fetchedAt > this.
+function _mostRecentTuesdayMidnight(){
+  const d=new Date();d.setHours(0,0,0,0);
+  const daysSinceTue=(d.getDay()-2+7)%7;
+  d.setDate(d.getDate()-daysSinceTue);
+  return d.getTime();
+}
+function _getCachedModels(provider, apiKey){
+  try{const raw=localStorage.getItem(_modelCacheKey(provider,apiKey));if(!raw)return null;
+    const obj=JSON.parse(raw);return obj.fetchedAt>_mostRecentTuesdayMidnight()?obj.models:null;}catch(e){return null;}
+}
+function _setCachedModels(provider, apiKey, models){
+  try{localStorage.setItem(_modelCacheKey(provider,apiKey),JSON.stringify({models,fetchedAt:Date.now()}));}catch(e){}
+}
+// Stale (any-age) cache used when a fresh fetch fails — better than hardcoded defaults if available.
+function _getStaleCache(provider, apiKey){
+  try{const raw=localStorage.getItem(_modelCacheKey(provider,apiKey));return raw?JSON.parse(raw).models:null;}catch(e){return null;}
+}
+
+// ── Provider model-list fetchers ──────────────────────────
+// All three throw with a consistent error vocabulary so the caller can show
+// specific messages: 'invalid key' | 'rate limited' | 'network' | 'HTTP <code>'.
+async function fetchAnthropicModelsList(key){
+  let r;try{r=await fetch('https://api.anthropic.com/v1/models',{headers:{'x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});}catch(e){throw new Error('network');}
+  if(!r.ok){if(r.status===401||r.status===403)throw new Error('invalid key');if(r.status===429)throw new Error('rate limited');throw new Error('HTTP '+r.status);}
+  const d=await r.json();
+  return (d.data||[])
+    .sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))
+    .map(m=>[m.id,m.display_name||m.id]);
+}
+async function fetchOpenAIModelsList(key){
+  const EXCLUDE=/(embed|audio|realtime|transcribe|tts|whisper|dall-e|image|moderation|babbage|ada|davinci|instruct|search)/i;
+  let r;try{r=await fetch('https://api.openai.com/v1/models',{headers:{'Authorization':'Bearer '+key}});}catch(e){throw new Error('network');}
+  if(!r.ok){if(r.status===401||r.status===403)throw new Error('invalid key');if(r.status===429)throw new Error('rate limited');throw new Error('HTTP '+r.status);}
+  const d=await r.json();
+  return (d.data||[])
+    .filter(m=>m.id&&!EXCLUDE.test(m.id))
+    .sort((a,b)=>(b.created||0)-(a.created||0))
+    .map(m=>[m.id,m.id]);   // OpenAI doesn't expose display names
+}
 async function fetchGeminiModelsList(key){
-  try{
-    const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+key);
-    if(!r.ok)return null;
-    const d=await r.json();
-    return (d.models||[])
-      .filter(m=>m.supportedGenerationMethods?.includes('generateContent'))
-      .map(m=>{const id=m.name.replace('models/','');return[id,m.displayName||id];})
-      .sort((a,b)=>a[0].includes('2.5')?-1:b[0].includes('2.5')?1:a[0].localeCompare(b[0]));
-  }catch(e){return null;}
+  let r;try{r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?key='+key);}catch(e){throw new Error('network');}
+  if(!r.ok){if(r.status===400||r.status===401||r.status===403)throw new Error('invalid key');if(r.status===429)throw new Error('rate limited');throw new Error('HTTP '+r.status);}
+  const d=await r.json();
+  return (d.models||[])
+    .filter(m=>m.supportedGenerationMethods?.includes('generateContent'))
+    .map(m=>{const id=m.name.replace('models/','');return[id,m.displayName||id];})
+    .sort((a,b)=>a[0].includes('2.5')?-1:b[0].includes('2.5')?1:a[0].localeCompare(b[0]));
 }
 
 // ── Shared: detect local LLM models ─────────────────────
@@ -8161,19 +8574,45 @@ async function detectLocalModelsList(baseUrl){
   try{const r=await fetch(base+'/v1/models',{headers:authHeaders});if(r.ok){const d=await r.json();return(d.data||d.models||[]).map(x=>x.id||x.name).filter(Boolean);}}catch(e){}
   return [];
 }
-async function refreshRunModels(){
+// Refresh the Run-drawer model dropdown. force=true bypasses the weekly cache (used by ↻).
+// Status semantics: hidden on fresh/cached success; amber message when serving stale cache
+// or built-in defaults after a fetch failure, with the specific reason ('invalid key',
+// 'rate limited', 'network unreachable', 'HTTP <code>').
+async function refreshRunModels(force){
   const s=document.getElementById('out-run-model');s.innerHTML='';
-  if(_runProvider==='local'){const v=document.getElementById('out-run-local-model')?.value;if(v){const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);}else{const o=document.createElement('option');o.value='';o.textContent='(enter or detect)';s.appendChild(o);}_runModel=s.value;s.onchange=()=>{_runModel=s.value;document.getElementById('out-run-local-model').value=s.value;};return;}
-  if(_runProvider==='gemini'&&_runKey){
-    const lo=document.createElement('option');lo.textContent='Loading models…';lo.disabled=true;s.appendChild(lo);
-    const live=await fetchGeminiModelsList(_runKey);
-    s.innerHTML='';
-    const list=live&&live.length?live:AI_MODELS.gemini;
-    list.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
-  }else{
-    (AI_MODELS[_runProvider]||AI_MODELS.anthropic).forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});
+  const statusEl=document.getElementById('out-run-model-status');
+  const setStatus=msg=>{if(!statusEl)return;if(msg){statusEl.textContent=msg;statusEl.style.display='';}else{statusEl.textContent='';statusEl.style.display='none';}};
+  setStatus('');
+  const populate=list=>{list.forEach(([v,l])=>{const o=document.createElement('option');o.value=v;o.textContent=l;s.appendChild(o);});};
+  const finalize=()=>{_runModel=s.value;s.onchange=()=>{_runModel=s.value;updateTokenCount();};};
+
+  if(_runProvider==='local'){
+    const v=document.getElementById('out-run-local-model')?.value;
+    if(v){const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);}
+    else{const o=document.createElement('option');o.value='';o.textContent='(enter or detect)';s.appendChild(o);}
+    _runModel=s.value;s.onchange=()=>{_runModel=s.value;document.getElementById('out-run-local-model').value=s.value;};
+    return;
   }
-  _runModel=s.value;s.onchange=()=>{_runModel=s.value;updateTokenCount();};
+  const fetcher={anthropic:fetchAnthropicModelsList,openai:fetchOpenAIModelsList,gemini:fetchGeminiModelsList}[_runProvider];
+  // No key OR no fetcher → silent fallback to hardcoded list (user hasn't set up yet).
+  if(!_runKey||!fetcher){populate(AI_MODELS[_runProvider]||AI_MODELS.anthropic);finalize();return;}
+  // Fresh cache hit (unless ↻).
+  if(!force){const cached=_getCachedModels(_runProvider,_runKey);if(cached&&cached.length){populate(cached);finalize();return;}}
+  // Live fetch.
+  const lo=document.createElement('option');lo.textContent='Loading models…';lo.disabled=true;s.appendChild(lo);
+  try{
+    const live=await fetcher(_runKey);
+    s.innerHTML='';
+    if(live&&live.length){populate(live);_setCachedModels(_runProvider,_runKey,live);}
+    else{populate(AI_MODELS[_runProvider]||AI_MODELS.anthropic);setStatus('Using built-in defaults \u2014 provider returned no models');}
+  }catch(e){
+    s.innerHTML='';
+    const reason=e.message==='network'?'network unreachable':(e.message||'error');
+    const stale=_getStaleCache(_runProvider,_runKey);
+    if(stale&&stale.length){populate(stale);setStatus('Using cached models \u2014 '+reason);}
+    else{populate(AI_MODELS[_runProvider]||AI_MODELS.anthropic);setStatus('Using built-in defaults \u2014 '+reason);}
+  }
+  finalize();
 }
 
 document.getElementById('out-run-detect').addEventListener('click',async()=>{
@@ -8191,6 +8630,11 @@ document.getElementById('out-run-local-model').addEventListener('input',()=>{if(
 
 document.getElementById('out-run').addEventListener('click',openDrawer);
 document.getElementById('llm-drawer-close').addEventListener('click',closeDrawer);
+document.getElementById('out-run-model-refresh').addEventListener('click',async()=>{
+  const b=document.getElementById('out-run-model-refresh');const prev=b.textContent;
+  b.disabled=true;b.textContent='…';
+  try{await refreshRunModels(true);}finally{b.disabled=false;b.textContent=prev;}
+});
 
 function _looksLikeHtml(t){const s=t.trimStart();return s.startsWith('<!DOCTYPE')||s.startsWith('<html')||/^<(div|section|article|main|header|footer|table|ul|ol|p|h[1-6]|span|form|nav|aside)[\s>]/i.test(s);}
 // ── File detection in LLM responses ──────────────────────
@@ -8396,6 +8840,10 @@ document.getElementById('out-view-preview').addEventListener('click',()=>setResp
 
 // ── Execution mode toggle ────────────────────────────────
 let _execMode='single'; // 'single' | 'chain'
+// Primitives that need real producer/consumer semantics — Single mode compiles
+// the whole graph into one prompt, which breaks for nodes with real I/O or
+// control flow the LLM can't simulate.
+const NON_LLM_PRIMITIVES=new Set(['fetch','io_input','code','map']);
 function setExecMode(mode){
   _execMode=mode;
   const sBtn=document.getElementById('out-mode-single');
@@ -8406,12 +8854,29 @@ function setExecMode(mode){
   cBtn.style.cssText=mode==='chain'?on:off;
   document.getElementById('out-run-send').textContent=mode==='chain'?'⛓ Run Chain':'▶ Send to LLM';
 }
+// If the pipeline contains primitives that Single mode can't honor (FETCH/FILE/CODE/MAP),
+// flip to Chain and surface a one-shot banner. Only flips when Single is currently active;
+// respects an explicit Chain choice.
+function _autoSelectExecMode(){
+  if(_execMode!=='single')return;
+  const nodes=canvasStack[0]?.nodes||[];
+  const hit=nodes.some(n=>NON_LLM_PRIMITIVES.has(n.type||n.skillId));
+  if(!hit)return;
+  setExecMode('chain');
+  const b=document.getElementById('out-automode-banner');
+  if(b){
+    b.textContent='⛓ Switched to Chain — FETCH / FILE / CODE / MAP need real execution';
+    b.style.display='block';
+    clearTimeout(b._ht);
+    b._ht=setTimeout(()=>{b.style.display='none';},6000);
+  }
+}
 document.getElementById('out-mode-single').addEventListener('click',()=>setExecMode('single'));
 document.getElementById('out-mode-chain').addEventListener('click',()=>setExecMode('chain'));
 
 // ── Chain execution ─────────────────────────────────────
 // Executes pipeline nodes sequentially in topological order, piping outputs between steps
-async function runChain(provider,apiKey,model,rb,st){
+async function runChain(provider,apiKey,model,rb,st,signal){
   const rootFrame=canvasStack[0];
   const edges=rootFrame.edges;
   const nodes=connectedOnly(rootFrame.nodes,edges);
@@ -8496,7 +8961,7 @@ async function runChain(provider,apiKey,model,rb,st){
         // LLM evaluation
         const sysPrompt='You are a routing decision node. Evaluate the following content against this condition: "'+condition+'". Respond with ONLY one word: "pass" if the condition is met, or "fail" if not. No explanation.';
         let llmResult='';
-        await callAIStreaming(inputCtx||'(no input)',sysPrompt,provider,apiKey,model,(chunk)=>{llmResult+=chunk;});
+        await callAIStreaming(inputCtx||'(no input)',sysPrompt,provider,apiKey,model,(chunk)=>{llmResult+=chunk;},signal);
         routeResult=llmResult.trim().toLowerCase().includes('pass')?'pass':'fail';
       }
 
@@ -8674,7 +9139,7 @@ async function runChain(provider,apiKey,model,rb,st){
         rb.innerHTML=renderMdResponse(fullLog+stepOutput);
         rb.scrollTop=rb.scrollHeight;
       }
-    });
+    },signal);
 
     fullLog+=stepOutput;
     nodeOutputs[node.id]={[outPortId(node)]:stepOutput};
@@ -8720,6 +9185,10 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
   if(!prompt||prompt==='(empty pipeline)'){document.getElementById('out-run-status').textContent='Nothing to send';return;}
   const st=document.getElementById('out-run-status'),sb=document.getElementById('out-run-send'),rb=document.getElementById('out-resp-body');
   sb.disabled=true;sb.textContent='\u231b Running...';st.textContent='Sending...';st.style.color='var(--dim)';
+  // Abort plumbing: create controller for this run; pass signal into runChain / callAIStreaming.
+  // Stop button visible while in flight; finally block hides it and clears _runAbort.
+  _runAbort=new AbortController();
+  document.getElementById('out-run-stop').style.display='inline-block';
   const _tcEl=document.getElementById('out-token-count');if(_tcEl){_tcEl.dataset.prev=_tcEl.textContent;_tcEl.textContent='Sending…';_tcEl.style.color='var(--dim)';}
   _exitEditMode();
   rb.innerHTML='<div style="color:var(--dim);font-style:italic">Waiting for response...</div>';
@@ -8727,6 +9196,9 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
   _convHistory=[];_updateTurnCount();
   document.getElementById('out-followup').value='';
   document.getElementById('out-followup-status').textContent='';
+
+  // Auto-flip Single → Chain if the pipeline has non-LLM producers (FETCH/FILE/CODE/MAP).
+  _autoSelectExecMode();
 
   try{
   if(_execMode==='chain'){
@@ -8750,7 +9222,7 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
           }
         }
       }catch(_e){/* projection failure should never block a run */}
-      const r=await runChain(_runProvider,_runKey,_runModel||undefined,rb,st);
+      const r=await runChain(_runProvider,_runKey,_runModel||undefined,rb,st,_runAbort.signal);
       rb.dataset.rawResponse=r||'';
       updateFmtBadge(r||'');
       if(_respViewMode==='preview'&&r)renderPreviewResponse(r,rb);
@@ -8758,7 +9230,16 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
       st.textContent='\u2713 Chain complete';st.style.color='var(--grn)';
       _convHistory=[{role:'user',content:'Chain execution'},{role:'assistant',content:r||''}];
       _updateTurnCount();
-    }catch(e){rb.innerHTML='<div style="color:var(--red)">\u274c '+e.message.replace(/\n/g,'<br>')+'</div>';st.textContent='Failed';st.style.color='var(--red)';}
+    }catch(e){
+      if(e.name==='AbortError'){
+        // Preserve already-streamed partial output, add a dim "Cancelled" suffix.
+        rb.insertAdjacentHTML('beforeend','<div style="color:var(--dim);font-style:italic;padding:8px 0;border-top:1px dashed var(--brd);margin-top:8px">\u23f9 Cancelled by user.</div>');
+        st.textContent='\u23f9 Cancelled';st.style.color='var(--dim)';
+      }else{
+        rb.innerHTML='<div style="color:var(--red)">\u274c '+e.message.replace(/\n/g,'<br>')+'</div>';
+        st.textContent='Failed';st.style.color='var(--red)';
+      }
+    }
   } else {
     // ── Single mode: compile everything into one prompt ──
     const _sysPrompt=prompt;
@@ -8776,7 +9257,7 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
           rb.innerHTML=renderMdResponse(accumulated);
           rb.scrollTop=rb.scrollHeight;
         }
-      });
+      },_runAbort.signal);
       const r=accumulated;
       rb.dataset.rawResponse=r||'';
       updateFmtBadge(r||'');
@@ -8785,15 +9266,24 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
       st.textContent='\u2713 Done';st.style.color='var(--grn)';
       _convHistory=[{role:'user',content:'System context:\n'+_sysPrompt+'\n\n'+_userMsg},{role:'assistant',content:r||''}];
       _updateTurnCount();
-    }catch(e){rb.innerHTML='<div style="color:var(--red)">\u274c '+e.message.replace(/\n/g,'<br>')+'</div>';st.textContent='Failed';st.style.color='var(--red)';}
+    }catch(e){
+      if(e.name==='AbortError'){
+        rb.insertAdjacentHTML('beforeend','<div style="color:var(--dim);font-style:italic;padding:8px 0;border-top:1px dashed var(--brd);margin-top:8px">\u23f9 Cancelled by user.</div>');
+        st.textContent='\u23f9 Cancelled';st.style.color='var(--dim)';
+      }else{
+        rb.innerHTML='<div style="color:var(--red)">\u274c '+e.message.replace(/\n/g,'<br>')+'</div>';
+        st.textContent='Failed';st.style.color='var(--red)';
+      }
+    }
   }
-  }finally{sb.disabled=false;sb.textContent=_execMode==='chain'?'\u26d3 Run Chain':'\u25b6 Send to LLM';const _tc=document.getElementById('out-token-count');if(_tc&&_tc.dataset.prev!==undefined){_tc.textContent=_tc.dataset.prev;_tc.style.color=_tokenColor(estimateTokens(document.getElementById('out-pre')?.textContent||''));}}
+  }finally{sb.disabled=false;sb.textContent=_execMode==='chain'?'\u26d3 Run Chain':'\u25b6 Send to LLM';const _tc=document.getElementById('out-token-count');if(_tc&&_tc.dataset.prev!==undefined){_tc.textContent=_tc.dataset.prev;_tc.style.color=_tokenColor(estimateTokens(document.getElementById('out-pre')?.textContent||''));}document.getElementById('out-run-stop').style.display='none';_runAbort=null;}
 });
 
 document.getElementById('out-resp-copy').addEventListener('click',()=>{const b=document.getElementById('out-resp-copy');navigator.clipboard.writeText(document.getElementById('out-resp-body').innerText).then(()=>{b.textContent='\u2713';setTimeout(()=>{b.textContent='Copy';},2000);});});
 
 // ── Conversation history ─────────────────────────────────
 let _convHistory=[];// [{role:'user'|'assistant', content:'...'}]
+let _runAbort=null;// AbortController for in-flight LLM run (chain or follow-up); null when idle
 function _updateTurnCount(){const n=Math.floor(_convHistory.length/2);document.getElementById('out-turn-count').textContent=n?n+' turn'+(n>1?'s':''):'';};
 
 // ── Save response ────────────────────────────────────────
@@ -8915,9 +9405,11 @@ async function sendFollowUp(msg){
   const st=document.getElementById('out-followup-status'),rb=document.getElementById('out-resp-body');
   const fsb=document.getElementById('out-followup-send');
   fsb.disabled=true;st.textContent='Sending…';st.style.color='var(--dim)';
+  _runAbort=new AbortController();
+  document.getElementById('out-run-stop').style.display='inline-block';
   _convHistory.push({role:'user',content:msg});
   try{
-    const r=await callAIWithHistory(_convHistory,_runProvider,_runKey,_runModel||undefined);
+    const r=await callAIWithHistory(_convHistory,_runProvider,_runKey,_runModel||undefined,_runAbort.signal);
     _convHistory.push({role:'assistant',content:r});
     _updateTurnCount();
     // Append to response body with a separator
@@ -8944,8 +9436,12 @@ async function sendFollowUp(msg){
     setTimeout(()=>{st.textContent='';},3000);
   }catch(e){
     _convHistory.pop();// remove failed user msg
-    st.textContent='\u274c '+e.message;st.style.color='var(--red)';
-  }finally{fsb.disabled=false;}
+    if(e.name==='AbortError'){
+      st.textContent='\u23f9 Cancelled';st.style.color='var(--dim)';
+    }else{
+      st.textContent='\u274c '+e.message;st.style.color='var(--red)';
+    }
+  }finally{fsb.disabled=false;document.getElementById('out-run-stop').style.display='none';_runAbort=null;}
 }
 
 document.getElementById('out-followup-send').addEventListener('click',()=>{
@@ -8954,6 +9450,18 @@ document.getElementById('out-followup-send').addEventListener('click',()=>{
 document.getElementById('out-followup').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendFollowUp(e.target.value);}
 });
+
+// ── Abort in-flight LLM request: Stop button + Shift+Esc shortcut ─────
+// Shared across Run-chain runs, Single-mode runs, and Follow-up sends —
+// only one LLM operation can be in flight at a time (run-button disables
+// while running; follow-up requires _convHistory.length).
+// Capture phase + stopImmediatePropagation prevents Shift+Esc from also
+// firing the line-3901 Escape-closes-overlays/drawers handler.
+function _abortRun(){if(_runAbort){_runAbort.abort();document.getElementById('out-run-stop').style.display='none';}}
+document.getElementById('out-run-stop').addEventListener('click',_abortRun);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&e.shiftKey&&_runAbort){e.preventDefault();e.stopImmediatePropagation();_abortRun();}
+},{capture:true});
 
 // Drawer resize
 document.getElementById('llm-drawer-resizer').addEventListener('pointerdown',e=>{
@@ -9096,6 +9604,38 @@ document.getElementById('btn-save-lib').addEventListener('click',saveLibraryJSON
 let ctxNode=null;
 const ctxMenu=document.getElementById('ctx-menu');
 
+// Node-types whose `values` payload is downloadable as a content file.
+// FILE (io_input) excluded — user already has the original file on disk.
+// Built-in logic primitives (compute/router/context/map) excluded — no meaningful payload.
+const CONTENT_DOWNLOAD_TYPES=new Set(['text_input','fetch','code']);
+
+function _downloadNodeContent(node){
+  const sk=nodeSk(node);
+  const skId=node.type||node.skillId;
+  const base=(node.title||sk?.label||'content').toLowerCase().replace(/\s+/g,'-');
+  let body='',ext='txt',mime='text/plain';
+  if(skId==='text_input'){
+    body=node.values?.content||'';
+    ext='txt';mime='text/plain';
+  }else if(skId==='fetch'){
+    body=node.values?.content||'';
+    const backend=node.values?.backend||'';
+    if(backend==='Proxy (HTML)'){ext='html';mime='text/html';}
+    else if(backend==='Proxy (Markdown)'){ext='md';mime='text/markdown';}
+    else{ext='txt';mime='text/plain';}
+  }else if(skId==='code'){
+    body=node.values?.code||'';
+    ext=CODE_LANG_EXT[node.values?.lang]||'txt';
+    mime='text/plain';
+  }else{
+    return; // shouldn't happen — visibility gate already excludes other types
+  }
+  const blob=new Blob([body],{type:mime});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=base+'.'+ext;
+  a.click();URL.revokeObjectURL(a.href);
+}
+
 function openCtxMenu(x,y,node){
   ctxNode=node;
   const sk=nodeSk(node);
@@ -9159,8 +9699,20 @@ function openCtxMenu(x,y,node){
     ? `<span class="ci">⧉</span> Duplicate ${selNodes.size} Nodes`
     : '<span class="ci">⧉</span> Duplicate';
 
+  // Download items: "Download Content" for input primitives with captured payload,
+  // "Download Skill" for non-builtin (custom) skills. Hidden in multi-select.
+  const skId=node.type||node.skillId;
+  const contentVal = skId==='text_input' ? node.values?.content
+                   : skId==='fetch'      ? node.values?.content
+                   : skId==='code'       ? node.values?.code
+                   : null;
+  const showContent = !multi && CONTENT_DOWNLOAD_TYPES.has(skId) && contentVal && contentVal.trim();
+  const showSkill   = !multi && sk && !sk.isBuiltin;
+  document.getElementById('ctx-download-content').style.display = showContent ? 'flex' : 'none';
+  document.getElementById('ctx-download-skill').style.display   = showSkill   ? 'flex' : 'none';
+
   // Position — keep inside viewport
-  const mw=180,mh=multi?120:220;
+  const mw=180,mh=multi?120:260;
   ctxMenu.style.left=Math.min(x,window.innerWidth-mw-8)+'px';
   ctxMenu.style.top=Math.min(y,window.innerHeight-mh-8)+'px';
   ctxMenu.classList.add('open');
@@ -9204,7 +9756,7 @@ function saveNodeAsSkill(nodeId){
 // ── Import a .skill/.md/.json file as a node placed on canvas ──────────────
 function importSkillFileAsNode(){
   const inp=document.createElement('input');
-  inp.type='file';inp.accept='.md,.skill,.json,.txt,.zip,.ppln,.sklb';inp.multiple=true;inp.style.display='none';
+  inp.type='file';inp.accept='.md,.sk,.sklb,.skill,.json,.txt,.zip,.ppln';inp.multiple=true;inp.style.display='none';
   document.body.appendChild(inp);
   inp.addEventListener('change',async e=>{
     const files=Array.from(e.target.files);
@@ -9284,6 +9836,26 @@ function importSkillFileAsNode(){
 // When placeNode is false, only the skill is added to the library — no canvas node.
 // This removes the need for library-drop callers to manually pop+remove a node afterward.
 function _importTextAsSkill(raw,filename,centerX,centerY,placeNode=true){
+  // Structured skill import (.sk always, .json when shape matches).
+  // Single-skill JSON used to be dumped into rawContent — this path preserves id, fields, ports, color, glyph, internalGraph.
+  const _fn=filename.toLowerCase();
+  if(_fn.endsWith('.sk')||_fn.endsWith('.json')){
+    try{
+      const parsed=JSON.parse(raw);
+      if(parsed&&!Array.isArray(parsed)&&parsed.id&&parsed.label){
+        const sk=structuredClone(parsed);
+        sk.isBuiltin=false;
+        upsertSkill(sk);
+        if(!placeNode)return;
+        const node={id:uid(),type:null,skillId:sk.id,x:centerX,y:centerY,values:{},title:sk.label,
+          inputs:structuredClone(sk.defaultInputs||[]),
+          outputs:structuredClone(sk.defaultOutputs||[])};
+        frame().nodes.push(node);
+        const el=buildNode(node);if(el)scene.appendChild(el);
+        return;
+      }
+    }catch(e){/* fall through to text path */}
+  }
   let name='',desc='';
   const fm=raw.match(/^---\s*\n([\s\S]*?)\n---/);
   if(fm){
@@ -9292,7 +9864,7 @@ function _importTextAsSkill(raw,filename,centerX,centerY,placeNode=true){
   }
   if(!name){const h=(raw.match(/^#\s+(.+)/m)||[])[1];if(h)name=h.trim();}
   if(!desc){const p=(raw.replace(/^---[\s\S]*?---\s*/,'').match(/^([^#\n].{10,})/m)||[])[1];if(p)desc=p.trim().slice(0,140);}
-  name=name||filename.replace(/\.(md|skill|json|txt)$/,'').replace(/[-_]/g,' ');
+  name=name||filename.replace(/\.(md|skill|sk|sklb|json|txt)$/,'').replace(/[-_]/g,' ');
   const newSk={
     id:uid('sk'),label:name.toUpperCase(),color:'blue',glyph:'◆',shape:'default',
     category:'Skills',desc,tags:[],isBuiltin:false,rawContent:raw,deps:[],_ts:Date.now(),
@@ -9317,6 +9889,7 @@ function _detectFileType(name,text){
   const n=name.toLowerCase();
   if(n.endsWith('.ppln')||n.endsWith('.pipeline.json'))return 'pipeline';
   if(n.endsWith('.sklb'))return 'library';
+  if(n.endsWith('.sk'))return 'skill'; // single GUIness skill (structured JSON)
   if(n.endsWith('.md')||n.endsWith('.txt'))return 'skill';
   if(n.endsWith('.zip')||n.endsWith('.skill'))return 'zip';
   if(n.endsWith('.json')&&text){
@@ -9408,13 +9981,10 @@ async function _addPipelineAsNode(data,filename,sceneX,sceneY){
     defaultInputs:skillInputs,defaultOutputs:skillOutputs,
   };
 
-  // Check for missing skills before adding
-  const bundled=data.skills;
-  if(Array.isArray(bundled)&&bundled.length){
-    const missing=bundled.filter(bs=>!skills.find(s=>s.id===bs.id));
-    if(missing.length){
-      await _showSkillPickerModal(missing,'This pipeline references '+missing.length+' skill'+(missing.length!==1?'s':'')+' not in your library.');
-    }
+  // Check for new or updated skills before adding
+  const candidates=_buildSkillImportCandidates(data.skills);
+  if(candidates.length){
+    await _showSkillPickerModal(candidates,_candidatesMessage(candidates));
   }
 
   addSkill(newSk);
@@ -9443,9 +10013,18 @@ function _showSkillPickerModal(skillList,message){
       row.style.cssText='display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;cursor:pointer';
       const cb=document.createElement('input');cb.type='checkbox';cb.checked=true;cb.style.cssText='margin-top:2px;accent-color:var(--acc);flex-shrink:0;width:14px;height:14px';
       const info=document.createElement('div');info.style.cssText='display:flex;flex-direction:column;gap:2px;min-width:0;flex:1';
-      const lbl=document.createElement('div');lbl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dhi)';lbl.textContent=sk.label||sk.id;
+      const labelRow=document.createElement('div');labelRow.style.cssText='display:flex;align-items:center;gap:8px;min-width:0';
+      const lbl=document.createElement('div');lbl.style.cssText='font-family:var(--mono);font-size:10px;font-weight:700;color:var(--dhi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0';lbl.textContent=sk.label||sk.id;
+      labelRow.appendChild(lbl);
+      if(sk._status){
+        const chip=document.createElement('span');
+        const isNew=sk._status==='new';
+        chip.style.cssText='font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.08em;padding:1px 5px;border-radius:3px;flex-shrink:0;border:1px solid '+(isNew?'var(--grn)':'var(--acc)')+';color:'+(isNew?'var(--grn)':'var(--acc)')+';background:transparent';
+        chip.textContent=isNew?'NEW':'UPDATE';
+        labelRow.appendChild(chip);
+      }
       const ddesc=document.createElement('div');ddesc.style.cssText='font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis';ddesc.textContent=sk.desc||'No description';
-      info.appendChild(lbl);info.appendChild(ddesc);
+      info.appendChild(labelRow);info.appendChild(ddesc);
       row.appendChild(cb);row.appendChild(info);
       list.appendChild(row);
       checks.push({cb,sk});
@@ -9463,6 +10042,7 @@ function _showSkillPickerModal(skillList,message){
     importBtn.addEventListener('click',()=>{
       const toImport=checks.filter(c=>c.cb.checked).map(c=>c.sk);
       toImport.forEach(sk=>{
+        delete sk._status;
         sk.isBuiltin=false;
         upsertSkill(sk);
       });
@@ -9939,6 +10519,18 @@ document.getElementById('ctx-duplicate').addEventListener('click',()=>{
     selNodes.clear();selNodes.add(ctxNode.id);selNode=ctxNode.id;
   }
   duplicateSelNodes();closeCtxMenu();
+});
+document.getElementById('ctx-download-content').addEventListener('click',()=>{
+  if(!ctxNode)return;
+  _downloadNodeContent(ctxNode);
+  closeCtxMenu();
+});
+document.getElementById('ctx-download-skill').addEventListener('click',()=>{
+  if(!ctxNode)return;
+  const sk=nodeSk(ctxNode);if(!sk)return;
+  // Capture anchor rect via _showDownloadMenu BEFORE closing the ctx menu so positioning is correct.
+  _showDownloadMenu(sk,document.getElementById('ctx-download-skill'));
+  closeCtxMenu();
 });
 document.getElementById('ctx-delete').addEventListener('click',()=>{
   if(!ctxNode)return;
