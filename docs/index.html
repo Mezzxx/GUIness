@@ -798,7 +798,7 @@ td code{
 <h3>Requirements</h3>
 <ul>
   <li>A modern browser (Chrome, Edge, Firefox, Safari)</li>
-  <li>An API key for at least one LLM provider (Anthropic, OpenAI, Gemini, or a local Ollama / Friday / OpenAI-compatible instance)</li>
+  <li>An API key for at least one LLM provider (Anthropic, OpenAI, Gemini, or a local Ollama / OpenAI-compatible instance)</li>
 </ul>
 
 <h3>Local LLM Setup</h3>
@@ -807,9 +807,6 @@ td code{
 <p>Then enable CORS for browser access:</p>
 <pre>OLLAMA_ORIGINS=* ollama serve</pre>
 <p>In the Run drawer, select <strong>⊙ Local</strong>, leave the URL as <code>http://localhost:11434</code>, and hit <strong>Detect</strong> to find your models.</p>
-
-<h3>Friday AI Agent</h3>
-<p>If you run <a href="https://github.com/Mezzxx" target="_blank">Friday</a> as a local LLM proxy, point the Run drawer's URL field to <code>http://localhost:3777</code>. Friday exposes its configured models via the OpenAI-compatible <code>/v1/models</code> endpoint, so <strong>Detect</strong> works out of the box. If Friday requires auth, add your token to the Vault as <strong>🤖 Friday Token</strong>.</p>
 
 <h3>Other OpenAI-Compatible Servers</h3>
 <p>The Local provider also works with any OpenAI-compatible server — LM Studio, llama.cpp, Jan, etc. Set the server URL in the Run drawer and hit <strong>Detect</strong>.</p>
