@@ -304,6 +304,7 @@ select option{background:var(--panel)}
 #no-pipeline-screen .nps-section{display:flex;flex-direction:column;align-items:center;gap:6px}
 #no-pipeline-screen .nps-section-label{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.18em}
 #no-pipeline-screen .nps-divider{width:120px;height:1px;background:var(--brd);opacity:.5;margin:2px 0}
+#no-pipeline-screen .nps-note{font-family:var(--mono);font-size:9px;color:var(--dim);max-width:300px;line-height:1.5;text-align:center}
 
 #pipeline-tabbar{height:34px;background:var(--panel);border-bottom:1px solid var(--brd);display:flex;align-items:stretch;flex-shrink:0;overflow-x:auto;overflow-y:hidden;z-index:90}
 #pipeline-tabbar::-webkit-scrollbar{height:3px}
@@ -984,7 +985,7 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v48.16</span>
+    <span class="t-badge">v48.17</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
@@ -999,6 +1000,7 @@ select option{background:var(--panel)}
     <button class="tbtn" id="btn-pipeline-to-node" title="Save active pipeline as a reusable node in the PIPELINES library tab">⬡ Save as Node</button>
     <button class="tbtn" id="btn-load-lib" title="Load a skills library JSON file">⬆ Load Library</button>
     <button class="tbtn" id="btn-save-lib">Save Library</button>
+    <button class="tbtn" id="btn-export-workspace" title="Export all open pipelines + your skills as a portable .gwsp workspace file">📤 Export Workspace</button>
     <button class="tbtn" id="btn-github" title="Push/Pull skill library via GitHub Gist">⎇ GitHub</button>
     <button class="tbtn" id="btn-vault" title="Manage stored credentials" style="color:var(--grn);border-color:rgba(52,211,153,.3)">🔑 Vault</button>
     <a class="tbtn" id="btn-docs" href="https://guiness.zeen-media.com/docs/" target="_blank" rel="noopener" title="Open the GUIness documentation" style="text-decoration:none">📖 Docs</a>
@@ -1037,9 +1039,13 @@ select option{background:var(--panel)}
       <p>Resume where you left off, or start fresh.</p>
       <div class="nps-section" id="nps-autosave-section">
         <div class="nps-section-label">CONTINUE FROM AUTOSAVE</div>
-        <div class="nps-btns">
+        <div class="nps-btns" id="nps-folder-btns">
           <button class="nps-btn pri" id="nps-connect-folder" title="Point to an existing autosave folder (e.g. one next to GUIness)">📂 Use Existing Folder</button>
           <button class="nps-btn sec" id="nps-create-folder" title="Create a new folder in the OS picker, then select it">+ New Autosave Folder</button>
+        </div>
+        <div class="nps-note" id="nps-folder-note" style="display:none">Folder autosave needs a Chromium desktop browser (Chrome / Edge). To resume here, import a workspace file below, or use Gist sync.</div>
+        <div class="nps-btns">
+          <button class="nps-btn sec" id="nps-import-workspace" title="Open a .gwsp workspace file to restore all your pipelines and skills">📥 Import Workspace</button>
         </div>
       </div>
       <div class="nps-divider"></div>
@@ -12137,6 +12143,39 @@ function _restoreFromSnapshot(snapshot){
   return true;
 }
 
+// ── Portable workspace export/import ─────────────────────────
+// One file = all open pipelines + user skills. Reuses the same snapshot shape
+// and restore path as folder autosave, so it works in every browser (no File
+// System Access API, no token, no folder).
+function exportWorkspace(){
+  const snap=_buildAutoSavePayload();
+  const blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='guiness-workspace-'+new Date().toISOString().slice(0,10)+'.gwsp';
+  a.click();URL.revokeObjectURL(a.href);
+  const np=snap.pipelines.length, ns=snap.skills.length;
+  showToast('Workspace exported · '+np+' pipeline'+(np!==1?'s':'')+', '+ns+' skill'+(ns!==1?'s':''));
+}
+function importWorkspace(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.gwsp,.json';
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>{
+      let data;try{data=JSON.parse(r.result);}catch(e){showToast('Could not read that file as a workspace','err');return;}
+      if(pipelines.length && !confirm('Importing a workspace replaces your current pipelines and skills. Continue?'))return;
+      if(_restoreFromSnapshot(data)){
+        const np=Array.isArray(data.pipelines)?data.pipelines.length:0;
+        showToast('Workspace restored · '+np+' pipeline'+(np!==1?'s':''));
+      }else{
+        showToast('That file is not a valid GUIness workspace','err');
+      }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+
 // Read the snapshot JSON from an attached directory handle. Returns the parsed
 // payload, or null if the file doesn't exist / can't be parsed. Permission
 // must already be granted by the caller.
@@ -12440,12 +12479,15 @@ async function _emptyStatePickFolder(hint){
 }
 document.getElementById('nps-connect-folder').addEventListener('click',()=>_emptyStatePickFolder('existing'));
 document.getElementById('nps-create-folder').addEventListener('click',()=>_emptyStatePickFolder('new'));
-// Hide the autosave section when the API is unavailable (Firefox/Safari)
+document.getElementById('nps-import-workspace').addEventListener('click',importWorkspace);
+document.getElementById('btn-export-workspace').addEventListener('click',exportWorkspace);
+// File System Access API is Chromium-desktop only. On Firefox/Safari/mobile,
+// hide the folder buttons and show a note pointing to the cross-browser path.
 if(!window.showDirectoryPicker){
-  const sec=document.getElementById('nps-autosave-section');
-  const div=document.querySelector('#no-pipeline-screen .nps-divider');
-  if(sec)sec.style.display='none';
-  if(div)div.style.display='none';
+  const fb=document.getElementById('nps-folder-btns');
+  const note=document.getElementById('nps-folder-note');
+  if(fb)fb.style.display='none';
+  if(note)note.style.display='';
 }
 
 // Rebuild canvas nodes from pre-populated stack
