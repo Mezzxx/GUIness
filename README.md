@@ -4,9 +4,11 @@ A self-contained, single-file visual skill pipeline editor for building and chai
 
 ## What It Does
 
+**[▶ Open the app](https://guiness.zeen-media.com/)**  ·  **[Documentation](https://guiness.zeen-media.com/docs/)**
+
 GUIness is a node-based pipeline editor (think Blender Geometry Nodes, but for AI skills) that lets you visually compose, connect, and execute chains of AI prompts. Each node represents a skill — a reusable prompt template with typed inputs and outputs — and pipelines wire them together into multi-step workflows.
 
-Everything lives in one HTML file (~460KB, ~7,800 lines of JS). Open it in a browser and start building.
+Everything lives in one HTML file (~745 KB, ~7,800 lines of JS). Open it in a browser and start building.
 
 ## Features
 
@@ -28,8 +30,8 @@ Everything lives in one HTML file (~460KB, ~7,800 lines of JS). Open it in a bro
 
 ## Getting Started
 
-1. Download `GUIness_v26.html` (or clone this repo)
-2. Open it in any modern browser
+1. **Use it now** — open the live app at **[guiness.zeen-media.com](https://guiness.zeen-media.com/)**; nothing to install
+2. **Or run it yourself** — download `index.html` from this repo (or grab a tagged build from [Releases](https://github.com/Mezzxx/GUIness/releases)) and open it in any modern browser
 3. That's it
 
 No `npm install`. No `docker compose`. No environment variables. Just a browser.
@@ -89,7 +91,8 @@ The single-file, zero-dependency constraint is intentional. GUIness is designed 
 
 - **Emailable** — send the file to a collaborator, they open it, done
 - **Archivable** — one file to back up, no `node_modules` rot
-- **Offline-capable** — works without internet (except AI calls and Gist sync)
+- **Offline-capable** — even the fonts are inlined, so the only network calls are the AI requests you trigger (and optional Gist sync)
+- **Private by design** — there's no server in the path, so your API keys and prompts never leave your browser except to reach the model provider you chose
 - **Forkable** — no build toolchain to understand before making changes
 
 ## License
