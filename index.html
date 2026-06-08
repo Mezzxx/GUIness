@@ -105,7 +105,7 @@ not supported.
 
 - `.ppln`  — Pipeline file. JSON containing {name, stack, skills}. Skills
   referenced by nodes are bundled for portability.
-- `.sklb`  — Skill library file. JSON array of skill objects.
+- `.sklb`  — Skill library file. JSON array of skill objects, or a `{version, skills:[…]}` envelope.
 - `.json`  — Legacy format accepted on import. Content-sniffed: if it has a
   `stack` property it's treated as a pipeline; if it's an array, a library.
 - `.md / .txt` — Imported as a single skill node (frontmatter parsed for name).
@@ -639,6 +639,28 @@ select option{background:var(--panel)}
 
 /* START NODE */
 .node.start-node{box-shadow:0 0 0 3px rgba(52,211,153,.4),0 0 24px rgba(52,211,153,.15)!important}
+/* Live chain-execution states (v48.19): toggled on #nd-<id> during runChain */
+.node.node-running .node-card{border-color:var(--acc)}
+.node.node-running{animation:node-run-pulse 1.4s var(--ease) infinite}
+@keyframes node-run-pulse{0%{box-shadow:0 0 0 0 color-mix(in oklab,var(--acc),transparent 45%)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.node.node-done .node-card{border-color:var(--grn)}
+.node.node-error .node-card{border-color:var(--red)}
+.node.node-done::after,.node.node-error::after{position:absolute;top:-6px;right:-4px;width:15px;height:15px;line-height:15px;text-align:center;font-size:11px;font-weight:700;background:var(--card);border-radius:50%;z-index:5}
+.node.node-done::after{content:'\2713';color:var(--grn)}
+.node.node-error::after{content:'\2715';color:var(--red)}
+.node[data-iter]::before{content:attr(data-iter);position:absolute;top:-7px;left:-6px;background:var(--panel);color:var(--acc);border:1px solid var(--acc);font-family:var(--mono);font-size:8px;font-weight:700;padding:1px 5px;border-radius:9px;z-index:5}
+@keyframes gspin{to{transform:rotate(360deg)}}
+#run-hud{display:none;position:absolute;bottom:16px;left:50%;transform:translateX(-50%);align-items:center;gap:12px;background:var(--panel);border:1px solid var(--brd);border-radius:20px;padding:7px 8px 7px 14px;font-family:var(--mono);font-size:10px;color:var(--dhi);z-index:40;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#run-hud .run-hud-spin{display:inline-block;color:var(--acc);animation:gspin 1s linear infinite}
+#run-hud-stop{font-family:var(--mono);font-size:9px;color:var(--red);border:1px solid var(--red);border-radius:14px;background:transparent;padding:4px 10px;cursor:pointer}
+#run-hud-stop:hover{background:rgba(0,0,0,.15)}
+/* Pre-flight validation (v48.21): amber flag on problem nodes + confirm bar */
+.node.node-flag .node-card{border-color:#f59e0b}
+.node.node-flag::after{content:'\26a0';position:absolute;top:-6px;right:-4px;width:15px;height:15px;line-height:15px;text-align:center;font-size:10px;background:var(--card);border-radius:50%;color:#f59e0b;z-index:5}
+#preflight-bar{display:none;position:absolute;top:16px;left:50%;transform:translateX(-50%);align-items:center;gap:12px;background:var(--panel);border:1px solid #f59e0b;border-radius:20px;padding:7px 8px 7px 14px;font-family:var(--mono);font-size:10px;color:var(--dhi);z-index:45;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#preflight-bar-msg{color:#f59e0b}
+#preflight-run{font-family:var(--mono);font-size:9px;color:var(--acc);border:1px solid var(--acc);border-radius:14px;background:transparent;padding:4px 10px;cursor:pointer}
+#preflight-cancel{font-family:var(--mono);font-size:9px;color:var(--dim);border:1px solid var(--brd);border-radius:14px;background:transparent;padding:4px 10px;cursor:pointer}
 .start-badge{font-family:var(--mono);font-size:6px;font-weight:700;letter-spacing:.12em;color:#0b0d11;background:#34d399;border-radius:3px;padding:1px 5px;flex-shrink:0}
 /* MULTI-SELECT */
 .node.multi-sel .node-card{box-shadow:0 0 0 2px var(--acc),0 4px 16px rgba(0,0,0,.4);border-color:var(--acc)}
@@ -985,7 +1007,7 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v48.18</span>
+    <span class="t-badge">v48.24</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
@@ -1131,6 +1153,8 @@ select option{background:var(--panel)}
         <div id="conn-hint" style="display:none">Click an input port to connect · Esc to cancel</div>
         <div id="depth-badge"></div>
         <div id="zoom-lbl">100%</div>
+        <div id="run-hud"><span class="run-hud-spin">⟳</span><span id="run-hud-label"></span><button id="run-hud-stop" title="Stop (Shift+Esc)">⏹ Stop</button></div>
+        <div id="preflight-bar"><span id="preflight-bar-msg"></span><button id="preflight-run">Run anyway</button><button id="preflight-cancel">Cancel</button></div>
         <div id="lasso"></div>
       </div>
 
@@ -1232,6 +1256,7 @@ select option{background:var(--panel)}
   <div class="ctx-sep"></div>
   <div class="ctx-item" id="ctx-save-as-skill"><span class="ci">◈</span> Save as Skill</div>
   <div class="ctx-item" id="ctx-merge"><span class="ci">◊</span> Merge to Library…</div>
+  <div class="ctx-item" id="ctx-bulk-fetch"><span class="ci">⬇</span> Bulk Fetch</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item" id="ctx-copy"><span class="ci">⎘</span> Copy</div>
   <div class="ctx-item" id="ctx-paste"><span class="ci">⎗</span> Paste</div>
@@ -1533,7 +1558,7 @@ const CONFIG={
   GEMINI_INSTRUCTION_LIMIT: 8000, // Char budget for Gemini Gem Instructions (Fit variant target)
 
   // ── LLM ─────────────────────────────────────────────────
-  MAX_OUTPUT_TOKENS:    8192,   // Default max_tokens for LLM calls
+  MAX_OUTPUT_TOKENS:    16384,  // v48.23 — raised from 8192; long action-plan outputs truncated mid-section
   STREAM_THROTTLE_MS:   50,     // Min ms between DOM updates during streaming
 
   // ── Node rendering ──────────────────────────────────────
@@ -3360,7 +3385,12 @@ function buildNode(node){
       const startY=e.clientY;
       const rdEl=drawer.querySelector('.node-rendered');
       const edEl=drawer.querySelector('.node-editor textarea');
-      const startH=rdEl?rdEl.offsetHeight:(edEl?edEl.offsetHeight:160);
+      // v48.22 — pick whichever element is currently visible. Existence check alone
+      // caught hidden rdEl (display:none in Edit mode and for input-family nodes,
+      // offsetHeight=0), making startH=0 and snapping the drawer to MIN on first move.
+      const rdH=rdEl?rdEl.offsetHeight:0;
+      const edH=edEl?edEl.offsetHeight:0;
+      const startH=rdH>0?rdH:(edH>0?edH:(node._drawerH||160));
       const s=frame().tx?.s||1;
       const onMove=ev=>{
         const dh=Math.max(CONFIG.MIN_DRAWER_HEIGHT,startH+(ev.clientY-startY)/s);
@@ -3899,6 +3929,7 @@ const DEFAULT_BINDINGS=[
   // ── Node actions ─────────────────────────────────────────────
   {id:'delete',   section:'Nodes',    desc:'Delete selected node(s)',  chord:{key:'Delete'},  noInput:true, noContentEditable:true, action:()=>deleteSelNode()},
   {id:'duplicate',section:'Nodes',    desc:'Duplicate selected node(s)',chord:{shift:true,key:'D'}, noInput:true, noContentEditable:true, action:()=>duplicateSelNodes()},
+  {id:'bulkfetch',section:'Nodes',    desc:'Bulk Fetch selected FETCH nodes',chord:{shift:true,key:'F'}, noInput:true, noContentEditable:true, action:()=>bulkFetchSelectedNodes()},
   {id:'copy',     section:'Nodes',    desc:'Copy selected node(s)',    chord:{ctrl:true,key:'c'}, noInput:true, action:()=>copySelNodes()},
   {id:'paste',    section:'Nodes',    desc:'Paste node(s)',            chord:{ctrl:true,key:'v'}, noInput:true, action:()=>pasteNodes()},
   // ── History ──────────────────────────────────────────────────
@@ -3931,6 +3962,7 @@ function resetBindings(){
   const orig=[
     {id:'delete',   chord:{key:'Delete'}},
     {id:'duplicate',chord:{shift:true,key:'D'}},
+    {id:'bulkfetch',chord:{shift:true,key:'F'}},
     {id:'copy',     chord:{ctrl:true,key:'c'}},
     {id:'paste',    chord:{ctrl:true,key:'v'}},
     {id:'undo',     chord:{ctrl:true,key:'z'}},
@@ -5454,6 +5486,55 @@ async function doFetchNode(node,statusEl,btnEl,mode){
   await _doFetchMulti(node,urls,backend,statusEl,btnEl,setStatus,mode);
 }
 
+// v48.22 — Bulk Fetch across selected FETCH nodes. Context-menu action; sequential
+// to be polite to remote hosts and to match the in-node multi-URL behavior. Re-entry
+// guarded by a module flag so a second trigger no-ops cleanly. Per-node progress
+// (status text, success/error color) is already written by doFetchNode; the floating
+// strip below adds top-level "N of M" feedback since the inspector is in multi-select
+// view during a bulk run and won't show per-node fetch status.
+let _bulkFetchRunning=false;
+const _bulkFetchStrip=(()=>{
+  let el=null;
+  return {
+    show(msg,color){
+      if(!el){
+        el=document.createElement('div');
+        el.id='bulk-fetch-strip';
+        el.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:998;background:var(--panel);border:1px solid var(--acc);border-radius:8px;padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--acc);box-shadow:0 4px 12px rgba(0,0,0,.5)';
+        document.body.appendChild(el);
+      }
+      el.textContent=msg;
+      el.style.color=color||'var(--acc)';
+      el.style.borderColor=color||'var(--acc)';
+      el.style.display='block';
+    },
+    hide(){if(el)el.style.display='none';}
+  };
+})();
+async function bulkFetchSelectedNodes(){
+  if(_bulkFetchRunning)return; // re-entry guard
+  const allNodes=getNodes();
+  const targets=[];
+  for(const id of selNodes){
+    const n=allNodes.find(x=>x.id===id);if(!n)continue;
+    if((n.type||n.skillId)==='fetch')targets.push(n);
+  }
+  if(targets.length<2)return;
+  _bulkFetchRunning=true;
+  try{
+    for(let i=0;i<targets.length;i++){
+      _bulkFetchStrip.show('Bulk fetching '+(i+1)+'/'+targets.length+'…');
+      // No statusEl/btnEl passed — doFetchNode still writes per-node _fetchStatus
+      // and rebuilds each node on completion, which is what we want for canvas feedback.
+      await doFetchNode(targets[i]);
+    }
+    _bulkFetchStrip.show('✓ Bulk fetch complete — '+targets.length+' nodes','var(--grn)');
+    setTimeout(()=>_bulkFetchStrip.hide(),2000);
+  }finally{
+    _bulkFetchRunning=false;
+  }
+}
+
 // Original v48.10 single-URL fetch logic, extracted verbatim. Behavior preserved.
 async function _doFetchSingle(node,url,backend,statusEl,btnEl,setStatus){
   node.values.url=url; // persist normalized URL (https:// prepend) — single-URL only
@@ -5478,7 +5559,7 @@ async function _doFetchSingle(node,url,backend,statusEl,btnEl,setStatus){
   if(btnEl){btnEl.disabled=true;btnEl.textContent='⬇ Fetching…';}
   const fetchingLabel=backend==='Proxy (HTML)'?'Fetching via AllOrigins (HTML)…':
                        backend==='Proxy (Markdown)'?'Fetching via Jina (Markdown)…':'Fetching…';
-  setStatus(fetchingLabel,'var(--dim)');
+  setStatus(fetchingLabel,'var(--acc)');
   try{
     const resp=await fetch(fetchUrl,{headers,method:'GET'});
     const body=await resp.text();
@@ -5538,7 +5619,7 @@ async function _doFetchMulti(node,urls,backend,statusEl,btnEl,setStatus,mode){
     const url=urls[i];
     const reuse=mode==='retry'&&cache[url]&&cache[url].success===true;
     if(!reuse){
-      setStatus('Fetching '+(i+1)+'/'+urls.length+'…','var(--dim)');
+      setStatus('Fetching '+(i+1)+'/'+urls.length+'…','var(--acc)');
       cache[url]=await _fetchOneUrl(url,backend,node);
     }
     if(!cache[url].success)failedCount++;
@@ -5612,6 +5693,25 @@ async function _fetchOneUrl(url,backend,node){
   }
 }
 
+
+// v48.22 — persist a textarea's user-resized height onto the node, keyed by field key.
+// renderInspector() rebuilds field DOM from scratch on every node switch, which dropped
+// the browser's native resize:vertical state. Restored from node._fieldH on re-render.
+function _persistFieldHeight(ta,node,key){
+  const saved=node._fieldH&&node._fieldH[key];
+  if(saved)ta.style.height=saved+'px';
+  let primed=false; // skip the initial layout fire so we don't overwrite the saved value
+  const ro=new ResizeObserver(()=>{
+    if(!primed){primed=true;return;}
+    const h=ta.offsetHeight;
+    node._fieldH=node._fieldH||{};
+    if(node._fieldH[key]!==h){
+      node._fieldH[key]=h;
+      markPipelineDirty(activePipelineId);
+    }
+  });
+  ro.observe(ta);
+}
 
 // Renders the right inspector panel for the currently selected node/skill
 function renderInspector(){
@@ -5728,6 +5828,7 @@ function renderInspector(){
         ta.addEventListener('input',()=>{canvasNode.values[f.key]=ta.value;markPipelineDirty(activePipelineId);});
         ta.addEventListener('change',()=>rebuildNode(canvasNode)); // sync on-node drawer on blur
         ctrl.appendChild(ta);
+        _persistFieldHeight(ta,canvasNode,f.key);
       }
       else if(f.type==='jsonschema'){
         // JSON Schema editor for per-Code-node GPT tool parameters.
@@ -5753,6 +5854,7 @@ function renderInspector(){
           ta.value=tpl;canvasNode.values[f.key]=tpl;updateStatus();markPipelineDirty(activePipelineId);
         });
         updateStatus();
+        _persistFieldHeight(ta,canvasNode,f.key);
       }
       else if(f.type==='select'){ctrl=document.createElement('select');ctrl.innerHTML='<option value="">— choose —</option>'+(f.opts||[]).map(o=>`<option${canvasNode.values?.[f.key]===o?' selected':''}>${o}</option>`).join('');ctrl.addEventListener('change',()=>{canvasNode.values[f.key]=ctrl.value;rebuildNode(canvasNode);});
         // FETCH backend: fire fetch on change if URL is already filled (parallel to the URL-blur trigger below).
@@ -5796,6 +5898,7 @@ function renderInspector(){
           ta.addEventListener('input',()=>{canvasNode.values[f.key]=ta.value;markPipelineDirty(activePipelineId);});
           ta.addEventListener('change',()=>rebuildNode(canvasNode)); // sync on-node drawer on blur
           ctrl=ta;
+          _persistFieldHeight(ta,canvasNode,f.key);
         }
       }
       else if(f.type==='meta_preview'){
@@ -5810,14 +5913,18 @@ function renderInspector(){
       }
       else if(f.type==='fetch_trigger'){
         ctrl=document.createElement('div');ctrl.className+=' flex-col-gap';
-        const btn=document.createElement('button');btn.className='mbtn';btn.textContent='⬇ Fetch';btn.style.cssText='font-size:9px;align-self:flex-start';
+        // v48.22 — accent fill on the primary Fetch action; retry stays secondary.
+        const btn=document.createElement('button');btn.className='mbtn pri';btn.textContent='⬇ Fetch';btn.style.cssText='font-size:9px;align-self:flex-start';
         // Retry-failed button: only visible when the in-memory multi-URL cache has at least
         // one failed URL for this node. Disappears after a successful full re-fetch.
         const retryBtn=document.createElement('button');retryBtn.className='mbtn';retryBtn.textContent='↻ Retry failed';retryBtn.style.cssText='font-size:9px;align-self:flex-start';
         const cache=_fetchCacheByNode.get(canvasNode.id);
         const hasFailed=cache&&Object.values(cache).some(r=>!r.success);
         if(!hasFailed)retryBtn.style.display='none';
-        const status=document.createElement('div');status.style.cssText='font-family:var(--mono);font-size:8px;color:var(--dim)';
+        // v48.22 — counter bumped from 8px → 12px (50% larger) so progress is readable
+        // during long bulk fetches. Color stays semantic: --acc for in-progress (set by
+        // setStatus calls), --grn for success, --org for error.
+        const status=document.createElement('div');status.style.cssText='font-family:var(--mono);font-size:12px;color:var(--dim)';
         status.textContent=canvasNode.values?._fetchStatus||'';
         btn.addEventListener('click',()=>doFetchNode(canvasNode,status,btn));
         retryBtn.addEventListener('click',()=>doFetchNode(canvasNode,status,retryBtn,'retry'));
@@ -9070,6 +9177,71 @@ function safeEvalCondition(expr,input,output,context){
   return result;
 }
 
+// ── Live chain-execution canvas state (v48.19) ──
+// markNode/markNodeIter no-op when the node isn't on screen (e.g. inside a sub-graph).
+function clearNodeStates(){scene.querySelectorAll('.node').forEach(n=>{n.classList.remove('node-running','node-done','node-error');n.removeAttribute('data-iter');});}
+function markNode(id,state){const el=document.getElementById('nd-'+id);if(!el)return;el.classList.remove('node-running','node-done','node-error');if(state)el.classList.add('node-'+state);}
+function markNodeIter(id,txt){const el=document.getElementById('nd-'+id);if(!el)return;if(txt)el.setAttribute('data-iter',txt);else el.removeAttribute('data-iter');}
+function showRunHud(label){const h=document.getElementById('run-hud');if(!h)return;document.getElementById('run-hud-label').textContent=label||'';h.style.display='flex';}
+function setRunHud(label){const l=document.getElementById('run-hud-label');if(l)l.textContent=label||'';}
+function hideRunHud(){const h=document.getElementById('run-hud');if(h)h.style.display='none';}
+
+// ── Pre-flight validation (v48.21) ──
+// Pure: returns [{nodeId,msg}] for structural problems. No key check — the run
+// already bails on no-key for free. Orphan = touched by no edge; missing-input =
+// connected but an input-taking node with nothing feeding it.
+function preflight(nodes, edges){
+  const issues=[];
+  if(!nodes||!nodes.length)return issues;
+  const touched=new Set(),hasIncoming=new Set();
+  (edges||[]).forEach(e=>{touched.add(e.from);touched.add(e.to);hasIncoming.add(e.to);});
+  nodes.forEach(n=>{
+    if(nodes.length>1 && !touched.has(n.id)){issues.push({nodeId:n.id,msg:'Disconnected — won\u2019t run'});return;}
+    if((n.inputs||[]).length>0 && !hasIncoming.has(n.id))issues.push({nodeId:n.id,msg:'No input connected'});
+  });
+  return issues;
+}
+function clearFlags(){scene.querySelectorAll('.node-flag').forEach(n=>{n.classList.remove('node-flag');n.removeAttribute('title');});}
+function applyFlags(issues){
+  clearFlags();
+  const byId={};issues.forEach(i=>{(byId[i.nodeId]=byId[i.nodeId]||[]).push(i.msg);});
+  Object.keys(byId).forEach(id=>{const el=document.getElementById('nd-'+id);if(!el)return;el.classList.add('node-flag');el.title='⚠ '+byId[id].join(' · ');});
+}
+// Live re-validation: gated to run ONLY while flags are showing → no-op otherwise,
+// so bulk loads/edits cost nothing. Registered into the existing post-render hooks
+// (fired by rebuildCanvas + renderEdges, i.e. after any structural change).
+function revalidateIfFlagged(){
+  if(!scene.querySelector('.node-flag'))return;
+  const rf=canvasStack&&canvasStack[0];if(!rf)return;
+  applyFlags(preflight(rf.nodes,rf.edges));
+}
+_postRenderHooks.push(revalidateIfFlagged);
+// Shared canvas reveal/restore — used by both the chain run and pre-flight.
+function _revealCanvasForRun(){
+  const ov=document.getElementById('out-overlay');
+  document.getElementById('out-modal').style.display='none';
+  ov.style.background='transparent';ov.style.pointerEvents='none';
+  document.getElementById('llm-drawer').style.pointerEvents='auto';
+}
+function _restoreExportModal(){
+  const ov=document.getElementById('out-overlay');
+  document.getElementById('out-modal').style.display='';
+  ov.style.background='';ov.style.pointerEvents='';
+  document.getElementById('llm-drawer').style.pointerEvents='';
+}
+// Non-blocking confirm on the revealed canvas; resolves true=run / false=cancel.
+function preflightConfirm(nodeCount){
+  return new Promise(resolve=>{
+    const bar=document.getElementById('preflight-bar');
+    const rn=document.getElementById('preflight-run'),cn=document.getElementById('preflight-cancel');
+    document.getElementById('preflight-bar-msg').textContent='⚠ '+nodeCount+' node'+(nodeCount>1?'s have':' has')+' an issue';
+    bar.style.display='flex';
+    const done=v=>{bar.style.display='none';rn.removeEventListener('click',onRun);cn.removeEventListener('click',onCancel);resolve(v);};
+    const onRun=()=>done(true),onCancel=()=>done(false);
+    rn.addEventListener('click',onRun);cn.addEventListener('click',onCancel);
+  });
+}
+
 // ── Chain execution ─────────────────────────────────────
 // Executes pipeline nodes sequentially in topological order, piping outputs between steps
 async function runChain(provider,apiKey,model,rb,st,signal){
@@ -9188,7 +9360,7 @@ async function runChain(provider,apiKey,model,rb,st,signal){
             rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
             continue;
           }
-          await executeNode(targetNode);
+          await runNodeWithState(targetNode);
         }
       }
       return routeResult;
@@ -9249,6 +9421,7 @@ async function runChain(provider,apiKey,model,rb,st,signal){
         const item=items[i];
         const preview=item.length>40?item.slice(0,40)+'…':item;
         fullLog+='\n_Iteration '+(i+1)+'/'+willRun+': "'+preview.replace(/\n/g,' ')+'"_\n';
+        markNodeIter(node.id,(i+1)+'/'+willRun);setRunHud((stepLabel||'Map')+' · item '+(i+1)+'/'+willRun);
         rb.innerHTML=renderMdResponse(fullLog);rb.scrollTop=rb.scrollHeight;
 
         // Seed Map's output port with the current item — body reads it via edgeValue.
@@ -9262,7 +9435,7 @@ async function runChain(provider,apiKey,model,rb,st,signal){
 
         // Execute body nodes in topo order for this iteration.
         for(const bn of bodyTopo){
-          await executeNode(bn);
+          await runNodeWithState(bn);
         }
 
         // Collect this iteration's output from exit edges (or from body's terminal
@@ -9278,7 +9451,7 @@ async function runChain(provider,apiKey,model,rb,st,signal){
         }
         iterResults.push(iterValue);
       }
-
+      markNodeIter(node.id,'');
       if(truncated){
         fullLog+='\n_⚠ Max iterations ('+maxIters+') reached, stopping at item '+willRun+' of '+items.length+'._\n';
       }
@@ -9357,6 +9530,17 @@ async function runChain(provider,apiKey,model,rb,st,signal){
       for(const id of findMapBody(n.id,nodes,edges)) mapBodyUnion.add(id);
     }
   }
+  // v48.19 — wrap each node execution with live canvas state + HUD label.
+  // Reads loopCounts (router re-entry) for the ×N pass badge. Abort clears the
+  // pulse rather than marking error; real errors mark the node red.
+  async function runNodeWithState(node){
+    const lc=loopCounts[node.id]||0;
+    markNode(node.id,'running');
+    if(lc>1)markNodeIter(node.id,'×'+lc);
+    setRunHud((nodeSk(node)?.label||node.title||node.id)+(lc>1?' · loop '+lc:''));
+    try{const r=await executeNode(node);markNode(node.id,'done');return r;}
+    catch(e){if(e&&e.name==='AbortError')markNode(node.id,null);else markNode(node.id,'error');throw e;}
+  }
   const executed=new Set();
   for(const node of ordered){
     if(executed.has(node.id))continue;
@@ -9373,7 +9557,7 @@ async function runChain(provider,apiKey,model,rb,st,signal){
       continue;
     }
     executed.add(node.id);
-    await executeNode(node);
+    await runNodeWithState(node);
   }
 
   return fullLog;
@@ -9403,6 +9587,22 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
 
   try{
   if(_execMode==='chain'){
+    // v48.21 — pre-flight: flag structural issues, reveal the canvas so the user
+    // sees them, and let them decide (run anyway / cancel). Cancel drops them onto
+    // the flagged canvas to fix; live-reval clears dots as they reconnect.
+    const _issues=preflight(canvasStack[0].nodes,canvasStack[0].edges);
+    if(_issues.length){
+      if(canvasStack.length>1){popToDepth(0);renderBreadcrumb();}
+      applyFlags(_issues);
+      _revealCanvasForRun();
+      const _ok=await preflightConfirm(new Set(_issues.map(i=>i.nodeId)).size);
+      if(!_ok){
+        _restoreExportModal();closeDrawer();document.getElementById('out-overlay').classList.remove('open');
+        st.textContent='Cancelled — fix flagged nodes';st.style.color='var(--dim)';
+        return; // outer finally restores button state
+      }
+      clearFlags();
+    }
     // ── Chain mode: run nodes sequentially ──
     try{
       rb.innerHTML='';
@@ -9423,6 +9623,15 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
           }
         }
       }catch(_e){/* projection failure should never block a run */}
+      // v48.20 — reveal the canvas during the chain run WITHOUT losing the Run
+      // drawer. The drawer (streaming output) is a child of #out-overlay, so we
+      // can't display:none the overlay. Instead hide only the export prompt modal
+      // and make the backdrop transparent + click-through; the drawer stays put so
+      // the user watches canvas + stream together. All restored in the finally.
+      clearNodeStates();clearFlags();
+      if(canvasStack.length>1){popToDepth(0);renderBreadcrumb();}
+      _revealCanvasForRun();
+      showRunHud('Starting…');
       const r=await runChain(_runProvider,_runKey,_runModel||undefined,rb,st,_runAbort.signal);
       rb.dataset.rawResponse=r||'';
       updateFmtBadge(r||'');
@@ -9440,6 +9649,13 @@ document.getElementById('out-run-send').addEventListener('click',async()=>{
         rb.innerHTML='<div style="color:var(--red)">\u274c '+e.message.replace(/\n/g,'<br>')+'</div>';
         st.textContent='Failed';st.style.color='var(--red)';
       }
+    }finally{
+      // 600ms hold so the final canvas state (green cascade / red error node) is
+      // visible before the export prompt modal slides back over the canvas.
+      await new Promise(res=>setTimeout(res,600));
+      hideRunHud();
+      _restoreExportModal();
+      rb.scrollTop=rb.scrollHeight;
     }
   } else {
     // ── Single mode: compile everything into one prompt ──
@@ -9660,6 +9876,7 @@ document.getElementById('out-followup').addEventListener('keydown',e=>{
 // firing the line-3901 Escape-closes-overlays/drawers handler.
 function _abortRun(){if(_runAbort){_runAbort.abort();document.getElementById('out-run-stop').style.display='none';}}
 document.getElementById('out-run-stop').addEventListener('click',_abortRun);
+document.getElementById('run-hud-stop').addEventListener('click',_abortRun);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&e.shiftKey&&_runAbort){e.preventDefault();e.stopImmediatePropagation();_abortRun();}
 },{capture:true});
@@ -9733,6 +9950,18 @@ document.getElementById('out-download').addEventListener('click',()=>{
 // ═══════════════════════════════════════════════════════════
 let _libFileHandle=null;
 
+// v48.24 — Normalize a parsed .sklb/library payload to a skills array.
+// Accepts BOTH shapes the ecosystem produces:
+//   • bare array            → GUIness "Save Library" output: [ {skill}, … ]
+//   • {version, skills:[…]} → single-skill / external-tooling export envelope
+// The `!parsed.stack` guard keeps pipelines (which also carry a `skills` array of
+// bundled skills) from being mistaken for a library. Returns null if unrecognized.
+function _asSkillArray(parsed){
+  if(Array.isArray(parsed))return parsed;
+  if(parsed&&Array.isArray(parsed.skills)&&!parsed.stack)return parsed.skills;
+  return null;
+}
+
 // ── Skills library JSON file ───────────────────────────────────
 async function saveLibraryJSON(silent=false){
   const blob=new Blob([JSON.stringify(skills.filter(s=>!s.isBuiltin),null,2)],{type:'application/json'});
@@ -9773,8 +10002,8 @@ async function loadLibraryJSON(){
         inp.click();
       });
     }
-    const loaded=JSON.parse(text);
-    if(!Array.isArray(loaded))throw new Error('Expected JSON array');
+    const loaded=_asSkillArray(JSON.parse(text));
+    if(!loaded)throw new Error('Expected a skill library (array of skills, or {version, skills:[…]})');
     let added=0,updated=0;
     loaded.forEach(sk=>{
       if(!sk.id||!sk.label)return;
@@ -9882,6 +10111,27 @@ function openCtxMenu(x,y,node){
     }
   }
 
+  // v48.22 — Bulk Fetch (multi-select only). Shown when ≥2 FETCH nodes are in the
+  // selection. Mixed selections work (non-FETCH nodes are ignored on execution),
+  // matching the permissive approach Merge uses for eligible-vs-total counting.
+  const bulkFetchEl=document.getElementById('ctx-bulk-fetch');
+  if(multi){
+    const allNodes=getNodes();
+    let fetchCount=0;
+    for(const id of selNodes){
+      const n=allNodes.find(x=>x.id===id);if(!n)continue;
+      if((n.type||n.skillId)==='fetch')fetchCount++;
+    }
+    if(fetchCount>=2){
+      bulkFetchEl.style.display='flex';
+      bulkFetchEl.innerHTML=`<span class="ci">⬇</span> Bulk Fetch ${fetchCount} Nodes`;
+    }else{
+      bulkFetchEl.style.display='none';
+    }
+  }else{
+    bulkFetchEl.style.display='none';
+  }
+
   // Delete label: reflect count in multi-select
   const delEl=document.getElementById('ctx-delete');
   delEl.innerHTML=multi
@@ -9913,7 +10163,7 @@ function openCtxMenu(x,y,node){
   document.getElementById('ctx-download-skill').style.display   = showSkill   ? 'flex' : 'none';
 
   // Position — keep inside viewport
-  const mw=180,mh=multi?120:260;
+  const mw=180,mh=multi?150:260;
   ctxMenu.style.left=Math.min(x,window.innerWidth-mw-8)+'px';
   ctxMenu.style.top=Math.min(y,window.innerHeight-mh-8)+'px';
   ctxMenu.classList.add('open');
@@ -10094,7 +10344,7 @@ function _detectFileType(name,text){
   if(n.endsWith('.md')||n.endsWith('.txt'))return 'skill';
   if(n.endsWith('.zip')||n.endsWith('.skill'))return 'zip';
   if(n.endsWith('.json')&&text){
-    try{const d=JSON.parse(text);if(d&&d.stack&&Array.isArray(d.stack))return 'pipeline';if(Array.isArray(d))return 'library';}catch(e){}
+    try{const d=JSON.parse(text);if(d&&d.stack&&Array.isArray(d.stack))return 'pipeline';if(_asSkillArray(d))return 'library';}catch(e){}
     return 'skill'; // single skill object or unknown JSON
   }
   return 'skill';
@@ -10295,8 +10545,8 @@ async function _handleFileDrop(files,target,dropClientX,dropClientY){
 
     }else if(ftype==='library'){
       try{
-        const arr=JSON.parse(text);
-        if(!Array.isArray(arr))throw new Error('Expected array');
+        const arr=_asSkillArray(JSON.parse(text));
+        if(!arr)throw new Error('Expected a skill library (array, or {version, skills:[…]})');
         const missing=arr.filter(sk=>sk.id&&sk.label&&!skills.find(s=>s.id===sk.id));
         _showDropBanner(isCanvas?wrap:leftPanel,missing.length+' new skill'+(missing.length!==1?'s':''),'type-library');
         if(missing.length){
@@ -10701,6 +10951,13 @@ document.getElementById('ctx-merge').addEventListener('click',()=>{
   inspDraft=nodeRawContent(node,sk);
   inspCurrentId=sk.id;
   openBranchOverlay(sk);
+});
+document.getElementById('ctx-bulk-fetch').addEventListener('click',()=>{
+  // v48.22 — visibility is gated in openCtxMenu (≥2 FETCH nodes in selection).
+  // Action awaits in the background; we close the menu immediately so the user
+  // can keep interacting with the canvas while fetches run.
+  closeCtxMenu();
+  bulkFetchSelectedNodes();
 });
 document.getElementById('ctx-copy').addEventListener('click',()=>{
   if(!ctxNode)return;
