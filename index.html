@@ -1845,7 +1845,7 @@ function persistSkills(){
   clearTimeout(_persistTimer);
   _persistTimer=setTimeout(()=>{
     const userSkills=skills.filter(s=>!s.isBuiltin);
-    safeStore(PB_SKILLS_STORE,userSkills);
+    safeStoreCritical(PB_SKILLS_STORE,userSkills,'skill library');
     try{localStorage.setItem('pb_local_ts',new Date().toISOString());}catch(e){}
   },500);
 }
@@ -1853,7 +1853,7 @@ function persistSkillsSync(){
   _invSkIdx();
   clearTimeout(_persistTimer);
   const userSkills=skills.filter(s=>!s.isBuiltin);
-  safeStore(PB_SKILLS_STORE,userSkills);
+  safeStoreCritical(PB_SKILLS_STORE,userSkills,'skill library');
   try{localStorage.setItem('pb_local_ts',new Date().toISOString());}catch(e){}
 }
 
@@ -1893,14 +1893,14 @@ function savePipelines(){
   clearTimeout(_savePlTimer);
   _savePlTimer=setTimeout(()=>{
     const serialisable=pipelines.map(p=>{const {fileHandle,...rest}=p;return rest;});
-    try{localStorage.setItem(PL_STORE,JSON.stringify(serialisable));}catch(e){}
+    safeStoreCritical(PL_STORE,serialisable,'pipelines');
     try{localStorage.setItem('pb_local_ts',new Date().toISOString());}catch(e){}
   },500);
 }
 function savePipelinesSync(){
   clearTimeout(_savePlTimer);
   const serialisable=pipelines.map(p=>{const {fileHandle,...rest}=p;return rest;});
-  try{localStorage.setItem(PL_STORE,JSON.stringify(serialisable));}catch(e){}
+  safeStoreCritical(PL_STORE,serialisable,'pipelines');
   try{localStorage.setItem('pb_local_ts',new Date().toISOString());}catch(e){}
 }
 function loadClosedPipelines(){
@@ -2690,6 +2690,33 @@ function removeSkills(pred){
 }
 
 function safeStore(key,val){try{localStorage.setItem(key,typeof val==='string'?val:JSON.stringify(val));}catch(e){}}
+// v48.25 — like safeStore, but does NOT swallow the error for writes that carry
+// the user's actual work (skill library, pipelines, vault). Previously every
+// setItem was wrapped in a silent try/catch, so once the library grew past the
+// ~5MB localStorage quota the save failed invisibly: the user kept editing, saw
+// no warning, closed the tab, and lost everything since the last good write.
+// This surfaces the failure through the existing toast (debounced to once per
+// 5s so a burst of failing autosaves doesn't spam) and tells the user to export
+// to a file. Returns true on success so callers can branch if they want.
+let _quotaToastAt=0;
+function safeStoreCritical(key,val,label){
+  try{
+    localStorage.setItem(key,typeof val==='string'?val:JSON.stringify(val));
+    return true;
+  }catch(e){
+    const quota=e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014);
+    const now=Date.now();
+    if(now-_quotaToastAt>5000){
+      _quotaToastAt=now;
+      if(typeof showToast==='function'){
+        showToast(quota
+          ?'\u26a0 Storage full \u2014 '+(label||'data')+' NOT saved. Export to a file to avoid losing work.'
+          :'\u26a0 Could not save '+(label||'data')+': '+((e&&e.message)||e),'err');
+      }
+    }
+    return false;
+  }
+}
 
 // Grid snapping
 const SNAP_SIZE=CONFIG.SNAP_SIZE;
@@ -2871,8 +2898,12 @@ function rebuildCanvas(){
 // ═══════════════════════════════════════════════════════════
 // EDGES
 // ═══════════════════════════════════════════════════════════
-function portPos(node,side,portId){
-  const sr=scene.getBoundingClientRect();
+// v48.25 — accepts an optional pre-measured scene rect (srRect). When a caller
+// is already inside a batched read pass (renderEdges/updateEdgePaths), passing
+// the cached rect avoids one forced reflow per call. Falls back to measuring
+// when called standalone, so all existing call sites stay correct.
+function portPos(node,side,portId,srRect){
+  const sr=srRect||scene.getBoundingClientRect();
   const t=frame().tx;
   // Try named port first
   if(portId){
@@ -2911,15 +2942,25 @@ function renderEdges(newEdgeId=null){
   const nodeMap=new Map();getNodes().forEach(n=>nodeMap.set(n.id,n));
   const allEdges=getEdges();
   const animateFlows=allEdges.length<=60;
+  // v48.25 — two-pass render to avoid layout thrashing. Pass 1 does ALL the DOM
+  // measurement (portPos → getBoundingClientRect) up front against a single
+  // cached scene rect, so the browser satisfies every read from one layout flush
+  // instead of being forced to reflow between each edge's read and the SVG writes
+  // that previously followed it. Pass 2 is writes only.
+  const srRect=scene.getBoundingClientRect();
+  const geom=[];
   allEdges.forEach(edge=>{
     const fn=nodeMap.get(edge.from),tn=nodeMap.get(edge.to);
     if(!fn||!tn)return;
-    const f=portPos(fn,'out',edge.fromPort),t=portPos(tn,'in',edge.toPort);
+    const f=portPos(fn,'out',edge.fromPort,srRect),t=portPos(tn,'in',edge.toPort,srRect);
     const sk=nodeSk(fn);const color=cx(fn.color||sk?.color||'dimHi');
     const m=(f.x+t.x)/2;
     const d=`M${f.x},${f.y} C${m},${f.y} ${m},${t.y} ${t.x},${t.y}`;
     const pathLen=Math.hypot(t.x-f.x,t.y-f.y)*1.3; // approx arc length
-
+    geom.push({edge,color,d,pathLen});
+  });
+  // Pass 2 — writes only (no getBoundingClientRect beyond this point).
+  geom.forEach(({edge,color,d,pathLen})=>{
     const g=document.createElementNS('http://www.w3.org/2000/svg','g');
     g.classList.add('e');g.dataset.eid=edge.id;g.dataset.from=edge.from;g.dataset.to=edge.to;
 
@@ -2998,17 +3039,24 @@ function renderEdges(newEdgeId=null){
 function updateEdgePaths(){
   const nodeMap=new Map();getNodes().forEach(n=>nodeMap.set(n.id,n));
   const edgeMap=new Map();getEdges().forEach(e=>edgeMap.set(e.id,e));
+  // v48.25 — same two-pass discipline as renderEdges. This runs on every drag/
+  // resize frame, so interleaving reads (portPos) with writes (setAttribute('d'))
+  // was the worst thrash offender. Measure all geometry first against one cached
+  // scene rect, then apply all path writes.
+  const srRect=scene.getBoundingClientRect();
+  const updates=[];
   svg.querySelectorAll('.e').forEach(g=>{
     const fn=nodeMap.get(g.dataset.from);
     const tn=nodeMap.get(g.dataset.to);
     if(!fn||!tn)return;
     const edge=edgeMap.get(g.dataset.eid);
     if(!edge)return;
-    const f=portPos(fn,'out',edge.fromPort),t=portPos(tn,'in',edge.toPort);
+    const f=portPos(fn,'out',edge.fromPort,srRect),t=portPos(tn,'in',edge.toPort,srRect);
     const m=(f.x+t.x)/2;
     const d=`M${f.x},${f.y} C${m},${f.y} ${m},${t.y} ${t.x},${t.y}`;
-    g.querySelectorAll('path').forEach(p=>p.setAttribute('d',d));
+    updates.push({g,d});
   });
+  updates.forEach(({g,d})=>{g.querySelectorAll('path').forEach(p=>p.setAttribute('d',d));});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -6063,7 +6111,7 @@ function renderInspector(){
           const r=nodeById.get(rid);
           const raw=r?.values?.max_loops;
           if(raw==null||String(raw).trim()===''){loopSum+=defLoops;defaultedCount++;}
-          else{loopSum+=(parseInt(String(raw),10)||defLoops);}
+          else{loopSum+=parseMaxIterations(raw,defLoops);}
         }
         const projected=iters*(1+loopSum);
         const proj=document.createElement('div');
@@ -7809,7 +7857,7 @@ function projectMaxCalls(nodes, edges){
       const r=nodeById.get(rid);
       const raw=r?.values?.max_loops;
       const usedDefault=(raw==null||String(raw).trim()==='');
-      const loops=usedDefault?defLoops:(parseInt(String(raw),10)||defLoops);
+      const loops=usedDefault?defLoops:parseMaxIterations(raw,defLoops);
       return {id:rid,loops,usedDefault};
     });
     const callsPerIter=1+routers.reduce((s,r)=>s+r.loops,0);
@@ -8886,8 +8934,26 @@ function _buildFileCardHtml(lang, code, filename){
   </div>`.replace(/\n\s*/g,'');
 }
 
+// v48.25 — URL sanitizer for rendered links. _mdToHtml escapes <>& up front,
+// but the link/autolink regexes ran AFTER that and wrote the captured URL into
+// an href="" attribute without escaping quotes — so a crafted link in LLM/skill
+// output (e.g. [x](https://a.com" onmouseover="alert(1)) ) could inject a live
+// event-handler attribute and run script in the app origin (which holds the
+// decrypted vault keys). This whitelists the scheme (defeats javascript:/data:)
+// and escapes quotes (defeats attribute breakout). Returns null for disallowed
+// URLs so the caller can fall back to rendering plain text.
+function _mdSafeUrl(u){
+  u=String(u).trim();
+  // Collapse control chars/whitespace before scheme-sniffing so tricks like
+  // "java\tscript:" or "java\nscript:" can't slip past the scheme test.
+  const probe=u.replace(/[\u0000-\u0020]+/g,'').toLowerCase();
+  const ok=/^(https?:|mailto:)/.test(probe)||/^[\/#.]/.test(u);
+  if(!ok)return null;
+  // & is already &amp; from the top-level escape pass; only quotes remain a risk.
+  return u.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 function _mdToHtml(t){
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/```(\w*)\n([\s\S]*?)```/g,(_,l,c)=>{const fn=_detectFileName(l.toLowerCase(),c);if(fn){const card=_buildFileCardHtml(l.toLowerCase(),c,fn);return'</span>'+card+'<span>';}return'<pre style="background:var(--code-bg);color:var(--code-txt);padding:10px 12px;border-radius:6px;margin:8px 0;overflow-x:auto;font-family:var(--mono);font-size:11px;line-height:1.6">'+(l?'<div style="font-size:9px;color:var(--dim);margin-bottom:4px">'+l+'</div>':'')+c+'</pre>';}).replace(/`([^`]+)`/g,'<code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>').replace(/^### (.+)$/gm,'<h3 style="font-size:14px;font-weight:700;color:var(--acc);margin:16px 0 6px">$1</h3>').replace(/^## (.+)$/gm,'<h2 style="font-size:15px;font-weight:700;color:var(--acc);margin:20px 0 8px">$1</h2>').replace(/^# (.+)$/gm,'<h1 style="font-size:17px;font-weight:700;color:var(--acc);margin:20px 0 10px">$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">$1</a>').replace(/(?<!["=\/a-z])(https?:\/\/[^\s<>"'\)]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">$1</a>').replace(/^- (.+)$/gm,'<div style="padding-left:14px;position:relative;margin:3px 0"><span style="position:absolute;left:0">\u2022</span>$1</div>').replace(/^\d+\. (.+)$/gm,(m,p)=>'<div style="padding-left:18px;margin:3px 0">'+m.match(/^\d+/)[0]+'. '+p+'</div>').replace(/\n{2,}/g,'<div style="height:12px"></div>').replace(/\n/g,'<br>');
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/```(\w*)\n([\s\S]*?)```/g,(_,l,c)=>{const fn=_detectFileName(l.toLowerCase(),c);if(fn){const card=_buildFileCardHtml(l.toLowerCase(),c,fn);return'</span>'+card+'<span>';}return'<pre style="background:var(--code-bg);color:var(--code-txt);padding:10px 12px;border-radius:6px;margin:8px 0;overflow-x:auto;font-family:var(--mono);font-size:11px;line-height:1.6">'+(l?'<div style="font-size:9px;color:var(--dim);margin-bottom:4px">'+l+'</div>':'')+c+'</pre>';}).replace(/`([^`]+)`/g,'<code style="background:var(--code-bg);color:var(--code-txt);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>').replace(/^### (.+)$/gm,'<h3 style="font-size:14px;font-weight:700;color:var(--acc);margin:16px 0 6px">$1</h3>').replace(/^## (.+)$/gm,'<h2 style="font-size:15px;font-weight:700;color:var(--acc);margin:20px 0 8px">$1</h2>').replace(/^# (.+)$/gm,'<h1 style="font-size:17px;font-weight:700;color:var(--acc);margin:20px 0 10px">$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,(_,txt,url)=>{const u=_mdSafeUrl(url);return u?'<a href="'+u+'" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">'+txt+'</a>':txt;}).replace(/(?<!["=\/a-z])(https?:\/\/[^\s<>"'\)]+)/g,(_,url)=>{const u=_mdSafeUrl(url);return u?'<a href="'+u+'" target="_blank" rel="noopener" style="color:var(--acc);text-decoration:underline">'+u+'</a>':url;}).replace(/^- (.+)$/gm,'<div style="padding-left:14px;position:relative;margin:3px 0"><span style="position:absolute;left:0">\u2022</span>$1</div>').replace(/^\d+\. (.+)$/gm,(m,p)=>'<div style="padding-left:18px;margin:3px 0">'+m.match(/^\d+/)[0]+'. '+p+'</div>').replace(/\n{2,}/g,'<div style="height:12px"></div>').replace(/\n/g,'<br>');
 }
 // Renders markdown/HTML response text for the run drawer output area
 function renderMdResponse(t){
@@ -9313,7 +9379,7 @@ async function runChain(provider,apiKey,model,rb,st,signal){
     if(skId==='router'){
       const condition=node.values?.condition||'';
       const mode=node.values?.mode||'LLM (natural language)';
-      const maxLoops=parseInt(node.values?.max_loops,10)||CONFIG.DEFAULT_MAX_LOOPS;
+      const maxLoops=parseMaxIterations(node.values?.max_loops,CONFIG.DEFAULT_MAX_LOOPS);
       const incoming=edges.filter(e=>e.to===node.id);
       const inputCtx=incoming.map(e=>edgeValue(e)).filter(Boolean).join('\n\n');
       st.textContent='Step '+stepNum+': '+stepLabel+' (routing)';st.style.color='var(--dim)';
@@ -11077,7 +11143,8 @@ const CryptoManager = (() => {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       const enc = await encrypt(this.key, this.creds);
       stored.iv = enc.iv; stored.data = enc.data;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+      // v48.25 — surface storage failures (quota) so credentials aren't silently lost.
+      safeStoreCritical(STORAGE_KEY, stored, 'vault credentials');
     },
 
     deriveKey, encrypt, decrypt, b64, unb64, STORAGE_KEY,
@@ -11163,7 +11230,11 @@ function renderSetupScreen(body) {
     CryptoManager.key = await CryptoManager.deriveKey(p1, salt);
     CryptoManager.creds = [];
     const stored = { salt: CryptoManager.b64(salt) };
-    localStorage.setItem(CryptoManager.STORAGE_KEY, JSON.stringify(stored));
+    // v48.25 — if the salt write fails (quota), abort setup with a clear message
+    // rather than leaving an in-memory-only key that vanishes on reload.
+    if(!safeStoreCritical(CryptoManager.STORAGE_KEY, stored, 'vault')){
+      return showStatus(status,'err','Storage full — vault could not be created. Free up space and retry.');
+    }
     await CryptoManager.save();
     CryptoManager.touchIdle(); // v48.13 — start idle relock timer
     showStatus(status, 'ok', 'Vault created!');
