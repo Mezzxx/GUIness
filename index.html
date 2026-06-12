@@ -31,7 +31,7 @@ directly in any browser — no server needed."
 
 - A left panel: skill library with three tabs (My Skills, Built-In, Recent),
   a collapsible tag-filter section, and an "+ Add Skill" button.
-- A central canvas: pan with Space+drag or middle-click, zoom with scroll wheel.
+- A central canvas: click+drag to pan (also Space+drag, middle-click); Shift+drag for lasso; zoom with scroll wheel.
   Nodes can be dragged, multi-selected (Shift+click or lasso), and connected by
   drawing from output ports to input ports.
 - A right panel: inspector showing the selected node's or skill's properties,
@@ -115,7 +115,8 @@ Drag-and-drop is supported on the canvas and library panel.
 
 ## Key keyboard shortcuts
 
-  Space + drag   Pan the canvas
+  Click + drag   Pan the canvas (also: Space+drag, middle-click)
+  Shift + drag   Lasso-select nodes on canvas
   Scroll         Zoom
   Tab            Enter the internal graph of the selected node
   Escape         Close open overlay / cancel connection / exit graph / clear selection
@@ -268,7 +269,7 @@ select option{background:var(--panel)}
 #app{display:flex;flex-direction:column;height:100vh;width:100vw}
 
 /* ── TOOLBAR ── */
-#topbar{height:51px;background:var(--surf);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 16px;gap:9px;flex-shrink:0;z-index:100}
+#topbar{min-height:51px;background:var(--surf);border-bottom:1px solid var(--brd);display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;padding:5px 16px;gap:9px;flex-shrink:0;z-index:100}
 #body{flex:1;display:flex;overflow:hidden;min-height:0;flex-direction:column}
 
 /* ── CANVAS ── */
@@ -458,7 +459,8 @@ select option{background:var(--panel)}
 .drop-banner.type-skill{background:oklch(.25 .04 165);border:1px solid var(--grn);color:var(--grn)}
 
 /* CANVAS */
-#canvas-wrap{flex:1;position:relative;overflow:hidden;background-image:radial-gradient(circle,var(--brd) 1px,transparent 1px);transition:outline .2s var(--ease) var(--ease)}
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background-image:radial-gradient(circle,var(--brd) 1px,transparent 1px);transition:outline .2s var(--ease) var(--ease);cursor:grab}
+#canvas-wrap.panning{cursor:grabbing}
 
 /* ── MINIMAP ── */
 #quick-add{position:absolute;z-index:30;width:220px;background:var(--panel);border:1px solid var(--brd);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden}
@@ -1007,10 +1009,10 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v48.24</span>
+    <span class="t-badge">v48.26</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
-    <span style="font-size:9px;color:var(--dim)">Scroll=zoom · Space/middle=pan · Dbl-click=open graph · Click edge=cut · Alt=downstream</span>
+    <span style="font-size:9px;color:var(--dim)">Drag=pan · Shift+drag=select · Scroll=zoom · Dbl-click=open · Click edge=cut · Alt=downstream</span>
     <div style="width:1px;height:18px;background:var(--brd);margin:0 4px"></div>
     <button class="tbtn danger hidden" id="btn-del">Delete Node</button>
     <button class="tbtn" id="btn-reset">Reset View</button>
@@ -1037,7 +1039,7 @@ select option{background:var(--panel)}
     </div>
     <div style="width:1px;height:18px;background:var(--brd);margin:0 2px"></div>
     <button id="btn-theme" title="Toggle light/dark mode">🌙</button>
-    <select id="theme-preset" title="Color theme preset" style="font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:4px;color:var(--dhi);padding:2px 4px;cursor:pointer;width:72px">
+    <select id="theme-preset" title="Color theme preset" style="font-family:var(--mono);font-size:8px;background:var(--panel);border:1px solid var(--brd);border-radius:4px;color:var(--dhi);padding:2px 4px;cursor:pointer;width:82px">
       <option value="midnight">Midnight</option>
       <option value="ember">Ember</option>
       <option value="forest">Forest</option>
@@ -4180,7 +4182,7 @@ wrap.addEventListener('pointermove',e=>{
 });
 
 const lassoEl=document.getElementById('lasso');
-let panning=false,psx,psy,ptx,pty;
+let panning=false,psx,psy,ptx,pty,panMoved=false,panClearOnUp=false;
 let lasso=null; // {x0,y0,x1,y1,shiftKey} in screen coords relative to wrap
 
 function lassoSceneRect(){
@@ -4236,22 +4238,33 @@ function commitLasso(){
 
 wrap.addEventListener('pointerdown',e=>{
   if(e.target.closest('.port'))return;
+  // Middle mouse or Space+left → explicit pan (kept for muscle memory)
   if(e.button===1||(e.button===0&&spaceDown)){
-    e.preventDefault();panning=true;
+    e.preventDefault();panning=true;panMoved=false;panClearOnUp=false;
     psx=e.clientX;psy=e.clientY;ptx=frame().tx.x;pty=frame().tx.y;
+    wrap.classList.add('panning');
     wrap.setPointerCapture(e.pointerId);return;
   }
   if(e.button===0&&(e.target===wrap||e.target===scene||e.target===svg||e.target.tagName==='svg')){
     if(conn){clearConn();return;}
-    if(!e.shiftKey)clearSel();
-    // Start lasso
-    lasso={x0:e.clientX,y0:e.clientY,x1:e.clientX,y1:e.clientY,shiftKey:e.shiftKey};
-    wrap.setPointerCapture(e.pointerId);
+    if(e.shiftKey){
+      // Shift+drag → lasso (additive: preserves existing selection)
+      lasso={x0:e.clientX,y0:e.clientY,x1:e.clientX,y1:e.clientY,shiftKey:true};
+      wrap.setPointerCapture(e.pointerId);
+    }else{
+      // Plain left-drag → pan. Pure click (no movement >3px) clears selection on release.
+      panning=true;panMoved=false;panClearOnUp=true;
+      psx=e.clientX;psy=e.clientY;ptx=frame().tx.x;pty=frame().tx.y;
+      wrap.classList.add('panning');
+      wrap.setPointerCapture(e.pointerId);
+    }
   }
 });
 wrap.addEventListener('pointermove',e=>{
   if(panning){
-    frame().tx.x=ptx+(e.clientX-psx);frame().tx.y=pty+(e.clientY-psy);applyTx();
+    const dx=e.clientX-psx,dy=e.clientY-psy;
+    if(!panMoved&&(dx*dx+dy*dy)>9)panMoved=true; // 3px threshold (squared)
+    if(panMoved){frame().tx.x=ptx+dx;frame().tx.y=pty+dy;applyTx();}
     return;
   }
   if(lasso){
@@ -4260,7 +4273,12 @@ wrap.addEventListener('pointermove',e=>{
   }
 });
 wrap.addEventListener('pointerup',e=>{
-  if(panning){panning=false;wrap.releasePointerCapture(e.pointerId);return;}
+  if(panning){
+    if(panClearOnUp&&!panMoved)clearSel();
+    panning=false;panMoved=false;panClearOnUp=false;
+    wrap.classList.remove('panning');
+    wrap.releasePointerCapture(e.pointerId);return;
+  }
   if(lasso){commitLasso();wrap.releasePointerCapture(e.pointerId);}
   // If a connection drag was in progress and the pointer was released over
   // empty canvas (not a port), try magnetic snap to nearest ready port
