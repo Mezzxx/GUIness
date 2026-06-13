@@ -2024,14 +2024,6 @@ async function _writeToFileHandle(p){
   }
 }
 
-function saveAllPipelines(){
-  const p=activePipeline();
-  if(p)p.stack=canvasStack;
-  savePipelinesSync();
-  pipelines.forEach(p=>p.saved=true);
-  renderPipelineTabs();
-}
-
 function closePipeline(id){
   const p=pipelines.find(x=>x.id===id);if(!p)return;
   if(!p.saved){
@@ -4284,7 +4276,6 @@ wrap.addEventListener('pointerup',e=>{
   // empty canvas (not a port), try magnetic snap to nearest ready port
   if(conn&&!e.target.closest('.port')){
     const SNAP_RADIUS=24;
-    const t=frame().tx;
     let best=null,bestDist=SNAP_RADIUS+1;
     scene.querySelectorAll('.port-in.ready').forEach(p=>{
       const pr=p.getBoundingClientRect();
@@ -4592,7 +4583,7 @@ document.getElementById('btn-clear').addEventListener('click',()=>{
 document.getElementById('btn-pipeline-to-node').addEventListener('click',()=>{
   const p=activePipeline();if(!p)return;
   if(p.id===activePipelineId)p.stack=canvasStack;
-  const sk=pipelineToSkill(p);
+  pipelineToSkill(p);
   renderLib();
   flashBtn('btn-pipeline-to-node','✓ Saved to PIPELINES tab','⬡ Save as Node');
   // Switch to pipelines tab so user can see it
@@ -5147,7 +5138,7 @@ function buildBatchRows(nodeIds){
   return rows;
 }
 
-// nextVersionName variant that scans the library AND in-batch claimed names.
+// Scans the library AND in-batch claimed names for the next available .vN name.
 // Used by buildBatchRows for initial defaults and by disambiguateBranchNames for live edits.
 function _batchNextVersion(baseLabel,claimedNames){
   const base=(baseLabel||'Skill').replace(/\.v\d+$/,'');
@@ -5190,7 +5181,7 @@ function disambiguateBranchNames(rows,excludeIdx=-1){
 
 function openBatchMergeDialog(nodeIds){
   _batchRows=buildBatchRows(nodeIds);
-  // Re-pass through disambiguation in case nextVersionName collisions slipped through
+  // Re-pass through disambiguation in case name collisions slipped through
   // (the buildBatchRows pre-computes names but doesn't compare across all rows).
   disambiguateBranchNames(_batchRows);
   renderBatchMergeDialog();
@@ -6793,7 +6784,6 @@ function openPipelineEdit(p){
         editNodes.splice(idx2,1);
         // Remove connected edges
         const nid=node.id;
-        const before=editEdges.length;
         editEdges.splice(0,editEdges.length,...editEdges.filter(e=>e.from!==nid&&e.to!==nid));
         renderTree();
       });
@@ -7757,14 +7747,6 @@ function drawerLabelFor(sk){
 
 // Next available version name for a base label: scans skills for "<base>.vN",
 // returns "<base>.v{max+1}" (so .v2, .v3… not a static .v1). Used by Merge/Save dialogs.
-function nextVersionName(baseLabel){
-  const base=(baseLabel||'Skill').replace(/\.v\d+$/,'');   // strip an existing .vN so we version the root
-  const re=new RegExp('^'+base.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\.v(\\d+)$');
-  let max=0;
-  skills.forEach(s=>{const m=(s.label||'').match(re);if(m){const n=+m[1];if(n>max)max=n;}});
-  return base+'.v'+(max+1);
-}
-
 // ═══════════════════════════════════════════════════════════
 // MAP RUNTIME HELPERS — pure functions, headless-tested
 // ═══════════════════════════════════════════════════════════
@@ -9033,8 +9015,6 @@ function _listenIframeResize(){
 function _splitSegments(raw){
   const segments=[];
   // Match fenced ```html blocks OR standalone block-level HTML (full doc or block tag at line start)
-  const htmlFence=/^```html\n([\s\S]*?)^```/gm;
-  const blockHtml=/^(<!DOCTYPE[\s\S]*?<\/html>|<(div|section|article|main|header|footer|figure|table|form|ul|ol|nav|aside|p|h[1-6])[\s\S]*?<\/\2>)/gm;
   // Collect all HTML spans with their positions
   const spans=[];
   let m;
@@ -10307,7 +10287,6 @@ function importSkillFileAsNode(){
     }
     // Handle .ppln/.sklb via unified handler (canvas target, center of viewport)
     if(routeFiles.length){
-      const t=frame().tx;
       const centerX=scene.offsetWidth/2;const centerY=scene.offsetHeight/2;
       const rect=wrap.getBoundingClientRect();
       await _handleFileDrop(routeFiles,'canvas',rect.left+centerX,rect.top+centerY);
@@ -10720,7 +10699,6 @@ async function _parseZip(buf){
     if(sig!==0x02014b50)break; // not a central dir entry
     const method=view.getUint16(offset+10,true);
     const compSize=view.getUint32(offset+20,true);
-    const uncompSize=view.getUint32(offset+24,true);
     const nameLen=view.getUint16(offset+28,true);
     const extraLen=view.getUint16(offset+30,true);
     const commentLen=view.getUint16(offset+32,true);
