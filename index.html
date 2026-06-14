@@ -292,20 +292,33 @@ select option{background:var(--panel)}
 .tbtn.primary{background:var(--acc);border-color:var(--acc);color:#0b0d11;font-weight:700}
 
 /* ── PIPELINE TABS & NO-PIPELINE SCREEN ── */
-#no-pipeline-screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg);z-index:200}
+#no-pipeline-screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:safe center;gap:16px;background:var(--bg);z-index:200;overflow-y:auto;padding:36px 16px;--dim:oklch(0.65 0.016 250)}
 #no-pipeline-screen.visible{display:flex}
-#no-pipeline-screen h2{font-family:var(--mono);font-size:13px;color:var(--dhi);letter-spacing:.12em;margin:0}
-#no-pipeline-screen p{font-family:var(--mono);font-size:9px;color:var(--dim);margin:0}
+#no-pipeline-screen h2{font-family:var(--mono);font-size:21.13px;font-weight:700;color:var(--acc);letter-spacing:.12em;margin:0}
+#no-pipeline-screen p{font-family:var(--mono);font-size:15.21px;color:var(--dim);margin:0}
 #no-pipeline-screen .nps-btns{display:flex;gap:10px;margin-top:4px}
-#no-pipeline-screen .nps-btn{font-family:var(--mono);font-size:10px;font-weight:700;border-radius:8px;padding:10px 22px;cursor:pointer;border:1px solid}
+#no-pipeline-screen .nps-btn{font-family:var(--mono);font-size:13px;font-weight:700;border-radius:8px;padding:10px 22px;cursor:pointer;border:1px solid}
 #no-pipeline-screen .nps-btn.pri{background:var(--alo);border-color:var(--acc);color:var(--acc)}
 #no-pipeline-screen .nps-btn.sec{background:transparent;border-color:var(--brd);color:var(--dhi)}
 #no-pipeline-screen .nps-btn:hover.pri{background:rgba(232,160,32,.18)}
 #no-pipeline-screen .nps-btn:hover.sec{border-color:var(--dhi)}
 #no-pipeline-screen .nps-section{display:flex;flex-direction:column;align-items:center;gap:6px}
-#no-pipeline-screen .nps-section-label{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.18em}
+#no-pipeline-screen .nps-section-label{font-family:var(--mono);font-size:10.4px;color:var(--acc);letter-spacing:.18em}
 #no-pipeline-screen .nps-divider{width:120px;height:1px;background:var(--brd);opacity:.5;margin:2px 0}
-#no-pipeline-screen .nps-note{font-family:var(--mono);font-size:9px;color:var(--dim);max-width:300px;line-height:1.5;text-align:center}
+#no-pipeline-screen .nps-note{font-family:var(--mono);font-size:11.7px;color:var(--dim);max-width:300px;line-height:1.5;text-align:center}
+.nps-gallery{display:flex;flex-direction:column;gap:8px;width:min(460px,92vw);margin-top:2px}
+.nps-card{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .18s var(--ease-out),background .18s var(--ease-out),transform .18s var(--ease-out)}
+.nps-card:hover{border-color:var(--brdhi);background:var(--card);transform:translateY(-1px)}
+.nps-card:focus-visible{outline:none;border-color:var(--acc)}
+.nps-card.start{border-color:var(--alo)}
+.nps-card.start .nps-card-num{background:var(--acc);color:var(--bg)}
+.nps-card-num{flex-shrink:0;width:22px;height:22px;border-radius:6px;background:var(--alo);color:var(--acc);font-family:var(--mono);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.nps-card-body{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.nps-card-head{display:flex;align-items:baseline;gap:8px;justify-content:space-between}
+.nps-card-title{font-family:var(--mono);font-size:14.3px;font-weight:700;color:var(--dhi);letter-spacing:.02em}
+.nps-card-chip{flex-shrink:0;font-family:var(--mono);font-size:9.1px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border:1px solid var(--brd);border-radius:20px;padding:2px 7px}
+.nps-card-shape{font-family:var(--mono);font-size:10.4px;color:var(--acc);opacity:.85;letter-spacing:.03em}
+.nps-card-blurb{font-family:var(--mono);font-size:11.7px;color:var(--dim);line-height:1.5}
 
 #pipeline-tabbar{height:34px;background:var(--panel);border-bottom:1px solid var(--brd);display:flex;align-items:stretch;flex-shrink:0;overflow-x:auto;overflow-y:hidden;z-index:90}
 #pipeline-tabbar::-webkit-scrollbar{height:3px}
@@ -1009,7 +1022,7 @@ select option{background:var(--panel)}
   <div id="topbar">
     <span class="t-logo">⬡</span>
     <span class="t-title">GUIness</span>
-    <span class="t-badge">v48.26</span>
+    <span class="t-badge">v48.28</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
     <span style="font-size:9px;color:var(--dim)">Drag=pan · Shift+drag=select · Scroll=zoom · Dbl-click=open · Click edge=cut · Alt=downstream</span>
@@ -1060,7 +1073,7 @@ select option{background:var(--panel)}
     <!-- NO-PIPELINE EMPTY STATE -->
     <div id="no-pipeline-screen">
       <h2>⬡ GUIness</h2>
-      <p>Resume where you left off, or start fresh.</p>
+      <p>Resume where you left off, start fresh, or run a template.</p>
       <div class="nps-section" id="nps-autosave-section">
         <div class="nps-section-label">CONTINUE FROM AUTOSAVE</div>
         <div class="nps-btns" id="nps-folder-btns">
@@ -1079,6 +1092,12 @@ select option{background:var(--panel)}
           <button class="nps-btn sec" id="nps-open">📄 Open Pipeline</button>
           <button class="nps-btn sec" id="nps-new">+ New Pipeline</button>
         </div>
+      </div>
+      <div class="nps-divider"></div>
+      <div class="nps-section">
+        <div class="nps-section-label">START FROM A TEMPLATE</div>
+        <div class="nps-gallery" id="nps-gallery"></div>
+        <div class="nps-note">Each one runs as-is and teaches one new piece of the model. Templates with a FETCH step need one click to load the page before running.</div>
       </div>
     </div>
     <!-- BREADCRUMB (hidden at root) -->
@@ -4594,7 +4613,7 @@ document.getElementById('btn-pipeline-to-node').addEventListener('click',()=>{
 document.getElementById('btn-save-pipeline').addEventListener('click',()=>{
   savePipelineAs(activePipelineId);
 });
-document.getElementById('btn-export').addEventListener('click',openOutput);
+document.getElementById('btn-export').addEventListener('click',exportWithPrefetch);
 
 // ═══════════════════════════════════════════════════════════
 // INSPECTOR TABS
@@ -7916,7 +7935,14 @@ function renderSteps(nodes,edges,depth,maxDepth,opts){
     visited.add(node.id);
     const sk=nodeSk(node);if(!sk)return;
     const{title,userLines}=getNodeContent(node,opts);
-    const step={title,userLines:userLines.slice(),subSteps:[]};
+    // Real instruction-bearing LLM atoms (rawContent present, and NOT a passive primitive
+    // like context/map/router nor graph-input/output scaffolding) must export as steps even
+    // when their fields are empty — missing inputs are resolved at runtime via the Field
+    // Resolution Protocol in <role>. Only scaffolding/passive nodes are skipped when empty
+    // (the original _hasContent intent).
+    const _isPassive=sk.isBuiltin&&sk.id!=='graph-input'&&sk.id!=='graph-output';
+    const _isAtom=!!(sk.rawContent&&sk.rawContent.trim())&&!_isPassive;
+    const step={title,userLines:userLines.slice(),subSteps:[],alwaysEmit:_isAtom};
     const ig=sk.internalGraph;
     if(ig?.nodes?.length)step.subSteps=renderSteps(ig.nodes,ig.edges||[],depth+1,maxDepth,opts);
     steps.push(step);
@@ -7993,6 +8019,12 @@ function buildClaude(){
   out+='You are a specialized AI assistant executing the "'+name+'" workflow.\n\n';
   out+='Do not hallucinate, fabricate, or assume information you do not have. If you lack the data, context, or knowledge needed to complete any part of a task, stop and ask the user for guidance before proceeding.\n\n';
   out+='Follow each step in the exact sequence below. Complete each step fully before moving to the next. If a step requires information not yet provided, ask before proceeding. Always complete the full sequence.\n';
+  out+='\n';
+  out+='Field Resolution Protocol — when a step does not have a value pre-filled for an input it needs, resolve it in this order before acting:\n';
+  out+='1. Inherit — reuse a value an earlier step or node already produced (for example, a research or recon step that mapped inputs for later steps).\n';
+  out+='2. Discoverable fact — if the value is a fact about the subject (a URL, sitemap, file, brand, competitor, and the like) and was not inherited, retrieve it yourself by fetching or searching. Never invent or reconstruct it from memory.\n';
+  out+='3. Preference or config — if the value is a choice that cannot be looked up (audience, mode, target metric, priorities), infer it from what you have already gathered and label it as inferred, or ask the user.\n';
+  out+='4. Last resort — only stop and ask the user when an input is genuinely required and cannot be inherited, retrieved, or safely inferred. Never fabricate a value to fill a gap.\n';
   out+='</role>\n\n';
 
   // Execution sequence — nested <step> elements with numeric paths (1, 1.1, 1.1.1, ...).
@@ -8001,7 +8033,7 @@ function buildClaude(){
   const writeSteps=(list,depth,parentNum)=>{
     let idx=0;
     list.forEach(step=>{
-      if(!_hasContent(step))return;
+      if(!step.alwaysEmit&&!_hasContent(step))return;
       idx++;
       const num=parentNum?parentNum+'.'+idx:idx+'';
       const indent='  '.repeat(depth+1);
@@ -8013,7 +8045,12 @@ function buildClaude(){
         });
         out+=indent+'  </instructions>\n';
       }
-      if(step.subSteps.length&&step.subSteps.some(_hasContent)){
+      else if(step.alwaysEmit){
+        out+=indent+'  <instructions>\n';
+        out+=indent+'    No inputs were pre-filled for this step. Execute it using the reference document of the same title, then resolve any inputs it needs via the Field Resolution Protocol in the role section: inherit a value an earlier step already produced; fetch or search for any missing fact; ask the user for any missing preference; never fabricate.\n';
+        out+=indent+'  </instructions>\n';
+      }
+      if(step.subSteps.length&&step.subSteps.some(s=>s.alwaysEmit||_hasContent(s))){
         out+=indent+'  <sub_steps>\n';
         writeSteps(step.subSteps,depth+2,num);
         out+=indent+'  </sub_steps>\n';
@@ -8097,12 +8134,13 @@ function buildGPT(){
   instrLines.push('- If you lack the data, context, or knowledge needed for any step, stop and ask the user.');
   instrLines.push('- Follow each step in the exact sequence. Complete each fully before moving to the next.');
   instrLines.push('- For any code step, execute or reason through the logic explicitly.');
+  instrLines.push('- Field Resolution Protocol — when a step lacks a value for an input it needs: inherit it from an earlier step; if it is a discoverable fact (a URL, file, brand, and the like), fetch or search for it and never invent it; if it is a preference that cannot be looked up, infer it from what you have and label it inferred, or ask the user; only stop and ask when it cannot be inherited, retrieved, or safely inferred. Never fabricate a value.');
   instrLines.push('');
   instrLines.push('Steps:');
   const writeSteps=(list,depth,target)=>{
     let idx=0;
     list.forEach(step=>{
-      if(!_hasContent(step))return;
+      if(!step.alwaysEmit&&!_hasContent(step))return;
       idx++;
       const indent='  '.repeat(depth);
       const num=depth===0?idx+'. ':indent+'- ';
@@ -8110,6 +8148,7 @@ function buildGPT(){
       step.userLines.forEach(l=>{
         l.split('\n').forEach(ln=>target.push(indent+'   '+ln));
       });
+      if(!step.userLines.length&&step.alwaysEmit)target.push(indent+'   (No inputs pre-filled — execute from the reference document of the same title; resolve inputs via the Field Resolution Protocol: inherit, then fetch or search for facts, then ask for preferences; never fabricate.)');
       if(step.subSteps.length)writeSteps(step.subSteps,depth+1,target);
     });
   };
@@ -8209,6 +8248,7 @@ function buildGemini(){
   fullLines.push('');
   fullLines.push('CONSTRAINTS');
   fullLines.push('- Do not hallucinate or fabricate information.');
+  fullLines.push('- Field Resolution Protocol — for any input a step needs but does not have: inherit it from an earlier step; if it is a discoverable fact, fetch or search for it (never invent); if it is a preference, infer and label it or ask the user; stop and ask only as a last resort. Never fabricate.');
   fullLines.push('- If you lack data, context, or knowledge for any step, stop and ask the user.');
   fullLines.push('- Complete each step fully before moving to the next. Do not skip or reorder steps.');
   fullLines.push('- For any code step, reason through the logic explicitly.');
@@ -8217,7 +8257,7 @@ function buildGemini(){
   const writeFullSteps=(list,depth,parentNum)=>{
     let idx=0;
     list.forEach(step=>{
-      if(!_hasContent(step))return;
+      if(!step.alwaysEmit&&!_hasContent(step))return;
       idx++;
       const num=parentNum?parentNum+'.'+idx:idx+'';
       const pad='  '.repeat(depth);
@@ -8226,6 +8266,7 @@ function buildGemini(){
       step.userLines.forEach(l=>{
         _unfence(l).split('\n').forEach(ln=>fullLines.push(pad+'   '+ln));
       });
+      if(!step.userLines.length&&step.alwaysEmit)fullLines.push(pad+'   (No inputs pre-filled — execute from the REFERENCE document of the same title; resolve inputs via the Field Resolution Protocol: inherit, then fetch or search for facts, then ask for preferences; never fabricate.)');
       if(step.subSteps.length)writeFullSteps(step.subSteps,depth+1,num);
     });
   };
@@ -8259,6 +8300,7 @@ function buildGemini(){
   fitLines.push('');
   fitLines.push('RULES');
   fitLines.push('- No hallucination. Ask if data is missing.');
+  fitLines.push('- Missing input: inherit from earlier steps, else fetch or search for facts, else infer-and-label or ask for preferences. Never fabricate.');
   fitLines.push('- Complete each step before the next.');
   fitLines.push('- Reason through code steps explicitly.');
   fitLines.push('');
@@ -8266,7 +8308,7 @@ function buildGemini(){
   const writeFitSteps=(list,depth,parentNum)=>{
     let idx=0;
     list.forEach(step=>{
-      if(!_hasContent(step))return;
+      if(!step.alwaysEmit&&!_hasContent(step))return;
       idx++;
       const num=parentNum?parentNum+'.'+idx:idx+'';
       const pad='  '.repeat(depth);
@@ -8548,6 +8590,48 @@ function openOutput(){
   _reattachOutModal();
   _refreshOutput();
   document.getElementById('out-overlay').classList.add('open');
+}
+
+// v48.27 — Pre-fetch stale FETCH sources before opening the export modal, so you
+// can't ship a pipeline with a never-fetched (empty) source. A FETCH node is stale
+// when it has a URL but no captured content — failures clear content (see
+// _doFetchSingle), so empty content == stale. Reuses doFetchNode + the bulk-fetch
+// progress strip; only root-frame FETCH nodes are scanned (where sources live).
+function _staleFetchNodes(){
+  const nodes=(canvasStack[0]&&canvasStack[0].nodes)||[];
+  return nodes.filter(n=>{
+    if((n.type||n.skillId)!=='fetch')return false;
+    const urls=(n.values?.url||'').split('\n').map(s=>s.trim()).filter(s=>s&&!s.startsWith('#'));
+    if(!urls.length)return false;                  // no URL → nothing to fetch
+    return !((n.values?.content||'').trim());      // empty content → stale
+  });
+}
+let _exportPrefetchRunning=false;
+async function exportWithPrefetch(){
+  if(_exportPrefetchRunning)return;                // re-entry guard (double-click)
+  const stale=_staleFetchNodes();
+  if(!stale.length){openOutput();return;}          // nothing stale → open immediately
+  _exportPrefetchRunning=true;
+  const btn=document.getElementById('btn-export');
+  const btnTxt=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='\u2b07 Fetching\u2026';}
+  try{
+    for(let i=0;i<stale.length;i++){
+      _bulkFetchStrip.show('Fetching source '+(i+1)+'/'+stale.length+' before export\u2026');
+      try{ await doFetchNode(stale[i],null,null,'retry'); }
+      catch(e){ /* per-node _fetchStatus already records the error */ }
+    }
+    const stillEmpty=_staleFetchNodes().length;
+    if(stillEmpty){
+      _bulkFetchStrip.show('\u26a0 '+stillEmpty+' source'+(stillEmpty>1?'s':'')+' failed to fetch \u2014 exporting anyway','var(--red)');
+      await new Promise(r=>setTimeout(r,1600));
+    }
+  }finally{
+    _bulkFetchStrip.hide();
+    if(btn){btn.disabled=false;btn.textContent=btnTxt;}
+    _exportPrefetchRunning=false;
+  }
+  openOutput();
 }
 
 document.getElementById('out-fmt-tabs').addEventListener('click',e=>{
@@ -12769,7 +12853,53 @@ checkEmptyState();
     _handleFileDrop(Array.from(e.dataTransfer.files),'library',e.clientX,e.clientY);
   });
 })();
+// ── STARTER GALLERY (v48.27) ────────────────────────────────
+// Embedded starter pipelines for the no-pipeline screen. Each loads through the
+// same pipeline-creation path as newPipeline(), then forces Chain mode (these are
+// chains; single mode can't branch a Router or pipe multi-step output).
+const STARTER_TEMPLATES=[{"title": "Summarize any URL", "persona": "Anyone", "shape": "FETCH → COMPUTE", "blurb": "Fetch any web page and get a clean 5-bullet summary.", "data": {"name": "Starter 1 · Summarize any URL", "stack": [{"nodes": [{"id": "n-31b819e0", "type": "fetch", "skillId": null, "x": 0, "y": 0, "title": "FETCH — any web page", "values": {"url": "# Summarize ANY page — swap this URL for your own.\n# Lines starting with # are comments; add more URLs, one per line.\nhttps://en.wikipedia.org/wiki/API", "backend": "Proxy (Markdown)"}, "inputs": [], "outputs": [{"id": "p-9c8c2124", "name": "out", "type": "Any"}], "isStart": true}, {"id": "n-8c115977", "type": "compute", "skillId": null, "x": 350, "y": 0, "title": "Summarize", "values": {"instructions": "Summarize the page above in 5 clear bullet points a busy person could read in 20 seconds. Lead with what the topic IS, then the key facts. Plain language, no preamble.", "executor": "LLM"}, "inputs": [{"id": "p-53154eda", "name": "in", "type": "Any"}], "outputs": [{"id": "p-647995f3", "name": "out", "type": "Any"}]}], "edges": [{"id": "e-78b7b0f9", "from": "n-31b819e0", "to": "n-8c115977", "fromPort": "p-9c8c2124", "toPort": "p-53154eda"}], "tx": {"x": 0, "y": 0, "s": 1}, "label": "Root", "skillId": null}], "skills": []}}, {"title": "Repurpose into a post", "persona": "Marketing", "shape": "FETCH + TEXT → CONTEXT → COMPUTE", "blurb": "Blend an article with your brand voice into a ready-to-post draft.", "data": {"name": "Starter 2 · Repurpose a page into a LinkedIn post", "stack": [{"nodes": [{"id": "n-493a89be", "type": "fetch", "skillId": null, "x": 0, "y": 0, "title": "FETCH — article to repurpose", "values": {"url": "# Summarize ANY page — swap this URL for your own.\n# Lines starting with # are comments; add more URLs, one per line.\nhttps://en.wikipedia.org/wiki/API", "backend": "Proxy (Markdown)"}, "inputs": [], "outputs": [{"id": "p-a742a516", "name": "out", "type": "Any"}], "isStart": true}, {"id": "n-2caf4308", "type": "text_input", "skillId": null, "x": 0, "y": 220, "title": "Brand notes", "values": {"content": "Brand voice notes: we're a small team, we value clarity over jargon, and we never use exclamation marks or emojis."}, "inputs": [], "outputs": [{"id": "p-04ef5fa5", "name": "out", "type": "Text"}]}, {"id": "n-3ec909cb", "type": "context", "skillId": null, "x": 350, "y": 110, "title": "Audience & Tone", "values": {"variables": "audience: B2B founders and marketers\ntone: conversational, confident, no hype\nconstraints: under 1200 characters, one hook line, three short paragraphs, end with a question", "merge_mode": "Concatenate"}, "inputs": [{"id": "p-98361325", "name": "article", "type": "Any"}, {"id": "p-f7067218", "name": "brand", "type": "Any"}], "outputs": [{"id": "p-51a3cc73", "name": "out", "type": "Any"}]}, {"id": "n-f9b876da", "type": "compute", "skillId": null, "x": 700, "y": 110, "title": "Write the post", "values": {"instructions": "Using the article and the audience/tone/constraints above, write ONE LinkedIn post. Hook first line, then three short paragraphs, end with a question. Respect every constraint. Output only the post.", "executor": "LLM"}, "inputs": [{"id": "p-ab50349d", "name": "in", "type": "Any"}], "outputs": [{"id": "p-3e654767", "name": "out", "type": "Any"}]}], "edges": [{"id": "e-ffde8686", "from": "n-493a89be", "to": "n-3ec909cb", "fromPort": "p-a742a516", "toPort": "p-98361325"}, {"id": "e-9476b7c2", "from": "n-2caf4308", "to": "n-3ec909cb", "fromPort": "p-04ef5fa5", "toPort": "p-f7067218"}, {"id": "e-c6763539", "from": "n-3ec909cb", "to": "n-f9b876da", "fromPort": "p-51a3cc73", "toPort": "p-ab50349d"}], "tx": {"x": 0, "y": 0, "s": 1}, "label": "Root", "skillId": null}], "skills": []}}, {"title": "Review code into a checklist", "persona": "Developers", "shape": "CODE → COMPUTE → COMPUTE", "blurb": "Review a snippet, then turn the findings into a fix checklist.", "data": {"name": "Starter 3 · Review code, then turn it into a checklist", "stack": [{"nodes": [{"id": "n-91e8f170", "type": "code", "skillId": null, "x": 0, "y": 0, "title": "Code to review", "values": {"lang": "JavaScript", "code": "async function getUserNames(userIds) {\n  const names = [];\n  for (let i = 0; i < userIds.length; i++) {\n    const res = await fetch('/api/users/' + userIds[i]);\n    const user = await res.json();\n    names.push(user.name);\n  }\n  return names;\n}"}, "inputs": [], "outputs": [{"id": "p-553b271b", "name": "out", "type": "Any"}], "isStart": true}, {"id": "n-71c43d74", "type": "compute", "skillId": null, "x": 350, "y": 0, "title": "Review it", "values": {"instructions": "Review the code above. Write a short report: first one sentence on what it does, then the 3 most impactful issues, each with one line on why it matters. Order by impact.", "executor": "LLM"}, "inputs": [{"id": "p-24029e8e", "name": "in", "type": "Any"}], "outputs": [{"id": "p-fdd94ff6", "name": "out", "type": "Any"}]}, {"id": "n-bb80daff", "type": "compute", "skillId": null, "x": 700, "y": 0, "title": "Make a fix checklist", "values": {"instructions": "Turn the report above into a prioritized, copy-pasteable checklist of concrete fixes a developer can action. One checkbox per fix.", "executor": "LLM"}, "inputs": [{"id": "p-e3fc7e0b", "name": "in", "type": "Any"}], "outputs": [{"id": "p-d1967298", "name": "out", "type": "Any"}]}], "edges": [{"id": "e-f55f3b16", "from": "n-91e8f170", "to": "n-71c43d74", "fromPort": "p-553b271b", "toPort": "p-24029e8e"}, {"id": "e-fab5c7e8", "from": "n-71c43d74", "to": "n-bb80daff", "fromPort": "p-fdd94ff6", "toPort": "p-e3fc7e0b"}], "tx": {"x": 0, "y": 0, "s": 1}, "label": "Root", "skillId": null}], "skills": []}}, {"title": "Triage a batch of logs", "persona": "Engineering", "shape": "TEXT → MAP → COMPUTE", "blurb": "Classify every log line by severity, cause, and next step.", "data": {"name": "Starter 4 · Triage a batch of logs", "stack": [{"nodes": [{"id": "n-d6ae403e", "type": "text_input", "skillId": null, "x": 0, "y": 0, "title": "Raw log lines", "values": {"content": "2026-06-13 02:14:01 ERROR db.pool: connection timeout after 30000ms (pool exhausted, 50/50 in use)\n2026-06-13 02:14:03 WARN auth: 14 failed login attempts for user admin from 203.0.113.7\n2026-06-13 02:15:22 INFO worker: job queue drained, 0 pending\n2026-06-13 02:16:40 ERROR payments: Stripe webhook signature verification failed (event evt_1P9x)\n2026-06-13 02:17:05 WARN cache: redis latency 880ms (threshold 200ms)\n2026-06-13 02:18:11 ERROR api: unhandled promise rejection in /v1/export (cannot read 'rows' of undefined)\n2026-06-13 02:19:30 INFO deploy: release v2.4.1 rolled out to 3/3 instances\n2026-06-13 02:20:55 WARN disk: /var/log at 91% capacity on host web-02"}, "inputs": [], "outputs": [{"id": "p-11e5ac9c", "name": "out", "type": "Text"}], "isStart": true}, {"id": "n-1cb2386b", "type": "map", "skillId": null, "x": 350, "y": 0, "title": "For each line", "values": {"split_mode": "Newlines", "delimiter": "", "join_separator": "\n\n---\n\n", "max_iterations": "20"}, "inputs": [{"id": "p-b6c3ff26", "name": "in", "type": "Any"}], "outputs": [{"id": "p-11b5bc5b", "name": "out", "type": "Any"}]}, {"id": "n-6dc0d8b2", "type": "compute", "skillId": null, "x": 700, "y": 0, "title": "Classify line", "values": {"instructions": "Classify this single log line. Output exactly:\nSEVERITY: critical | warning | info\nLIKELY CAUSE: <one short phrase>\nACTION: <one short next step>", "executor": "LLM"}, "inputs": [{"id": "p-3880c3f7", "name": "in", "type": "Any"}], "outputs": [{"id": "p-4e5aa19b", "name": "out", "type": "Any"}]}], "edges": [{"id": "e-6360d17a", "from": "n-d6ae403e", "to": "n-1cb2386b", "fromPort": "p-11e5ac9c", "toPort": "p-b6c3ff26"}, {"id": "e-72b36d6b", "from": "n-1cb2386b", "to": "n-6dc0d8b2", "fromPort": "p-11b5bc5b", "toPort": "p-3880c3f7"}], "tx": {"x": 0, "y": 0, "s": 1}, "label": "Root", "skillId": null}], "skills": []}}, {"title": "Draft, then revise on fail", "persona": "Writing", "shape": "TEXT → COMPUTE → ROUTER → COMPUTE", "blurb": "Draft, gate it against your rules, and revise when it falls short.", "data": {"name": "Starter 5 · Draft, then revise if it fails a check", "stack": [{"nodes": [{"id": "n-477ff26a", "type": "text_input", "skillId": null, "x": 0, "y": 0, "title": "The brief", "values": {"content": "Write a 2-sentence cold outreach opener to a B2B SaaS founder offering a free developer-experience audit. No buzzwords."}, "inputs": [], "outputs": [{"id": "p-121c5306", "name": "out", "type": "Text"}], "isStart": true}, {"id": "n-5555b050", "type": "compute", "skillId": null, "x": 350, "y": 0, "title": "Draft", "values": {"instructions": "Write a first draft that fulfills the brief above.", "executor": "LLM"}, "inputs": [{"id": "p-80258e6f", "name": "in", "type": "Any"}], "outputs": [{"id": "p-861cd649", "name": "out", "type": "Any"}]}, {"id": "n-704f2e25", "type": "router", "skillId": null, "x": 700, "y": 0, "title": "Quality gate", "values": {"condition": "Pass only if the draft is at most 2 sentences, contains no buzzwords (synergy, leverage, game-changer, revolutionary, cutting-edge), and states one concrete benefit. Otherwise fail.", "mode": "LLM (natural language)", "max_loops": "2"}, "inputs": [{"id": "p-a59d59db", "name": "in", "type": "Any"}], "outputs": [{"id": "r-pass", "name": "pass", "type": "Any"}, {"id": "r-fail", "name": "fail", "type": "Any"}]}, {"id": "n-9a564f61", "type": "compute", "skillId": null, "x": 700, "y": 260, "title": "Revise", "values": {"instructions": "The draft failed the quality check. Rewrite it so it satisfies every condition: at most 2 sentences, no buzzwords, one concrete benefit. Output only the revised opener.", "executor": "LLM"}, "inputs": [{"id": "p-a8e31a07", "name": "in", "type": "Any"}], "outputs": [{"id": "p-22db1041", "name": "out", "type": "Any"}]}], "edges": [{"id": "e-525956ba", "from": "n-477ff26a", "to": "n-5555b050", "fromPort": "p-121c5306", "toPort": "p-80258e6f"}, {"id": "e-ac3c11ac", "from": "n-5555b050", "to": "n-704f2e25", "fromPort": "p-861cd649", "toPort": "p-a59d59db"}, {"id": "e-211aa8d1", "from": "n-704f2e25", "to": "n-9a564f61", "fromPort": "r-fail", "toPort": "p-a8e31a07"}], "tx": {"x": 0, "y": 0, "s": 1}, "label": "Root", "skillId": null}], "skills": []}}, {"title": "Two-lens content audit", "persona": "Consulting", "shape": "FETCH → 2× COMPUTE → CONTEXT → COMPUTE", "blurb": "Audit a page through two lenses, then merge into a ranked plan.", "data": {"name": "Starter 6 · Mini two-lens content audit", "stack": [{"nodes": [{"id": "n-7650cfcd", "type": "fetch", "skillId": null, "x": 0, "y": 130, "title": "FETCH — page to audit", "values": {"url": "# Summarize ANY page — swap this URL for your own.\n# Lines starting with # are comments; add more URLs, one per line.\nhttps://en.wikipedia.org/wiki/API", "backend": "Proxy (Markdown)"}, "inputs": [], "outputs": [{"id": "p-4b4fa105", "name": "out", "type": "Any"}], "isStart": true}, {"id": "n-4db4cee2", "type": "compute", "skillId": null, "x": 350, "y": 0, "title": "Clarity lens", "values": {"instructions": "Audit the page above for CLARITY only. Give a score out of 10, then list the 3 biggest clarity problems with a one-line fix each.", "executor": "LLM"}, "inputs": [{"id": "p-597c0887", "name": "in", "type": "Any"}], "outputs": [{"id": "p-4fbbccc5", "name": "out", "type": "Any"}]}, {"id": "n-336f6663", "type": "compute", "skillId": null, "x": 350, "y": 260, "title": "Structure lens", "values": {"instructions": "Audit the page above for STRUCTURE and scannability only. Give a score out of 10, then list the 3 biggest structural problems with a one-line fix each.", "executor": "LLM"}, "inputs": [{"id": "p-ac93b00a", "name": "in", "type": "Any"}], "outputs": [{"id": "p-ba607e12", "name": "out", "type": "Any"}]}, {"id": "n-8d5aab67", "type": "context", "skillId": null, "x": 700, "y": 130, "title": "Merge findings", "values": {"variables": "", "merge_mode": "Concatenate"}, "inputs": [{"id": "p-8fb0d986", "name": "clarity", "type": "Any"}, {"id": "p-6545d8db", "name": "structure", "type": "Any"}], "outputs": [{"id": "p-a6374846", "name": "out", "type": "Any"}]}, {"id": "n-a701560f", "type": "compute", "skillId": null, "x": 1050, "y": 130, "title": "Action plan", "values": {"instructions": "Combine both audits above into one prioritized action list: the top 5 fixes, ordered by impact. For each fix, note which lens it came from (clarity or structure).", "executor": "LLM"}, "inputs": [{"id": "p-ef92aebc", "name": "in", "type": "Any"}], "outputs": [{"id": "p-3f7cabbe", "name": "out", "type": "Any"}]}], "edges": [{"id": "e-3a8e9cd2", "from": "n-7650cfcd", "to": "n-4db4cee2", "fromPort": "p-4b4fa105", "toPort": "p-597c0887"}, {"id": "e-064de404", "from": "n-7650cfcd", "to": "n-336f6663", "fromPort": "p-4b4fa105", "toPort": "p-ac93b00a"}, {"id": "e-1531e9e4", "from": "n-4db4cee2", "to": "n-8d5aab67", "fromPort": "p-4fbbccc5", "toPort": "p-8fb0d986"}, {"id": "e-fd77b4e3", "from": "n-336f6663", "to": "n-8d5aab67", "fromPort": "p-ba607e12", "toPort": "p-6545d8db"}, {"id": "e-8fed00d1", "from": "n-8d5aab67", "to": "n-a701560f", "fromPort": "p-a6374846", "toPort": "p-ef92aebc"}], "tx": {"x": 0, "y": 0, "s": 1}, "label": "Root", "skillId": null}], "skills": []}}];
+
+function loadStarter(idx){
+  const t=STARTER_TEMPLATES[idx];if(!t)return;
+  const d=t.data;
+  const p={id:uid('pl'),name:d.name,stack:structuredClone(d.stack),saved:false};
+  const prev=activePipeline();if(prev)prev.stack=canvasStack;
+  pipelines.push(p);
+  activePipelineId=p.id;canvasStack=p.stack;
+  undoStack=[];redoStack=[];
+  selNode=null;selSkillId=null;selNodes.clear();
+  scene.querySelectorAll('.node').forEach(n=>n.remove());
+  hideEmptyState();closeOpenPanel();
+  rebuildCanvas();renderPipelineTabs();renderBreadcrumb();
+  setExecMode('chain');           // so Router / multi-step run correctly
+  savePipelines();
+}
+
+function renderStarterGallery(){
+  const host=document.getElementById('nps-gallery');
+  if(!host||host.dataset.built)return;          // build once
+  host.dataset.built='1';
+  host.innerHTML=STARTER_TEMPLATES.map((t,i)=>
+    '<button class="nps-card'+(i===0?' start':'')+'" data-idx="'+i+'">'+
+      '<span class="nps-card-num">'+(i+1)+'</span>'+
+      '<span class="nps-card-body">'+
+        '<span class="nps-card-head">'+
+          '<span class="nps-card-title">'+t.title+'</span>'+
+          '<span class="nps-card-chip">'+t.persona+'</span>'+
+        '</span>'+
+        '<span class="nps-card-shape">'+t.shape+'</span>'+
+        '<span class="nps-card-blurb">'+t.blurb+'</span>'+
+      '</span>'+
+    '</button>'
+  ).join('');
+  host.addEventListener('click',e=>{
+    const card=e.target.closest('.nps-card');if(!card)return;
+    loadStarter(parseInt(card.dataset.idx,10));
+  });
+}
+
 document.getElementById('nps-new').addEventListener('click',()=>newPipeline());
+renderStarterGallery();
 document.getElementById('nps-open').addEventListener('click',()=>{
   toggleOpenPanel(document.querySelector('.ptab-open')||document.getElementById('pipeline-tabbar'));
 });
