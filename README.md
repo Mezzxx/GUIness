@@ -38,8 +38,8 @@ Everything lives in one HTML file (~780KB, ~13,000 lines of JS). Open it in a br
 
 ## Getting Started
 
-1. Download the latest `GUIness_v##.html` (or clone this repo)
-2. Open it in any modern browser
+1. You can run it from [GUIness](https://guiness.zeen-media.com/), or download/clone this repo.
+2. Open index.html in any modern browser
 3. That's it
 
 No `npm install`. No `docker compose`. No environment variables. Just a browser.
