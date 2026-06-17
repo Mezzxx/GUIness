@@ -6,7 +6,7 @@ A self-contained, single-file visual skill pipeline editor for building and chai
 
 GUIness is a node-based pipeline editor (think Blender Geometry Nodes, but for AI skills) that lets you visually compose, connect, and execute chains of AI prompts. Each node represents a skill — a reusable prompt template with typed inputs and outputs — and pipelines wire them together into multi-step workflows.
 
-Everything lives in one HTML file (~780KB, ~13,000 lines of JS). Open it in a browser and start building.
+Everything lives in one HTML file (~780KB, ~13,000 lines of JS). Open it in a browser and start building. Checkout the [docs](https://guiness.zeen-media.com/docs/) for a more in-depth breakdown.
 
 ## Features
 
