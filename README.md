@@ -4,37 +4,42 @@ A self-contained, single-file visual skill pipeline editor for building and chai
 
 ## What It Does
 
-**[▶ Open the app](https://guiness.zeen-media.com/)**  ·  **[Documentation](https://guiness.zeen-media.com/docs/)**
-
 GUIness is a node-based pipeline editor (think Blender Geometry Nodes, but for AI skills) that lets you visually compose, connect, and execute chains of AI prompts. Each node represents a skill — a reusable prompt template with typed inputs and outputs — and pipelines wire them together into multi-step workflows.
 
-Everything lives in one HTML file (~745 KB, ~7,800 lines of JS). Open it in a browser and start building.
+Everything lives in one HTML file (~780KB, ~13,000 lines of JS). Open it in a browser and start building.
 
 ## Features
 
-- **Visual node editor** with drag-and-drop wiring, minimap, and canvas navigation
-- **Multi-pipeline tabs** — keep several pipelines open at once and switch between them
-- **10 built-in primitive nodes** — TEXT, FILE, FETCH, CODE, COMPUTE, ROUTER, MAP, CONTEXT, and Graph In/Out, locked and always present
-- **FETCH, ROUTER & MAP primitives** — pull a live URL or API at edit time, branch on conditions, and iterate a step across a list
+- **Visual node editor** with drag-and-drop wiring, minimap, lasso selection, alignment guides, and canvas navigation
+- **8 built-in primitive skills** (Starter Gems) ready to use out of the box
+- **Multi-URL FETCH** and **multi-file FILE** primitives for batch data ingestion
 - **AI-powered execution** via `callAI` / `callAIStreaming` with chain-of-thought pipeline runs
+- **Live chain execution** — nodes pulse amber while running, flip to green ✓ / red ✕ on complete/error, with a bottom-center HUD showing progress and a Stop button
+- **Pre-flight validation** — orphan and missing-input detection before a run, with amber ⚠ flags on problem nodes and a Run Anyway / Cancel gate
+- **Bulk Fetch** (Shift+F) — fetch all selected FETCH nodes in one operation
 - **Skills library** with JSON save/load, shift-click multi-select, and import/export
-- **Portable file formats** — `.ppln` pipelines and `.sklb` skill libraries, drag-and-drop to import
-- **Export → LLM** — format-optimized exports for Claude (XML), GPT (JSON), and Gemini
+- **Skill import diffing** — imported skills show NEW / UPDATE chips with behavior-field comparison against existing library entries
+- **Portable workspace** — export/import all pipelines + skills as a single `.gwsp` file for cross-device portability
+- **Gem export** tab for generating Gemini Custom Instructions from pipelines
 - **AI-generated `internalGraph`** for complex skill decomposition
-- **Vault** for secure API key storage with `safeStore` XSS-hardened wrapper
-- **Autosave & restore** — pipelines and skills persist to localStorage automatically, with an optional File System Access folder backup you can reconnect to resume
-- **Gist sync** — back up skills (or skills + all pipelines) to a GitHub Gist and pull them on another machine
-- **Social posting** integration
+- **Vault** for secure API key storage with `safeStore` XSS-hardened wrapper and idle auto-relock (15-minute default)
+- **Safe expression parser** — Router JS-mode conditions use a recursive-descent parser instead of `eval`/`new Function`, closing the XSS surface
+- **Gist sync** for cloud backup and sharing
+- **Autosave** with localStorage persistence and optional file-system backup
+- **Customizable keyboard shortcuts** — remap any binding via the ⌨ Keys overlay
+- **Quick-add search** (Q or double-click canvas) for fast node placement
+- **Context menu** (right-click node) — Set as Start Node, Save as Skill, Merge, Copy/Paste, Duplicate, Delete
+- **Social posting** integration (Bluesky, LinkedIn, Twitter/X, Instagram)
 - **File cards** with drag-and-drop support
-- **OKLCH color theming** with preset themes
-- **Collapsible panels** and responsive layout
+- **OKLCH color theming** with five preset themes and light/dark toggle
+- **Collapsible panels** and responsive layout with resizable panel widths
 - **Cycle detection** via Kahn's algorithm to prevent infinite loops
-- **Zero dependencies** — fully portable, runs offline (fonts inlined)
+- **Zero dependencies** — fully portable, runs offline
 
 ## Getting Started
 
-1. **Use it now** — open the live app at **[guiness.zeen-media.com](https://guiness.zeen-media.com/)**; nothing to install
-2. **Or run it yourself** — download `index.html` from this repo (or grab a tagged build from [Releases](https://github.com/Mezzxx/GUIness/releases)) and open it in any modern browser
+1. Download the latest `GUIness_v##.html` (or clone this repo)
+2. Open it in any modern browser
 3. That's it
 
 No `npm install`. No `docker compose`. No environment variables. Just a browser.
@@ -66,7 +71,7 @@ Store your API keys in the Vault. Keys are persisted in local storage and access
 
 ### Gist Sync
 
-Link a GitHub Gist to back up your work to the cloud and pull it on another machine. The sync **scope** toggles between *skills only* (default) and *skills + all open pipelines* — use the latter to pick up your whole workspace on a different device.
+Link a GitHub Gist to back up your pipelines and skills to the cloud. Useful for sharing setups across machines.
 
 ## Architecture
 
@@ -76,7 +81,7 @@ Everything is in one file by design. The key pieces:
 |---|---|
 | `CONFIG` | Magic numbers, defaults, constants |
 | `THEME_PRESETS` / `COLORS` | OKLCH color system and theme definitions |
-| `skills[]` | The 10 built-in primitive nodes + user skills |
+| `skills[]` | The 8 built-in primitive skills |
 | `pipelines[]` / `activePipelineId` | Pipeline state and active selection |
 | `canvasStack` | Canvas rendering and navigation state |
 | `selNode` / `selNodes` | Current node selection (single and multi) |
@@ -85,8 +90,11 @@ Everything is in one file by design. The key pieces:
 | `renderInspector` | Builds the inspector panel for the selected node |
 | `renderLib` | Renders the skills library panel |
 | `callAI` / `callAIStreaming` | AI execution (single and streaming) |
-| `runChain` | Executes a full pipeline via topological sort |
+| `runChain` / `runNodeWithState` | Executes a full pipeline via topological sort with live canvas visualization |
+| `preflight` | Pure pre-run validation (orphans, missing inputs) |
+| `safeEvalCondition` | Safe recursive-descent expression parser for Router conditions |
 | `renderMdResponse` | Renders markdown AI responses |
+| `exportWorkspace` / `importWorkspace` | Portable `.gwsp` workspace save/restore |
 
 ## Portability
 
@@ -94,9 +102,9 @@ The single-file, zero-dependency constraint is intentional. GUIness is designed 
 
 - **Emailable** — send the file to a collaborator, they open it, done
 - **Archivable** — one file to back up, no `node_modules` rot
-- **Offline-capable** — even the fonts are inlined, so the only network calls are the AI requests you trigger (and optional Gist sync)
-- **Private by design** — there's no server in the path, so your API keys and prompts never leave your browser except to reach the model provider you chose
+- **Offline-capable** — works without internet (except AI calls and Gist sync)
 - **Forkable** — no build toolchain to understand before making changes
+- **Workspace-portable** — export all pipelines + skills as a single `.gwsp` file and import on another machine
 
 ## License
 
