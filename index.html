@@ -282,8 +282,8 @@ select option{background:var(--panel)}
 #right .panel-expand-btn{border-left:1px solid var(--brd)}
 
 /* TOPBAR */
-.t-logo{font-size:15px;color:var(--acc)}
-.t-title{font-family:var(--mono);font-size:24px !important;font-weight:700; color:var(--acc);letter-spacing:.05em}
+.t-logo{height:30px;width:auto;color:var(--txt);flex-shrink:0;display:block}
+.nps-logo{height:64px;width:auto;color:var(--txt);display:block}
 .t-badge{font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--panel);border:1px solid var(--brd);border-radius:3px;padding:1px 5px}
 .t-count{font-family:var(--mono);font-size:8px;color:var(--dhi);background:var(--card);border:1px solid var(--brd);border-radius:3px;padding:1px 7px}
 .tbtn{border:1px solid var(--brd);border-radius:6px;padding:5px 11px;font-size:10px;color:var(--dhi);font-family:var(--mono)}
@@ -373,6 +373,11 @@ select option{background:var(--panel)}
 
 /* DEPTH INDICATOR on canvas */
 #depth-badge{position:absolute;top:10px;left:10px;background:var(--alo);border:1px solid var(--acc);border-radius:5px;padding:3px 10px;font-family:var(--mono);font-size:9px;color:var(--acc);pointer-events:none;z-index:50;display:none}
+#gesture-hints{position:absolute;top:10px;right:12px;background:var(--alo);border:1px solid var(--acc);border-radius:5px;font-family:var(--mono);font-size:9px;color:var(--acc);z-index:50;opacity:.25;transition:opacity .2s var(--ease);user-select:none}
+#gesture-hints:hover{opacity:1}
+#gesture-hints-toggle{padding:3px 10px;letter-spacing:.1em;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+#gesture-hints-body{padding:0 10px 6px;display:flex;flex-direction:column;gap:2px;line-height:1.55}
+#gesture-hints.collapsed #gesture-hints-body{display:none}
 
 
 /* LEFT */
@@ -1020,13 +1025,10 @@ select option{background:var(--panel)}
 <body>
 <div id="app">
   <div id="topbar">
-    <span class="t-logo">⬡</span>
-    <span class="t-title">GUIness</span>
-    <span class="t-badge">v48.28</span>
+    <svg class="t-logo" viewBox="0 0 542 144.6" xmlns="http://www.w3.org/2000/svg" aria-label="GUIness"><path fill="#ed990e" d="M196.4,130.8v-14.2h12.3V51.4h-12.3v-14.2h42.5v14.2h-12.5v65.2h12.5v14.2h-42.5Z"/><path fill="currentColor" d="M473.2,27.8h53.4c.6,0,1-.4,1-1v-12.2c0-.6-.4-1-1-1h-53.4c-.6,0-1,.4-1,1v4.9c-19.3,0-26.2,5.3-33.5,10.9-8.1,6.3-16.5,12.7-44.1,12.7v-4.9c0-.6-.4-1-1-1h-62.4c-.6,0-1,.4-1,1v4.9h-14.4v-4.9c0-.6-.4-1-1-1h-57.8c-.6,0-1,.4-1,1v12.2c0,.6.4,1,1,1h57.8c.6,0,1-.4,1-1v-4.9h14.4v4.9c0,.6.4,1,1,1h62.4c.6,0,1-.4,1-1v-4.9h77.6v4.9c0,.6.4,1,1,1h53.4c.6,0,1-.4,1-1v-12.2c0-.6-.4-1-1-1h-53.4c-.6,0-1,.4-1,1v4.9h-53.6c10.8-2.6,16.4-6.9,21.6-10.9,7-5.4,13.5-10.4,32-10.4v4.9c0,.6.4,1,1,1Z"/><path fill="#ed990e" d="M75.9,70.6v-5.6c0-6.6-5.4-12-12-12h-18.8c-6.6,0-12,5.4-12,12v37.9c0,6.6,5.4,12,12,12h18.8c6.6,0,12-5.4,12-12v-7.6c0,0-17.4,0-17.4,0v-14h34.8v39.4c0,5.5-4.5,10-10,10H25.6c-5.5,0-10-4.5-10-10V37.2h67.6c5.5,0,10,4.5,10,10v23.4h-17.4,0Z"/><path fill="#ed990e" d="M161.7,37.2v74.4c0,2.8-2.2,5-5,5h-26.5c-2.8,0-5-2.2-5-5V37.2h-17.7v81.9c0,6.5,5.3,11.7,11.7,11.7h48.4c6.5,0,11.7-5.3,11.7-11.7V37.2h-17.7Z"/><path fill="#ed990e" d="M273.7,130.8v-48.9c0-2.8,2.2-5,5-5h14.4c2.8,0,5,2.2,5,5v48.9h17.7v-61.4c0-4.8-4.4-8.6-9.8-8.6h-50.1v70h17.7Z"/><path fill="#ed990e" d="M330.2,60.8v58.3c0,6.5,5.3,11.7,11.7,11.7h52.7v-16.1h-43.3c-2.8,0-5-2.2-5-5v-.9c0-2.8,2.2-5,5-5h31.6c6.5,0,11.7-5.3,11.7-11.7v-19.6c0-6.5-5.3-11.7-11.7-11.7h-52.7ZM371.9,87.8h-20.6c-2.8,0-5-2.2-5-5v-.9c0-2.8,2.2-5,5-5h20.6c2.8,0,5,2.2,5,5v.9c0,2.8-2.2,5-5,5Z"/><path fill="#ed990e" d="M490.2,82.7v-.9c0-2.8,2.2-5,5-5h31.6v-16.1h-54.3v31.3c0,6.5,5.3,11.7,11.7,11.7h20.1c2.8,0,5,2.2,5,5v.9c0,2.8-2.2,5-5,5h-33.9v16.1h44.8c6.5,0,11.7-5.3,11.7-11.7v-2.5h0v-17.1c0-6.5-5.3-11.7-11.7-11.7h-20.1c-2.8,0-5-2.2-5-5h0Z"/><path fill="#ed990e" d="M423.2,82.7v-.9c0-2.8,2.2-5,5-5h31.6v-16.1h-54.3v31.3c0,6.5,5.3,11.7,11.7,11.7h20.1c2.8,0,5,2.2,5,5v.9c0,2.8-2.2,5-5,5h-33.9v16.1h44.8c6.5,0,11.7-5.3,11.7-11.7v-2.5h0v-17.1c0-6.5-5.3-11.7-11.7-11.7h-20.1c-2.8,0-5-2.2-5-5h0Z"/></svg>
+    <span class="t-badge">v48.29</span>
     <span class="t-count" id="skill-count">0 skills</span>
     <span style="flex:1"></span>
-    <span style="font-size:9px;color:var(--dim)">Drag=pan · Shift+drag=select · Scroll=zoom · Dbl-click=open · Click edge=cut · Alt=downstream</span>
-    <div style="width:1px;height:18px;background:var(--brd);margin:0 4px"></div>
     <button class="tbtn danger hidden" id="btn-del">Delete Node</button>
     <button class="tbtn" id="btn-reset">Reset View</button>
     <button class="tbtn" id="btn-fit" title="Zoom to fit all nodes (Home)">⊞ Fit</button>
@@ -1072,7 +1074,7 @@ select option{background:var(--panel)}
   <div id="body">
     <!-- NO-PIPELINE EMPTY STATE -->
     <div id="no-pipeline-screen">
-      <h2>⬡ GUIness</h2>
+      <h2><svg class="nps-logo" viewBox="0 0 542 144.6" xmlns="http://www.w3.org/2000/svg" aria-label="GUIness"><path fill="#ed990e" d="M196.4,130.8v-14.2h12.3V51.4h-12.3v-14.2h42.5v14.2h-12.5v65.2h12.5v14.2h-42.5Z"/><path fill="currentColor" d="M473.2,27.8h53.4c.6,0,1-.4,1-1v-12.2c0-.6-.4-1-1-1h-53.4c-.6,0-1,.4-1,1v4.9c-19.3,0-26.2,5.3-33.5,10.9-8.1,6.3-16.5,12.7-44.1,12.7v-4.9c0-.6-.4-1-1-1h-62.4c-.6,0-1,.4-1,1v4.9h-14.4v-4.9c0-.6-.4-1-1-1h-57.8c-.6,0-1,.4-1,1v12.2c0,.6.4,1,1,1h57.8c.6,0,1-.4,1-1v-4.9h14.4v4.9c0,.6.4,1,1,1h62.4c.6,0,1-.4,1-1v-4.9h77.6v4.9c0,.6.4,1,1,1h53.4c.6,0,1-.4,1-1v-12.2c0-.6-.4-1-1-1h-53.4c-.6,0-1,.4-1,1v4.9h-53.6c10.8-2.6,16.4-6.9,21.6-10.9,7-5.4,13.5-10.4,32-10.4v4.9c0,.6.4,1,1,1Z"/><path fill="#ed990e" d="M75.9,70.6v-5.6c0-6.6-5.4-12-12-12h-18.8c-6.6,0-12,5.4-12,12v37.9c0,6.6,5.4,12,12,12h18.8c6.6,0,12-5.4,12-12v-7.6c0,0-17.4,0-17.4,0v-14h34.8v39.4c0,5.5-4.5,10-10,10H25.6c-5.5,0-10-4.5-10-10V37.2h67.6c5.5,0,10,4.5,10,10v23.4h-17.4,0Z"/><path fill="#ed990e" d="M161.7,37.2v74.4c0,2.8-2.2,5-5,5h-26.5c-2.8,0-5-2.2-5-5V37.2h-17.7v81.9c0,6.5,5.3,11.7,11.7,11.7h48.4c6.5,0,11.7-5.3,11.7-11.7V37.2h-17.7Z"/><path fill="#ed990e" d="M273.7,130.8v-48.9c0-2.8,2.2-5,5-5h14.4c2.8,0,5,2.2,5,5v48.9h17.7v-61.4c0-4.8-4.4-8.6-9.8-8.6h-50.1v70h17.7Z"/><path fill="#ed990e" d="M330.2,60.8v58.3c0,6.5,5.3,11.7,11.7,11.7h52.7v-16.1h-43.3c-2.8,0-5-2.2-5-5v-.9c0-2.8,2.2-5,5-5h31.6c6.5,0,11.7-5.3,11.7-11.7v-19.6c0-6.5-5.3-11.7-11.7-11.7h-52.7ZM371.9,87.8h-20.6c-2.8,0-5-2.2-5-5v-.9c0-2.8,2.2-5,5-5h20.6c2.8,0,5,2.2,5,5v.9c0,2.8-2.2,5-5,5Z"/><path fill="#ed990e" d="M490.2,82.7v-.9c0-2.8,2.2-5,5-5h31.6v-16.1h-54.3v31.3c0,6.5,5.3,11.7,11.7,11.7h20.1c2.8,0,5,2.2,5,5v.9c0,2.8-2.2,5-5,5h-33.9v16.1h44.8c6.5,0,11.7-5.3,11.7-11.7v-2.5h0v-17.1c0-6.5-5.3-11.7-11.7-11.7h-20.1c-2.8,0-5-2.2-5-5h0Z"/><path fill="#ed990e" d="M423.2,82.7v-.9c0-2.8,2.2-5,5-5h31.6v-16.1h-54.3v31.3c0,6.5,5.3,11.7,11.7,11.7h20.1c2.8,0,5,2.2,5,5v.9c0,2.8-2.2,5-5,5h-33.9v16.1h44.8c6.5,0,11.7-5.3,11.7-11.7v-2.5h0v-17.1c0-6.5-5.3-11.7-11.7-11.7h-20.1c-2.8,0-5-2.2-5-5h0Z"/></svg></h2>
       <p>Resume where you left off, start fresh, or run a template.</p>
       <div class="nps-section" id="nps-autosave-section">
         <div class="nps-section-label">CONTINUE FROM AUTOSAVE</div>
@@ -1160,6 +1162,17 @@ select option{background:var(--panel)}
 
       <!-- CANVAS -->
       <div id="canvas-wrap">
+        <div id="gesture-hints">
+          <div id="gesture-hints-toggle"><span>GESTURES</span><span id="gesture-hints-chev">▾</span></div>
+          <div id="gesture-hints-body">
+            <span>Drag = pan</span>
+            <span>Shift+drag = select</span>
+            <span>Scroll = zoom</span>
+            <span>Dbl-click = open</span>
+            <span>Click edge = cut</span>
+            <span>Alt = downstream</span>
+          </div>
+        </div>
         <div id="minimap" title="Click to navigate · Drag to pan">
           <div id="minimap-toggle">▾</div>
           <canvas id="minimap-canvas"></canvas>
@@ -11970,6 +11983,25 @@ function renderGitHub() {
   requestAnimationFrame(renderMinimap);
 })();
 
+// ═══════════════════════════════════════════════════════════
+// GESTURE HINTS OVERLAY
+// ═══════════════════════════════════════════════════════════
+(function(){
+  const el=document.getElementById('gesture-hints');
+  const toggle=document.getElementById('gesture-hints-toggle');
+  const chev=document.getElementById('gesture-hints-chev');
+  let collapsed=localStorage.getItem('pb_gesture_hints_collapsed')==='1';
+  if(collapsed)el.classList.add('collapsed');
+  chev.textContent=collapsed?'\u25b8':'\u25be';
+  toggle.addEventListener('click',e=>{
+    e.stopPropagation();
+    collapsed=!collapsed;
+    el.classList.toggle('collapsed',collapsed);
+    chev.textContent=collapsed?'\u25b8':'\u25be';
+    localStorage.setItem('pb_gesture_hints_collapsed',collapsed?'1':'0');
+  });
+})();
+
 // ── Run section toggle ────────────────────────────────────
 document.getElementById('run-section-toggle').addEventListener('click',()=>{
   const body=document.getElementById('run-section-body');
@@ -12408,7 +12440,7 @@ function _initSocialPosting(){
       #branch-overlay *,#confirm-overlay *,#batch-merge-overlay *,#batch-confirm-overlay *{
         font-size:inherit;
       }
-      #topbar .t-logo{font-size:${(15*scale).toFixed(2)}px!important}
+      #topbar .t-logo{height:${(30*scale).toFixed(2)}px!important}
       .tbtn,#add-btn,.ract,.ibar-btn,.vbtn,.dbtn,.bbtn,.mbtn{
         font-size:${(9*scale).toFixed(2)}px!important;
       }
