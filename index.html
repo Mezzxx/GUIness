@@ -503,7 +503,7 @@ select option{background:var(--panel)}
 #scene svg .edge-hit{pointer-events:stroke;cursor:pointer}
 #empty-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none}
 .eh-icon{font-size:28px;opacity:.08}
-.eh-txt{font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;line-height:1.9;opacity:.65}
+.eh-txt{font-family:var(--mono);font-size:14px;color:var(--dim);text-align:center;line-height:1.9;opacity:.65}
 #conn-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--alo);border:1px solid var(--acc);border-radius:5px;padding:3px 12px;font-family:var(--mono);font-size:9px;color:var(--acc);pointer-events:none;z-index:50}
 #zoom-lbl{position:absolute;bottom:16px;right:200px;font-family:var(--mono);font-size:8px;color:var(--dim);background:var(--surf);border:1px solid var(--brd);border-radius:4px;padding:2px 7px;pointer-events:none}
 
@@ -1182,7 +1182,7 @@ select option{background:var(--panel)}
         <div id="quick-add"><input id="qa-input" placeholder="Search skills…" type="text" autocomplete="off"/><div id="quick-add-list"></div></div>
         <div id="empty-hint" style="display:none">
           <div class="eh-icon">⬡</div>
-          <div class="eh-txt" id="empty-txt">Click + on a library node to place it.<br/><span style="font-size:8px;opacity:.7">POST → COLLECTION → SCHEDULE → PUBLISHER</span></div>
+          <div class="eh-txt" id="empty-txt">Click + on a library node or click & drag to place it.</div>
         </div>
         <div id="conn-hint" style="display:none">Click an input port to connect · Esc to cancel</div>
         <div id="depth-badge"></div>
@@ -4542,7 +4542,7 @@ function updateTopbar(){
     const sk=getSk(frame().skillId);
     et.innerHTML='';const etS=document.createElement('strong');etS.style.color='var(--acc)';etS.textContent=sk?.label||'skill';const etBr=document.createElement('br');const etSub=document.createElement('span');etSub.style.cssText='font-size:8px;opacity:.7';etSub.textContent="Add nodes to define this skill's sub-steps";et.append('Internal graph for ',etS,etBr,etSub);
   }else{
-    et.innerHTML='Click + on a library node to place it.<br/><span style="font-size:8px;opacity:.7">POST → COLLECTION → SCHEDULE → PUBLISHER</span>';
+    et.innerHTML='Click + on a library node <br>or click & drag to place it.';
   }
 }
 
